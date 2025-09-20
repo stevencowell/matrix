@@ -205,6 +205,45 @@
             margin-top: 4px;
         }
 
+        .subject-pool-grid {
+            display: grid;
+            gap: 15px;
+            margin-top: 10px;
+            align-items: flex-start;
+        }
+
+        .subject-pool-column {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .subject-pool-column h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subject-pool-column-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .subject-pool-column-body .subject-slot {
+            margin: 0;
+        }
+
+        .subject-pool-column--unassigned {
+            grid-column: 1 / -1;
+            margin-top: 10px;
+        }
+
         .subject-slot.dragging {
             opacity: 0.5;
             transform: rotate(5deg);
@@ -612,6 +651,43 @@
             }
         }
 
+        function getSubjectPoolColumn(lineIndex) {
+            const container = document.getElementById('subjectPoolItems');
+            if (!container) {
+                return null;
+            }
+
+            const numericLine = Number(lineIndex);
+            const normalizedLine = Number.isInteger(numericLine) && numericLine >= 0
+                ? String(numericLine)
+                : 'unassigned';
+
+            const selector = `.subject-pool-column[data-line="${normalizedLine}"] .subject-pool-column-body`;
+            const column = container.querySelector(selector);
+
+            if (column) {
+                return column;
+            }
+
+            return container.querySelector('.subject-pool-column[data-line="unassigned"] .subject-pool-column-body');
+        }
+
+        function createSubjectElement(subjectCode) {
+            const subjectElement = document.createElement('div');
+            subjectElement.className = 'subject-slot';
+            subjectElement.textContent = subjectCode;
+            subjectElement.draggable = true;
+            subjectElement.dataset.subject = subjectCode;
+
+            const mappedLine = subjectLineMapping[subjectCode];
+            subjectElement.dataset.line = mappedLine !== undefined ? mappedLine : 'unassigned';
+
+            subjectElement.addEventListener('dragstart', handleDragStart);
+            subjectElement.addEventListener('dragend', handleDragEnd);
+
+            return subjectElement;
+        }
+
         function addSubjectToPool(subjectCode) {
             const container = document.getElementById('subjectPoolItems');
             if (!container) {
@@ -625,16 +701,13 @@
                 return;
             }
 
-            const subjectElement = document.createElement('div');
-            subjectElement.className = 'subject-slot';
-            subjectElement.textContent = subjectCode;
-            subjectElement.draggable = true;
-            subjectElement.dataset.subject = subjectCode;
+            const columnBody = getSubjectPoolColumn(subjectLineMapping[subjectCode]);
+            if (!columnBody) {
+                return;
+            }
 
-            subjectElement.addEventListener('dragstart', handleDragStart);
-            subjectElement.addEventListener('dragend', handleDragEnd);
-
-            container.appendChild(subjectElement);
+            const subjectElement = createSubjectElement(subjectCode);
+            columnBody.appendChild(subjectElement);
         }
 
         function removeSubjectFromCell(lineIndex, teacherIndex, subjectCode, addBackToPool = false) {
@@ -897,7 +970,10 @@
         // Create the subject pool
         function createSubjectPool() {
             const container = document.querySelector('.timetable-container');
-            
+            if (!container) {
+                return;
+            }
+
             // Remove existing subject pool if it exists
             const existingPool = document.getElementById('subjectPool');
             if (existingPool) {
@@ -912,6 +988,7 @@
                 background: #f8f9fa;
                 border-radius: 8px;
                 border: 1px solid #dee2e6;
+                overflow-x: auto;
             `;
 
             const title = document.createElement('h3');
@@ -921,25 +998,43 @@
             subjectPool.appendChild(title);
 
             const subjectsContainer = document.createElement('div');
-            subjectsContainer.style.cssText = `
-                display: flex;
-                flex-wrap: wrap;
-                gap: 10px;
-            `;
+            subjectsContainer.className = 'subject-pool-grid';
             subjectsContainer.id = 'subjectPoolItems';
+            subjectsContainer.style.gridTemplateColumns = `repeat(${lines.length}, minmax(160px, 1fr))`;
 
-            subjects.forEach((subject, index) => {
-                const subjectElement = document.createElement('div');
-                subjectElement.className = 'subject-slot';
-                subjectElement.textContent = subject;
-                subjectElement.draggable = true;
-                subjectElement.dataset.subject = subject;
-                subjectElement.dataset.index = index;
+            const columnBodies = {};
 
-                subjectElement.addEventListener('dragstart', handleDragStart);
-                subjectElement.addEventListener('dragend', handleDragEnd);
+            function createColumn(label, key, extraClass) {
+                const column = document.createElement('div');
+                column.className = 'subject-pool-column';
+                if (extraClass) {
+                    column.classList.add(extraClass);
+                }
+                column.dataset.line = key;
 
-                subjectsContainer.appendChild(subjectElement);
+                const header = document.createElement('h4');
+                header.textContent = label;
+                column.appendChild(header);
+
+                const body = document.createElement('div');
+                body.className = 'subject-pool-column-body';
+                column.appendChild(body);
+
+                subjectsContainer.appendChild(column);
+                return body;
+            }
+
+            lines.forEach((line, index) => {
+                columnBodies[index] = createColumn(line, index);
+            });
+
+            columnBodies.unassigned = createColumn('Unassigned', 'unassigned', 'subject-pool-column--unassigned');
+
+            subjects.forEach(subject => {
+                const subjectElement = createSubjectElement(subject);
+                const mappedLine = subjectLineMapping[subject];
+                const targetColumn = columnBodies[mappedLine !== undefined ? mappedLine : 'unassigned'] || columnBodies.unassigned;
+                targetColumn.appendChild(subjectElement);
             });
 
             subjectPool.appendChild(subjectsContainer);
