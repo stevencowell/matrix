@@ -292,6 +292,7 @@
             border-radius: 4px;
             padding: 2px 4px;
             font-size: 11px;
+            cursor: move;
         }
 
         .subject-slot.semester-pair .semester-pair-label {
@@ -2186,6 +2187,31 @@
             }
         }
 
+        function enhanceAllocatedSubjectElement(element, subjectCode, lineIndex, teacherIndex) {
+            if (!element) {
+                return;
+            }
+
+            element.dataset.subject = subjectCode;
+            element.dataset.teacher = teacherIndex;
+            element.dataset.line = lineIndex;
+            element.dataset.allocationState = 'allocated';
+            element.draggable = true;
+
+            element.addEventListener('dragstart', handleDragStart);
+            element.addEventListener('dragend', handleDragEnd);
+            element.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (draggedElement || element.classList.contains('dragging')) {
+                    return;
+                }
+
+                handleSubjectRemoval(lineIndex, teacherIndex, subjectCode);
+            });
+        }
+
         function renderCell(lineIndex, teacherIndex) {
             const cell = document.querySelector(`[data-period="${lineIndex}"][data-teacher="${teacherIndex}"]`);
             if (!cell) {
@@ -2214,11 +2240,7 @@
                     const subjectRow = document.createElement('div');
                     subjectRow.className = 'semester-pair-item';
                     subjectRow.textContent = subject;
-                    subjectRow.dataset.subject = subject;
-                    subjectRow.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        handleSubjectRemoval(lineIndex, teacherIndex, subject);
-                    });
+                    enhanceAllocatedSubjectElement(subjectRow, subject, lineIndex, teacherIndex);
                     wrapper.appendChild(subjectRow);
                 });
 
@@ -2262,13 +2284,7 @@
                     forceSegmentStyle: shouldForceSegment
                 });
 
-                subjectElement.dataset.subject = subject;
-                subjectElement.dataset.teacher = teacherIndex;
-                subjectElement.dataset.line = lineIndex;
-                subjectElement.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    handleSubjectRemoval(lineIndex, teacherIndex, subject);
-                });
+                enhanceAllocatedSubjectElement(subjectElement, subject, lineIndex, teacherIndex);
                 cell.appendChild(subjectElement);
             });
         }
@@ -2557,11 +2573,17 @@
             }
 
             const subject = draggedElement.dataset.subject;
-            const period = parseInt(cell.dataset.period);
-            const teacher = parseInt(cell.dataset.teacher);
+            if (!subject) {
+                return;
+            }
+
+            const period = parseInt(cell.dataset.period, 10);
+            const teacher = parseInt(cell.dataset.teacher, 10);
+            const isAllocatedElement = draggedElement.classList.contains('allocated')
+                || draggedElement.dataset.allocationState === 'allocated';
 
             if (allocateSubjectToTeacher(subject, teacher, period)) {
-                if (!draggedElement.classList.contains('allocated')) {
+                if (!isAllocatedElement) {
                     draggedElement.remove();
                 }
             }
