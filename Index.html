@@ -142,6 +142,15 @@
             background: #e67e22;
         }
 
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
         .timetable-container {
             padding: 20px;
             overflow-x: auto;
@@ -1175,6 +1184,9 @@
                     <div class="control-group-label">Management &amp; Utilities</div>
                     <div class="control-group-buttons">
                         <button class="btn btn-primary" onclick="openManagementHub()" title="Open tools to manage teachers, subjects, lines and supplemental data">Management Hub</button>
+                        <button class="btn btn-danger" onclick="promptRemoveTeacher()" title="Remove a teacher and return any allocated subjects to the pool">Remove Teacher</button>
+                        <button class="btn btn-danger" onclick="promptRemoveSubject()" title="Remove a subject code and clear any allocations">Remove Subject</button>
+                        <button class="btn btn-danger" onclick="promptRemoveLine()" title="Delete a timetable line and return allocated subjects to the pool">Remove Line</button>
                     </div>
                 </div>
             </div>
