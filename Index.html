@@ -333,67 +333,198 @@
 
         .teacher-period-summary {
             margin-top: 20px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
+            padding: 24px;
+            background: linear-gradient(135deg, #f4f8ff 0%, #eef2ff 100%);
+            border-radius: 16px;
+            border: 1px solid #d7e3f5;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.12);
         }
 
         .teacher-period-summary h3 {
-            font-size: 1.1rem;
-            color: #2c3e50;
-            margin-bottom: 6px;
+            font-size: 1.2rem;
+            color: #1f3d63;
+            margin-bottom: 8px;
         }
 
         .teacher-period-subtitle {
             font-size: 0.85rem;
-            color: #7f8c8d;
-            margin-bottom: 12px;
+            color: #58708c;
+            margin-bottom: 14px;
+            line-height: 1.45;
         }
 
         .teacher-period-legend {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 15px;
+            gap: 10px;
+            margin-bottom: 18px;
             font-size: 0.75rem;
-            color: #7f8c8d;
+            color: #58708c;
         }
 
         .teacher-period-legend span {
-            background: #ecf0f1;
-            border-radius: 4px;
-            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.65);
+            border-radius: 999px;
+            padding: 6px 12px;
+            border: 1px solid rgba(52, 152, 219, 0.15);
+            color: #425d78;
+            box-shadow: 0 1px 2px rgba(44, 62, 80, 0.08);
+        }
+
+        .teacher-card-toggle-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+            margin: 12px 0 6px;
+        }
+
+        .btn-compact {
+            padding: 6px 12px;
+            font-size: 12px;
         }
 
         .teacher-period-grid {
             display: grid;
-            gap: 12px;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         }
 
         .teacher-period-card {
-            background: white;
+            position: relative;
+            background: #ffffff;
             border: 1px solid #dbe2e8;
-            border-radius: 6px;
-            padding: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(44, 62, 80, 0.08);
+            transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+            overflow: hidden;
+            border-left: 6px solid transparent;
         }
 
-        .teacher-period-header {
+        .teacher-period-card.balance-positive {
+            border-left-color: #27ae60;
+        }
+
+        .teacher-period-card.balance-negative {
+            border-left-color: #e74c3c;
+        }
+
+        .teacher-period-card[open] {
+            box-shadow: 0 8px 18px rgba(52, 152, 219, 0.18);
+            transform: translateY(-1px);
+            border-color: rgba(52, 152, 219, 0.35);
+        }
+
+        .teacher-card-summary {
+            list-style: none;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.12), rgba(52, 152, 219, 0.04));
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .teacher-period-card.balance-negative > .teacher-card-summary {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(231, 76, 60, 0.04));
+        }
+
+        .teacher-card-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .teacher-card-summary:focus {
+            outline: none;
+        }
+
+        .teacher-card-summary::after {
+            content: '\25BC';
+            font-size: 0.75rem;
+            color: inherit;
+            transition: transform 0.3s ease;
+        }
+
+        .teacher-period-card:not([open]) > .teacher-card-summary::after {
+            transform: rotate(-90deg);
+        }
+
+        .teacher-card-summary-main {
+            display: flex;
+            align-items: center;
             gap: 8px;
         }
 
+        .teacher-card-summary-chips {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+
+        .teacher-card-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(52, 152, 219, 0.2);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #2c3e50;
+        }
+
+        .teacher-card-chip.fte-chip {
+            background: rgba(155, 89, 182, 0.18);
+            border-color: rgba(155, 89, 182, 0.3);
+            color: #7d3c98;
+        }
+
+        .teacher-card-chip.load-chip {
+            background: rgba(52, 152, 219, 0.18);
+            border-color: rgba(52, 152, 219, 0.3);
+            color: #1f618d;
+        }
+
+        .teacher-card-chip.balance-chip.positive {
+            background: rgba(39, 174, 96, 0.18);
+            border-color: rgba(39, 174, 96, 0.3);
+            color: #1e8449;
+        }
+
+        .teacher-card-chip.balance-chip.negative {
+            background: rgba(231, 76, 60, 0.18);
+            border-color: rgba(231, 76, 60, 0.3);
+            color: #c0392b;
+        }
+
+        .teacher-card-body {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #ffffff;
+            border-top: 1px solid #e3ebf3;
+        }
+
+        .teacher-card-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
         .teacher-period-name {
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 600;
-            color: #34495e;
+            color: #2c3e50;
         }
 
         .teacher-fte-control {
@@ -402,60 +533,77 @@
             font-size: 0.75rem;
             color: #7f8c8d;
             text-align: right;
+            margin-left: auto;
         }
 
         .teacher-fte-control label {
             font-weight: 600;
             color: #2c3e50;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
 
         .teacher-fte-control select {
-            padding: 4px 8px;
-            border: 1px solid #dbe2e8;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            padding: 6px 10px;
+            border: 1px solid #ccd9e4;
+            border-radius: 6px;
+            font-size: 0.85rem;
             background: #ffffff;
             color: #2c3e50;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .teacher-fte-control select:focus {
             border-color: #3498db;
             outline: none;
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.18);
+        }
+
+        .teacher-card-section-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #5d6d7e;
         }
 
         .teacher-load-inputs {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
         }
 
         .teacher-load-input {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
             font-size: 0.75rem;
             color: #34495e;
+            background: #f8fbff;
+            border: 1px solid #d8e3f1;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: inset 0 1px 2px rgba(44, 62, 80, 0.05);
         }
 
         .teacher-load-input label {
-            font-weight: 600;
+            font-weight: 700;
             color: #2c3e50;
         }
 
         .teacher-load-input input {
             padding: 6px 8px;
-            border: 1px solid #dbe2e8;
-            border-radius: 4px;
+            border: 1px solid #cbd7e3;
+            border-radius: 6px;
             font-size: 0.8rem;
             color: #2c3e50;
+            background: #ffffff;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .teacher-load-input input:focus {
             border-color: #3498db;
             outline: none;
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.18);
         }
 
         .teacher-load-input-note {
@@ -464,11 +612,13 @@
         }
 
         .teacher-load-summary {
-            border-top: 1px solid #ecf0f1;
-            padding-top: 10px;
+            background: linear-gradient(135deg, #f8fbff, #eef4ff);
+            border: 1px dashed #c9dbf3;
+            border-radius: 12px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
             font-size: 0.75rem;
             color: #34495e;
         }
@@ -480,16 +630,19 @@
         }
 
         .teacher-load-row span:first-child {
-            color: #7f8c8d;
+            color: #5d6d7e;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         .teacher-load-row span:last-child {
-            font-weight: 600;
+            font-weight: 700;
             text-align: right;
+            color: #2c3e50;
         }
 
         .teacher-load-balance span:last-child {
-            font-weight: 700;
+            font-weight: 800;
         }
 
         .teacher-load-balance.positive span:last-child {
@@ -502,7 +655,7 @@
 
         .teacher-load-note {
             font-size: 0.7rem;
-            color: #7f8c8d;
+            color: #5f6a6a;
         }
 
         .teacher-period-empty {
@@ -716,13 +869,41 @@
                 flex-direction: column;
                 align-items: stretch;
             }
-            
+
             .timetable-container {
                 padding: 10px;
             }
-            
+
             .timetable {
                 font-size: 12px;
+            }
+
+            .teacher-period-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .teacher-card-summary {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .teacher-card-summary::after {
+                align-self: flex-start;
+            }
+
+            .teacher-card-summary-chips {
+                justify-content: flex-start;
+            }
+
+            .teacher-card-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .teacher-fte-control {
+                margin-left: 0;
+                text-align: left;
             }
 
             .modal-content {
@@ -1346,6 +1527,33 @@
                 ].join('');
                 summary.appendChild(legend);
 
+                const toggleControls = document.createElement('div');
+                toggleControls.className = 'teacher-card-toggle-controls';
+
+                const expandBtn = document.createElement('button');
+                expandBtn.type = 'button';
+                expandBtn.id = 'expandTeachersBtn';
+                expandBtn.className = 'btn btn-secondary btn-compact';
+                expandBtn.textContent = 'Expand all cards';
+                expandBtn.disabled = true;
+                expandBtn.addEventListener('click', function() {
+                    toggleAllTeacherCards(true);
+                });
+                toggleControls.appendChild(expandBtn);
+
+                const collapseBtn = document.createElement('button');
+                collapseBtn.type = 'button';
+                collapseBtn.id = 'collapseTeachersBtn';
+                collapseBtn.className = 'btn btn-secondary btn-compact';
+                collapseBtn.textContent = 'Collapse all cards';
+                collapseBtn.disabled = true;
+                collapseBtn.addEventListener('click', function() {
+                    toggleAllTeacherCards(false);
+                });
+                toggleControls.appendChild(collapseBtn);
+
+                summary.appendChild(toggleControls);
+
                 const grid = document.createElement('div');
                 grid.id = 'teacherPeriodTotalsGrid';
                 grid.className = 'teacher-period-grid';
@@ -1366,11 +1574,25 @@
             return summary;
         }
 
+        function toggleAllTeacherCards(open) {
+            document.querySelectorAll('.teacher-period-card').forEach(card => {
+                card.open = open;
+            });
+        }
+
         function updateTeacherPeriodTotals() {
             const hasTeachers = Array.isArray(teachers) && teachers.length > 0;
             const existingSummary = document.getElementById('teacherPeriodTotals');
+            const expandBtn = document.getElementById('expandTeachersBtn');
+            const collapseBtn = document.getElementById('collapseTeachersBtn');
 
             if (!hasTeachers) {
+                if (expandBtn) {
+                    expandBtn.disabled = true;
+                }
+                if (collapseBtn) {
+                    collapseBtn.disabled = true;
+                }
                 if (existingSummary) {
                     const grid = existingSummary.querySelector('#teacherPeriodTotalsGrid');
                     if (grid) {
@@ -1433,16 +1655,60 @@
                 totalAllowanceMinutes += metrics.allowanceMinutes;
                 totalBaseMinutes += metrics.baseMinutes;
 
-                const card = document.createElement('div');
+                const card = document.createElement('details');
                 card.className = 'teacher-period-card';
+                const balancePositive = metrics.balanceMinutes >= 0;
+                card.classList.add(balancePositive ? 'balance-positive' : 'balance-negative');
+                if (!balancePositive) {
+                    card.open = true;
+                }
 
-                const header = document.createElement('div');
-                header.className = 'teacher-period-header';
+                const summaryToggle = document.createElement('summary');
+                summaryToggle.className = 'teacher-card-summary';
 
-                const name = document.createElement('div');
-                name.className = 'teacher-period-name';
-                name.textContent = teacher;
-                header.appendChild(name);
+                const summaryMain = document.createElement('div');
+                summaryMain.className = 'teacher-card-summary-main teacher-period-name';
+                summaryMain.textContent = teacher;
+                summaryToggle.appendChild(summaryMain);
+
+                const summaryChips = document.createElement('div');
+                summaryChips.className = 'teacher-card-summary-chips';
+
+                const fteChip = document.createElement('span');
+                fteChip.className = 'teacher-card-chip fte-chip';
+                fteChip.textContent = `FTE ${normalizeFteValue(settings.fte)}`;
+                fteChip.title = `${formatHours(metrics.fteHours)} base load (${formatMinutes(metrics.baseMinutes)})`;
+                summaryChips.appendChild(fteChip);
+
+                const loadChip = document.createElement('span');
+                loadChip.className = 'teacher-card-chip load-chip';
+                loadChip.textContent = `${formatPeriods(metrics.loadUsedPeriods)} / ${formatPeriods(metrics.basePeriods)} periods`;
+                loadChip.title = `Using ${formatMinutes(metrics.loadUsedMinutes)} of ${formatMinutes(metrics.baseMinutes)}`;
+                summaryChips.appendChild(loadChip);
+
+                const balanceChip = document.createElement('span');
+                const balanceClass = balancePositive ? 'positive' : 'negative';
+                balanceChip.className = `teacher-card-chip balance-chip ${balanceClass}`;
+                const balancePeriodsAbs = Math.abs(metrics.balancePeriods);
+                balanceChip.textContent = balancePositive
+                    ? `${formatPeriods(balancePeriodsAbs)} remaining`
+                    : `${formatPeriods(balancePeriodsAbs)} over`;
+                balanceChip.title = formatBalanceText(metrics.balanceMinutes);
+                summaryChips.appendChild(balanceChip);
+
+                summaryToggle.appendChild(summaryChips);
+                card.appendChild(summaryToggle);
+
+                const body = document.createElement('div');
+                body.className = 'teacher-card-body';
+
+                const settingsTitle = document.createElement('div');
+                settingsTitle.className = 'teacher-card-section-title';
+                settingsTitle.textContent = 'FTE & load settings';
+                body.appendChild(settingsTitle);
+
+                const controlsRow = document.createElement('div');
+                controlsRow.className = 'teacher-card-controls';
 
                 const fteControl = document.createElement('div');
                 fteControl.className = 'teacher-fte-control';
@@ -1473,9 +1739,12 @@
                 });
 
                 fteControl.appendChild(fteSelect);
-                header.appendChild(fteControl);
+                controlsRow.appendChild(fteControl);
+                body.appendChild(controlsRow);
 
-                card.appendChild(header);
+                const allowanceTitle = document.createElement('div');
+                allowanceTitle.className = 'teacher-card-section-title';
+                allowanceTitle.textContent = 'Allowance configuration';
 
                 const inputsContainer = document.createElement('div');
                 inputsContainer.className = 'teacher-load-inputs';
@@ -1557,7 +1826,12 @@
                     }
                 }));
 
-                card.appendChild(inputsContainer);
+                body.appendChild(allowanceTitle);
+                body.appendChild(inputsContainer);
+
+                const summaryTitle = document.createElement('div');
+                summaryTitle.className = 'teacher-card-section-title';
+                summaryTitle.textContent = 'Load summary';
 
                 const summaryContainer = document.createElement('div');
                 summaryContainer.className = 'teacher-load-summary';
@@ -1585,7 +1859,7 @@
                 const balanceRow = createSummaryRow(
                     'Balance',
                     formatBalanceText(metrics.balanceMinutes),
-                    ['teacher-load-balance', metrics.balanceMinutes >= 0 ? 'positive' : 'negative']
+                    ['teacher-load-balance', balancePositive ? 'positive' : 'negative']
                 );
                 summaryContainer.appendChild(balanceRow);
 
@@ -1595,9 +1869,20 @@
                     ['teacher-load-note']
                 ));
 
-                card.appendChild(summaryContainer);
+                body.appendChild(summaryTitle);
+                body.appendChild(summaryContainer);
+
+                card.appendChild(body);
                 grid.appendChild(card);
             });
+
+            const hasCards = grid.children.length > 0;
+            if (expandBtn) {
+                expandBtn.disabled = !hasCards;
+            }
+            if (collapseBtn) {
+                collapseBtn.disabled = !hasCards;
+            }
 
             if (subtitle) {
                 const teachingPeriods = totalTeachingMinutes / PERIOD_MINUTES;
