@@ -646,7 +646,8 @@
             <button class="btn btn-success" onclick="saveAllocations()">Save Allocations</button>
             <button class="btn btn-warning" onclick="resetAllocations()">Reset Allocations</button>
             <button class="btn btn-primary" onclick="exportData()">Export Data</button>
-            
+            <button class="btn btn-primary" onclick="downloadAllocationSpreadsheet()">Download Allocation Spreadsheet</button>
+
             <div class="legend">
                 <div class="legend-item">
                     <div class="legend-color available"></div>
@@ -2530,6 +2531,147 @@
                 createSubjectPool();
                 updateStats();
             }
+        }
+
+        function formatSubjectForExport(subject) {
+            if (typeof subject !== 'string') {
+                return '';
+            }
+
+            const cleanedSubject = subject.trim();
+            if (cleanedSubject === '') {
+                return '';
+            }
+
+            const splitInfo = getSplitMetadata(cleanedSubject);
+            if (!splitInfo) {
+                return cleanedSubject;
+            }
+
+            const details = [];
+
+            if (splitInfo.baseSubject && splitInfo.baseSubject !== cleanedSubject) {
+                details.push(splitInfo.baseSubject);
+            }
+
+            if (Number.isFinite(splitInfo.periods) && splitInfo.periods > 0) {
+                details.push(`${splitInfo.periods}p`);
+            }
+
+            const partIndex = Number.isFinite(splitInfo.index) ? splitInfo.index + 1 : null;
+            if (partIndex !== null && Number.isFinite(splitInfo.totalSplits) && splitInfo.totalSplits > 1) {
+                details.push(`split ${partIndex}/${splitInfo.totalSplits}`);
+            }
+
+            if (details.length === 0) {
+                return cleanedSubject;
+            }
+
+            return `${cleanedSubject} (${details.join(', ')})`;
+        }
+
+        function formatSubjectsForCellExport(subjects) {
+            if (!Array.isArray(subjects) || subjects.length === 0) {
+                return '';
+            }
+
+            const formatted = subjects
+                .map(subject => (typeof subject === 'string' ? subject.trim() : ''))
+                .filter(subject => subject !== '')
+                .map(formatSubjectForExport);
+
+            return formatted.join('\n');
+        }
+
+        function buildAllocationSpreadsheetRows() {
+            const teacherList = Array.isArray(teachers) ? teachers : [];
+            const lineList = Array.isArray(lines) ? lines : [];
+
+            const rows = [];
+            rows.push(['Line', ...teacherList]);
+
+            lineList.forEach((lineNameValue, lineIndex) => {
+                const lineName = typeof lineNameValue === 'string' && lineNameValue.trim() !== ''
+                    ? lineNameValue
+                    : `Line ${lineIndex + 1}`;
+
+                const row = [lineName];
+
+                teacherList.forEach((_, teacherIndex) => {
+                    const key = getAllocationKey(lineIndex, teacherIndex);
+                    const subjects = getAllocationSubjects(key);
+                    row.push(formatSubjectsForCellExport(subjects));
+                });
+
+                rows.push(row);
+            });
+
+            if (teacherList.length > 0) {
+                const totals = calculateTeacherPeriodTotals();
+                const totalRow = ['Total Periods (per fortnight)'];
+
+                teacherList.forEach((_, teacherIndex) => {
+                    const totalValue = Array.isArray(totals) && Number.isFinite(totals[teacherIndex])
+                        ? totals[teacherIndex]
+                        : 0;
+                    totalRow.push(totalValue);
+                });
+
+                rows.push(totalRow);
+            }
+
+            return rows;
+        }
+
+        function convertRowsToCSV(rows) {
+            if (!Array.isArray(rows)) {
+                return '';
+            }
+
+            const csvLines = rows.map(row => {
+                const cells = Array.isArray(row) ? row : [];
+                return cells.map(cell => {
+                    let value = cell === null || cell === undefined ? '' : String(cell);
+                    value = value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+                    if (value.includes('"')) {
+                        value = value.replace(/"/g, '""');
+                    }
+
+                    if (/[",\n]/.test(value)) {
+                        value = `"${value}"`;
+                    }
+
+                    return value;
+                }).join(',');
+            });
+
+            return csvLines.join('\r\n');
+        }
+
+        function downloadAllocationSpreadsheet() {
+            if (!Array.isArray(teachers) || teachers.length === 0) {
+                alert('No teacher data available to export. Import spreadsheet data to begin.');
+                return;
+            }
+
+            const rows = buildAllocationSpreadsheetRows();
+            if (!rows || rows.length === 0) {
+                alert('No allocation data available to export.');
+                return;
+            }
+
+            const csvContent = convertRowsToCSV(rows);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const today = new Date().toISOString().split('T')[0];
+            a.href = url;
+            a.download = `teacher-allocations-${today}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function exportData() {
