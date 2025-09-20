@@ -144,6 +144,19 @@
             width: 100px;
         }
 
+        .tlc-period-label {
+            background: #f0f6ff;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .tlc-period-cell {
+            background: #eef6ff;
+            color: #1f4e79;
+            font-weight: 600;
+            text-align: center;
+        }
+
         .subject-slot {
             background: #e8f4f8;
             border: 2px dashed #3498db;
@@ -1580,6 +1593,71 @@
             });
         }
 
+        function formatTlcDisplayValue(value) {
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric) || numeric <= 0) {
+                return '0';
+            }
+
+            const sanitized = Math.max(0, numeric);
+            const rounded = Math.round(sanitized);
+
+            if (Math.abs(sanitized - rounded) < 0.0001) {
+                return String(rounded);
+            }
+
+            return sanitized.toFixed(2).replace(/\.?0+$/, '');
+        }
+
+        function renderTlcPeriodsRow() {
+            const tbody = document.getElementById('timetableBody');
+            if (!tbody) {
+                return;
+            }
+
+            const hasTeachers = Array.isArray(teachers) && teachers.length > 0;
+            let row = tbody.querySelector('tr[data-tlc-row="true"]');
+
+            if (!hasTeachers) {
+                if (row) {
+                    row.remove();
+                }
+                return;
+            }
+
+            if (!row) {
+                row = document.createElement('tr');
+                row.dataset.tlcRow = 'true';
+                tbody.appendChild(row);
+            }
+
+            row.innerHTML = '';
+
+            const labelCell = document.createElement('td');
+            labelCell.className = 'period-row tlc-period-label';
+            labelCell.textContent = 'TLC periods';
+            row.appendChild(labelCell);
+
+            teachers.forEach(teacher => {
+                const cell = document.createElement('td');
+                cell.className = 'tlc-period-cell';
+                const settings = getTeacherLoadSettings(teacher);
+                const rawValue = settings ? toNumberOrZero(settings.assemblyShortCount) : 0;
+                const sanitizedValue = Math.max(0, rawValue);
+                const displayValue = formatTlcDisplayValue(sanitizedValue);
+                cell.textContent = `TLC - ${displayValue}`;
+
+                if (sanitizedValue > 0) {
+                    const label = Math.abs(sanitizedValue - 1) < 0.005 ? 'short/TLC assembly' : 'short/TLC assemblies';
+                    cell.title = `${displayValue} ${label}`;
+                } else {
+                    cell.title = 'No short/TLC assemblies';
+                }
+
+                row.appendChild(cell);
+            });
+        }
+
         function updateTeacherPeriodTotals() {
             const hasTeachers = Array.isArray(teachers) && teachers.length > 0;
             const existingSummary = document.getElementById('teacherPeriodTotals');
@@ -1604,6 +1682,7 @@
                     }
                     existingSummary.style.display = 'none';
                 }
+                renderTlcPeriodsRow();
                 return;
             }
 
@@ -1901,6 +1980,8 @@
                     `Balance: ${formatBalanceText(balanceMinutes)}.`
                 ].join(' ');
             }
+
+            renderTlcPeriodsRow();
         }
 
         function isYear8SemesterPair(subjects) {
@@ -2318,7 +2399,7 @@
             // Add line rows
             lines.forEach((line, lineIndex) => {
                 const row = document.createElement('tr');
-                
+
                 // Add line cell
                 const lineCell = document.createElement('td');
                 lineCell.className = 'period-row';
@@ -2348,8 +2429,10 @@
                 tbody.appendChild(row);
             });
 
+            renderTlcPeriodsRow();
+
             updateStats();
-            
+
             // Create visual elements for pre-allocated subjects
             createAllocationVisuals();
         }
