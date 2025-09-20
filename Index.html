@@ -47,9 +47,49 @@
             background: #ecf0f1;
             border-bottom: 1px solid #bdc3c7;
             display: flex;
-            gap: 15px;
-            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-groups {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            width: 100%;
+        }
+
+        .control-group {
+            background: #ffffff;
+            border: 1px solid #dce4ec;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 2px 6px rgba(44, 62, 80, 0.08);
+        }
+
+        .control-group-label {
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+        .control-group-buttons {
+            display: flex;
             flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-group--management {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.08), rgba(52, 152, 219, 0.02));
+            border-color: rgba(52, 152, 219, 0.3);
+        }
+
+        .control-group--management .control-group-label {
+            color: #1f3d63;
         }
 
         .btn {
@@ -732,6 +772,8 @@
             display: flex;
             gap: 20px;
             align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
             margin-top: 10px;
         }
 
@@ -808,12 +850,37 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
+        .autocomplete-list.autocomplete-list--grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            padding: 12px;
+            max-height: none;
+        }
+
         .autocomplete-item {
             padding: 10px;
             cursor: pointer;
             border-bottom: 1px solid #eee;
             transition: background-color 0.2s ease, border-left-color 0.2s ease;
             border-left: 3px solid transparent;
+        }
+
+        .autocomplete-item--grid {
+            border-bottom: none;
+            border: 1px solid #dce4ec;
+            border-left-width: 4px;
+            border-radius: 8px;
+            background: #f8fbff;
+            text-align: center;
+            font-weight: 600;
+            padding: 14px 10px;
+        }
+
+        .autocomplete-list.autocomplete-list--grid .autocomplete-item:hover,
+        .autocomplete-list.autocomplete-list--grid .autocomplete-item.selected {
+            border-left-color: #3498db;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05));
         }
 
         .autocomplete-item:hover,
@@ -842,6 +909,11 @@
             box-shadow: none;
             max-height: 260px;
             padding: 4px 0;
+        }
+
+        .autocomplete-container.autocomplete-container--static .autocomplete-list.autocomplete-list--grid {
+            max-height: none;
+            padding: 12px;
         }
 
         .autocomplete-item.autocomplete-item--empty {
@@ -913,8 +985,112 @@
             margin-top: 20px;
         }
 
+        .management-actions {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .management-actions__section {
+            border: 1px solid #dfe6f1;
+            border-radius: 12px;
+            padding: 14px;
+            background: linear-gradient(135deg, rgba(236, 240, 241, 0.4), rgba(255, 255, 255, 0.95));
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .management-actions__section--add {
+            border-color: rgba(39, 174, 96, 0.4);
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(255, 255, 255, 0.95));
+        }
+
+        .management-actions__section--remove {
+            border-color: rgba(231, 76, 60, 0.35);
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(255, 255, 255, 0.95));
+        }
+
+        .management-actions__section--utility {
+            border-color: rgba(52, 152, 219, 0.35);
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.12), rgba(255, 255, 255, 0.95));
+        }
+
+        .management-actions__header {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .management-actions__title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1f3d63;
+        }
+
+        .management-actions__subtitle {
+            font-size: 0.8rem;
+            color: #5d6d7e;
+        }
+
+        .management-actions__buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .management-actions__button {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 2px 6px rgba(31, 61, 99, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .management-actions__button:hover,
+        .management-actions__button:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(44, 62, 80, 0.18);
+            outline: none;
+        }
+
+        .management-actions__button-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .management-actions__button-description {
+            font-size: 0.75rem;
+            color: #5d6d7e;
+            line-height: 1.4;
+        }
+
+        .management-actions__button--add {
+            border-left-color: #27ae60;
+        }
+
+        .management-actions__button--remove {
+            border-left-color: #e74c3c;
+        }
+
+        .management-actions__button--utility {
+            border-left-color: #3498db;
+        }
+
         @media (max-width: 768px) {
-            .controls {
+            .control-groups {
+                grid-template-columns: 1fr;
+            }
+
+            .control-group-buttons {
                 flex-direction: column;
                 align-items: stretch;
             }
@@ -970,17 +1146,38 @@
         </div>
 
         <div class="controls">
-            <button class="btn btn-primary" onclick="importSpreadsheet()">Import Spreadsheet</button>
-            <button class="btn btn-primary" onclick="allocateNewSubject()">Allocate New Subject</button>
-            <button class="btn btn-primary" onclick="splitSubject()">Split Subject</button>
-            <button class="btn btn-primary" onclick="moveExistingAllocation()">Move Existing Allocation</button>
-            <button class="btn btn-secondary" onclick="undoLastAction()" id="undoBtn" disabled>Undo</button>
-            <button class="btn btn-secondary" onclick="redoLastAction()" id="redoBtn" disabled>Redo</button>
-            <button class="btn btn-success" onclick="saveAllocations()">Save Allocations</button>
-            <button class="btn btn-warning" onclick="resetAllocations()">Reset Allocations</button>
-            <button class="btn btn-primary" onclick="exportData()">Export Data</button>
-            <button class="btn btn-primary" onclick="openManagementHub()">Management Hub</button>
-            <button class="btn btn-primary" onclick="importSupplementalData()">Import Additional Info</button>
+            <div class="control-groups">
+                <div class="control-group">
+                    <div class="control-group-label">Allocation Workflow</div>
+                    <div class="control-group-buttons">
+                        <button class="btn btn-primary" onclick="allocateNewSubject()" title="Allocate an available subject to a teacher">Allocate New Subject</button>
+                        <button class="btn btn-primary" onclick="splitSubject()" title="Divide a subject into multiple allocations">Split Subject</button>
+                        <button class="btn btn-primary" onclick="moveExistingAllocation()" title="Reassign a subject that is already allocated">Move Existing Allocation</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="control-group-label">Data &amp; Progress</div>
+                    <div class="control-group-buttons">
+                        <button class="btn btn-primary" onclick="importSpreadsheet()" title="Import your master spreadsheet to populate data">Import Spreadsheet</button>
+                        <button class="btn btn-success" onclick="saveAllocations()" title="Save your current allocations for later">Save Allocations</button>
+                        <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
+                        <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="control-group-label">History</div>
+                    <div class="control-group-buttons">
+                        <button class="btn btn-secondary" onclick="undoLastAction()" id="undoBtn" disabled title="Undo the last change">Undo</button>
+                        <button class="btn btn-secondary" onclick="redoLastAction()" id="redoBtn" disabled title="Redo the last undone change">Redo</button>
+                    </div>
+                </div>
+                <div class="control-group control-group--management">
+                    <div class="control-group-label">Management &amp; Utilities</div>
+                    <div class="control-group-buttons">
+                        <button class="btn btn-primary" onclick="openManagementHub()" title="Open tools to manage teachers, subjects, lines and supplemental data">Management Hub</button>
+                    </div>
+                </div>
+            </div>
 
             <div class="legend">
                 <div class="legend-item">
@@ -1052,6 +1249,7 @@
                 <input type="text" id="autocompleteInput" class="autocomplete-input" placeholder="Start typing to search...">
                 <div id="autocompleteList" class="autocomplete-list" style="display: none;"></div>
             </div>
+            <div id="managementActionContainer" class="management-actions"></div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" id="confirmBtn">Confirm</button>
                 <button class="btn btn-warning" id="cancelBtn">Cancel</button>
@@ -1656,28 +1854,194 @@
         }
 
         function openManagementHub() {
-            const actions = [
-                { label: 'Add Teacher', handler: promptAddTeacher },
-                { label: 'Remove Teacher', handler: promptRemoveTeacher },
-                { label: 'Add Subject', handler: promptAddSubject },
-                { label: 'Remove Subject', handler: promptRemoveSubject },
-                { label: 'Add Line', handler: promptAddLine },
-                { label: 'Remove Line', handler: promptRemoveLine }
+            const modal = document.getElementById('autocompleteModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalDescription = document.getElementById('modalDescription');
+            const container = document.querySelector('.autocomplete-container');
+            const managementContainer = document.getElementById('managementActionContainer');
+            const confirmBtn = document.getElementById('confirmBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const list = document.getElementById('autocompleteList');
+            const input = document.getElementById('autocompleteInput');
+
+            if (!modal || !modalTitle || !managementContainer) {
+                alert('Management hub is currently unavailable.');
+                return;
+            }
+
+            currentAutocompleteCallback = null;
+            selectedIndex = -1;
+            filteredItems = [];
+            currentDisplayedItems = [];
+            currentAutocompleteOptions = {};
+
+            if (container) {
+                container.style.display = 'none';
+                container.classList.remove('autocomplete-container--static');
+            }
+
+            if (input) {
+                input.value = '';
+            }
+
+            if (list) {
+                list.innerHTML = '';
+                list.style.display = 'none';
+                list.classList.remove('autocomplete-list--grid');
+            }
+
+            if (confirmBtn) {
+                confirmBtn.style.display = 'none';
+            }
+
+            if (cancelBtn) {
+                cancelBtn.textContent = 'Close';
+            }
+
+            if (modalTitle) {
+                modalTitle.textContent = 'Management Hub';
+            }
+
+            if (modalDescription) {
+                modalDescription.textContent = 'Choose a task to manage teachers, subjects, timetable lines or supplemental data.';
+                modalDescription.style.display = 'block';
+            }
+
+            const sections = [
+                {
+                    key: 'add',
+                    title: 'Add',
+                    subtitle: 'Introduce new teachers, subjects or lines.',
+                    sectionClass: 'management-actions__section--add',
+                    buttonClass: 'management-actions__button--add',
+                    actions: [
+                        { label: 'Add Teacher', description: 'Create a new teacher profile ready for allocation.', handler: promptAddTeacher },
+                        { label: 'Add Subject', description: 'Add a subject code to the available pool.', handler: promptAddSubject },
+                        { label: 'Add Line', description: 'Insert a new timetable line for allocations.', handler: promptAddLine }
+                    ]
+                },
+                {
+                    key: 'remove',
+                    title: 'Remove',
+                    subtitle: 'Retire teachers, subjects or lines you no longer need.',
+                    sectionClass: 'management-actions__section--remove',
+                    buttonClass: 'management-actions__button--remove',
+                    actions: [
+                        { label: 'Remove Teacher', description: 'Return all allocations and remove a teacher.', handler: promptRemoveTeacher },
+                        { label: 'Remove Subject', description: 'Clear allocations and remove a subject code.', handler: promptRemoveSubject },
+                        { label: 'Remove Line', description: 'Delete a timetable line and shift allocations.', handler: promptRemoveLine }
+                    ]
+                },
+                {
+                    key: 'utility',
+                    title: 'Utilities',
+                    subtitle: 'Maintain supporting information for allocations.',
+                    sectionClass: 'management-actions__section--utility',
+                    buttonClass: 'management-actions__button--utility',
+                    actions: [
+                        { label: 'Import Additional Info', description: 'Merge supplemental staff data into the planner.', handler: importSupplementalData }
+                    ]
+                }
             ];
 
-            const labels = actions.map(action => action.label);
+            managementContainer.innerHTML = '';
 
-            showAutocomplete('Management Actions', labels, function(selectedAction) {
-                const action = actions.find(item => item.label === selectedAction);
-                if (action && typeof action.handler === 'function') {
-                    setTimeout(() => action.handler(), 220);
+            let actionCount = 0;
+
+            sections.forEach(section => {
+                const availableActions = Array.isArray(section.actions)
+                    ? section.actions.filter(action => typeof action.handler === 'function')
+                    : [];
+
+                if (availableActions.length === 0) {
+                    return;
                 }
-            }, {
-                showListOnOpen: true,
-                hideSearchInput: true,
-                confirmLabel: 'Select Action',
-                description: 'Choose an action to add or remove teachers, subjects, or timetable lines.'
+
+                actionCount += availableActions.length;
+
+                const sectionElement = document.createElement('section');
+                sectionElement.className = `management-actions__section ${section.sectionClass || ''}`.trim();
+
+                const header = document.createElement('div');
+                header.className = 'management-actions__header';
+
+                const titleEl = document.createElement('div');
+                titleEl.className = 'management-actions__title';
+                titleEl.textContent = section.title;
+                header.appendChild(titleEl);
+
+                if (section.subtitle) {
+                    const subtitleEl = document.createElement('div');
+                    subtitleEl.className = 'management-actions__subtitle';
+                    subtitleEl.textContent = section.subtitle;
+                    header.appendChild(subtitleEl);
+                }
+
+                sectionElement.appendChild(header);
+
+                const buttonGroup = document.createElement('div');
+                buttonGroup.className = 'management-actions__buttons';
+
+                availableActions.forEach(action => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = `management-actions__button ${section.buttonClass || ''}`.trim();
+
+                    const labelEl = document.createElement('span');
+                    labelEl.className = 'management-actions__button-label';
+                    labelEl.textContent = action.label;
+                    button.appendChild(labelEl);
+
+                    if (action.description) {
+                        const descriptionEl = document.createElement('span');
+                        descriptionEl.className = 'management-actions__button-description';
+                        descriptionEl.textContent = action.description;
+                        button.appendChild(descriptionEl);
+                    }
+
+                    button.addEventListener('click', () => {
+                        closeModal();
+                        setTimeout(() => {
+                            try {
+                                action.handler();
+                            } catch (error) {
+                                console.error('Error executing management action:', error);
+                                alert('Unable to execute the selected management action: ' + error.message);
+                            }
+                        }, 200);
+                    });
+
+                    buttonGroup.appendChild(button);
+                });
+
+                sectionElement.appendChild(buttonGroup);
+                managementContainer.appendChild(sectionElement);
             });
+
+            if (actionCount === 0) {
+                const emptyState = document.createElement('div');
+                emptyState.textContent = 'No management actions are currently available.';
+                emptyState.style.fontSize = '0.9rem';
+                emptyState.style.color = '#5d6d7e';
+                emptyState.style.textAlign = 'center';
+                managementContainer.appendChild(emptyState);
+            }
+
+            managementContainer.style.display = 'flex';
+
+            modal.style.display = 'block';
+
+            setTimeout(() => {
+                const firstButton = managementContainer.querySelector('button.management-actions__button');
+                if (firstButton) {
+                    firstButton.focus();
+                } else {
+                    const modalContent = document.querySelector('.modal-content');
+                    if (modalContent) {
+                        modalContent.focus();
+                    }
+                }
+            }, 60);
         }
 
         function promptAddTeacher() {
@@ -1697,7 +2061,12 @@
                 return;
             }
 
-            showAutocomplete('Select teacher to remove', teachers, function(selectedTeacher) {
+            const teacherOptions = teachers
+                .filter(name => typeof name === 'string' && name.trim().length > 0)
+                .map(name => name.trim())
+                .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+            showAutocomplete('Select teacher to remove', teacherOptions, function(selectedTeacher) {
                 if (!confirm(`Remove ${selectedTeacher} and return their allocations to the pool?`)) {
                     return;
                 }
@@ -1711,9 +2080,10 @@
                 }
             }, {
                 showListOnOpen: true,
-                confirmLabel: 'Remove Teacher',
-                placeholder: 'Filter teachers...',
-                description: 'Returning a teacher moves all of their allocated subjects back to the pool.'
+                hideSearchInput: true,
+                hideConfirmButton: true,
+                cancelLabel: 'Close',
+                description: 'Select a teacher to remove. Returning a teacher moves all of their allocated subjects back to the pool.'
             });
         }
 
@@ -1753,9 +2123,11 @@
                     }
                 }, {
                     showListOnOpen: true,
-                    confirmLabel: 'Save Subject',
-                    placeholder: 'Choose a line or keep unassigned',
-                    description: 'Selecting a default line helps the system place this subject automatically.'
+                    hideSearchInput: true,
+                    hideConfirmButton: true,
+                    cancelLabel: 'Cancel',
+                    itemLayout: 'grid',
+                    description: 'Select a default line for placement or choose Unassigned to keep it flexible.'
                 });
             }, 150);
         }
@@ -1769,7 +2141,10 @@
                 return;
             }
 
-            const options = Array.from(removalOptions);
+            const options = Array.from(removalOptions)
+                .filter(subject => typeof subject === 'string' && subject.trim().length > 0)
+                .map(subject => subject.trim())
+                .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
             showAutocomplete('Select subject to remove', options, function(selectedSubject) {
                 if (!confirm(`Remove ${selectedSubject} from the subject pool? Allocations will be cleared.`)) {
@@ -1785,9 +2160,10 @@
                 }
             }, {
                 showListOnOpen: true,
-                confirmLabel: 'Remove Subject',
-                placeholder: 'Filter subjects...',
-                description: 'Removing a subject clears any allocations and returns it to the available pool.'
+                hideSearchInput: true,
+                hideConfirmButton: true,
+                cancelLabel: 'Close',
+                description: 'Select a subject to remove. Removing a subject clears any allocations and returns it to the available pool.'
             });
         }
 
@@ -1829,9 +2205,11 @@
                 }
             }, {
                 showListOnOpen: true,
-                confirmLabel: 'Remove Line',
-                placeholder: 'Filter lines...',
-                description: 'Removing a line returns all allocations on that line to the subject pool.'
+                hideSearchInput: true,
+                hideConfirmButton: true,
+                cancelLabel: 'Close',
+                itemLayout: 'grid',
+                description: 'Select a line to remove. Removing a line returns all allocations on that line to the subject pool.'
             });
         }
 
@@ -3194,6 +3572,7 @@
         let currentDisplayedItems = [];
         let currentAutocompleteOptions = {};
         const DEFAULT_CONFIRM_LABEL = 'Confirm';
+        const DEFAULT_CANCEL_LABEL = 'Cancel';
         const DEFAULT_PLACEHOLDER = 'Start typing to search...';
 
         function normalizeSubjectCode(rawCode) {
@@ -3656,7 +4035,18 @@
             const input = document.getElementById('autocompleteInput');
             const list = document.getElementById('autocompleteList');
             const confirmBtn = document.getElementById('confirmBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
             const container = document.querySelector('.autocomplete-container');
+            const managementContainer = document.getElementById('managementActionContainer');
+
+            if (managementContainer) {
+                managementContainer.innerHTML = '';
+                managementContainer.style.display = 'none';
+            }
+
+            if (container) {
+                container.style.display = 'block';
+            }
 
             const normalizedItems = Array.isArray(items) ? [...items] : [];
 
@@ -3670,9 +4060,16 @@
                 confirmLabel: typeof options.confirmLabel === 'string' && options.confirmLabel.trim().length > 0
                     ? options.confirmLabel.trim()
                     : DEFAULT_CONFIRM_LABEL,
+                cancelLabel: typeof options.cancelLabel === 'string' && options.cancelLabel.trim().length > 0
+                    ? options.cancelLabel.trim()
+                    : DEFAULT_CANCEL_LABEL,
+                hideConfirmButton: Boolean(options.hideConfirmButton),
                 emptyStateMessage: typeof options.emptyStateMessage === 'string' && options.emptyStateMessage.trim().length > 0
                     ? options.emptyStateMessage.trim()
-                    : 'No matches found'
+                    : 'No matches found',
+                itemLayout: typeof options.itemLayout === 'string' && options.itemLayout.trim().length > 0
+                    ? options.itemLayout.trim()
+                    : 'list'
             };
 
             const defaultPlaceholder = config.showListOnOpen
@@ -3686,7 +4083,9 @@
             currentDisplayedItems = [];
             selectedIndex = -1;
 
-            modalTitle.textContent = title;
+            if (modalTitle) {
+                modalTitle.textContent = title;
+            }
 
             if (modalDescription) {
                 if (config.description) {
@@ -3700,6 +4099,11 @@
 
             if (confirmBtn) {
                 confirmBtn.textContent = config.confirmLabel;
+                confirmBtn.style.display = config.hideConfirmButton ? 'none' : 'inline-block';
+            }
+
+            if (cancelBtn) {
+                cancelBtn.textContent = config.cancelLabel || DEFAULT_CANCEL_LABEL;
             }
 
             if (container) {
@@ -3716,6 +4120,7 @@
 
             list.innerHTML = '';
             list.style.display = 'none';
+            list.classList.toggle('autocomplete-list--grid', config.itemLayout === 'grid');
 
             modal.style.display = 'block';
 
@@ -3738,6 +4143,9 @@
         function renderAutocompleteItems(items) {
             const list = document.getElementById('autocompleteList');
 
+            const useGridLayout = currentAutocompleteOptions.itemLayout === 'grid';
+            list.classList.toggle('autocomplete-list--grid', useGridLayout);
+
             currentDisplayedItems = Array.isArray(items) ? [...items] : [];
             list.innerHTML = '';
 
@@ -3756,6 +4164,9 @@
             currentDisplayedItems.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = 'autocomplete-item';
+                if (useGridLayout) {
+                    div.classList.add('autocomplete-item--grid');
+                }
                 div.textContent = item;
                 div.tabIndex = 0;
 
@@ -3883,8 +4294,10 @@
             const input = document.getElementById('autocompleteInput');
             const list = document.getElementById('autocompleteList');
             const confirmBtn = document.getElementById('confirmBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
             const container = document.querySelector('.autocomplete-container');
             const modalDescription = document.getElementById('modalDescription');
+            const managementContainer = document.getElementById('managementActionContainer');
 
             modal.style.display = 'none';
             input.value = '';
@@ -3893,18 +4306,30 @@
 
             list.innerHTML = '';
             list.style.display = 'none';
+            list.classList.remove('autocomplete-list--grid');
 
             if (confirmBtn) {
                 confirmBtn.textContent = DEFAULT_CONFIRM_LABEL;
+                confirmBtn.style.display = 'inline-block';
+            }
+
+            if (cancelBtn) {
+                cancelBtn.textContent = DEFAULT_CANCEL_LABEL;
             }
 
             if (container) {
+                container.style.display = 'block';
                 container.classList.remove('autocomplete-container--static');
             }
 
             if (modalDescription) {
                 modalDescription.textContent = '';
                 modalDescription.style.display = 'none';
+            }
+
+            if (managementContainer) {
+                managementContainer.innerHTML = '';
+                managementContainer.style.display = 'none';
             }
 
             currentAutocompleteCallback = null;
