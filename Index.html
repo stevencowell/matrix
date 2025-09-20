@@ -70,6 +70,20 @@
             background: #2980b9;
         }
 
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .btn-success {
             background: #27ae60;
             color: white;
@@ -549,6 +563,7 @@
             <button class="btn btn-primary" onclick="allocateNewSubject()">Allocate New Subject</button>
             <button class="btn btn-primary" onclick="moveExistingAllocation()">Move Existing Allocation</button>
             <button class="btn btn-secondary" onclick="undoLastAction()" id="undoBtn" disabled>Undo</button>
+            <button class="btn btn-secondary" onclick="redoLastAction()" id="redoBtn" disabled>Redo</button>
             <button class="btn btn-success" onclick="saveAllocations()">Save Allocations</button>
             <button class="btn btn-warning" onclick="resetAllocations()">Reset Allocations</button>
             <button class="btn btn-primary" onclick="exportData()">Export Data</button>
@@ -634,6 +649,7 @@
         let teacherAllocations = {}; // Stores which teachers can teach which lines
         let subjectLineMapping = {}; // Maps subject codes to their correct line index
         let actionHistory = []; // Stores undo history
+        let redoStack = []; // Stores redo history
         let csvData = [];
 
         let allocations = {};
@@ -969,8 +985,77 @@
 
             subjectElement.addEventListener('dragstart', handleDragStart);
             subjectElement.addEventListener('dragend', handleDragEnd);
+            subjectElement.addEventListener('click', function(e) {
+                if (draggedElement || subjectElement.classList.contains('dragging')) {
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                handleSubjectPoolSubjectClick(subjectCode);
+            });
 
             return subjectElement;
+        }
+
+        function handleSubjectPoolSubjectClick(subjectCode) {
+            if (!subjectCode) {
+                return;
+            }
+
+            if (!Array.isArray(teachers) || teachers.length === 0) {
+                alert('Please import spreadsheet data first!');
+                return;
+            }
+
+            const availableSubjects = new Set(getAvailableSubjects());
+            if (!availableSubjects.has(subjectCode)) {
+                alert('This subject has already been allocated.');
+                return;
+            }
+
+            const mappedLine = subjectLineMapping[subjectCode];
+            const hasMappedLine = typeof mappedLine === 'number' && mappedLine >= 0 && mappedLine < lines.length;
+            const teacherPrompt = hasMappedLine && lines[mappedLine]
+                ? `Select teacher for ${subjectCode} (${lines[mappedLine]})`
+                : `Select teacher for ${subjectCode}`;
+
+            showAutocomplete(teacherPrompt, teachers, function(selectedTeacher) {
+                const teacherIndex = teachers.indexOf(selectedTeacher);
+
+                if (teacherIndex === -1) {
+                    alert('Invalid teacher selection!');
+                    return;
+                }
+
+                const finalizeAllocation = (lineIndex) => {
+                    if (!allocateSubjectToTeacher(subjectCode, teacherIndex, lineIndex)) {
+                        alert('Unable to allocate this subject to the selected teacher.');
+                        return;
+                    }
+
+                    const lineName = typeof lineIndex === 'number' && lines[lineIndex]
+                        ? ` on ${lines[lineIndex]}`
+                        : '';
+                    alert(`Subject ${subjectCode} allocated to ${selectedTeacher}${lineName}!`);
+                };
+
+                if (hasMappedLine) {
+                    finalizeAllocation(mappedLine);
+                } else {
+                    setTimeout(() => {
+                        showAutocomplete(`Select line for ${subjectCode}`, lines, function(selectedLine) {
+                            const lineIndex = lines.indexOf(selectedLine);
+
+                            if (lineIndex === -1) {
+                                alert('Invalid line selection!');
+                                return;
+                            }
+
+                            finalizeAllocation(lineIndex);
+                        });
+                    }, 200);
+                }
+            });
         }
 
         function addSubjectToPool(subjectCode) {
@@ -1786,10 +1871,19 @@
                 timestamp: Date.now()
             });
 
-            document.getElementById('undoBtn').disabled = false;
-
             if (actionHistory.length > 10) {
                 actionHistory.shift();
+            }
+
+            const undoBtn = document.getElementById('undoBtn');
+            if (undoBtn) {
+                undoBtn.disabled = actionHistory.length === 0;
+            }
+
+            redoStack = [];
+            const redoBtn = document.getElementById('redoBtn');
+            if (redoBtn) {
+                redoBtn.disabled = true;
             }
 
             console.log('Action recorded:', actionHistory[actionHistory.length - 1]);
@@ -1871,6 +1965,8 @@
             const lastAction = actionHistory.pop();
             console.log('Undoing action:', lastAction);
 
+            let undone = false;
+
             if (lastAction.type === 'allocate') {
                 const allocationKey = getAllocationKey(lastAction.lineIndex, lastAction.toTeacher);
                 const remainingSubjects = getAllocationSubjects(allocationKey)
@@ -1878,6 +1974,7 @@
                 setAllocationSubjects(allocationKey, remainingSubjects);
                 renderCell(lastAction.lineIndex, lastAction.toTeacher);
                 addSubjectToPool(lastAction.subject);
+                undone = true;
             } else if (lastAction.type === 'move') {
                 const currentKey = getAllocationKey(lastAction.lineIndex, lastAction.toTeacher);
                 const remainingSubjects = getAllocationSubjects(currentKey)
@@ -1897,12 +1994,71 @@
 
                     renderCell(originalLine, lastAction.fromTeacher);
                 }
+
+                undone = true;
+            }
+
+            if (!undone) {
+                actionHistory.push(lastAction);
+                return;
+            }
+
+            redoStack.push(lastAction);
+            if (redoStack.length > 10) {
+                redoStack.shift();
+            }
+
+            const redoBtn = document.getElementById('redoBtn');
+            if (redoBtn) {
+                redoBtn.disabled = false;
             }
 
             updateStats();
 
-            if (actionHistory.length === 0) {
-                document.getElementById('undoBtn').disabled = true;
+            const undoBtn = document.getElementById('undoBtn');
+            if (undoBtn) {
+                undoBtn.disabled = actionHistory.length === 0;
+            }
+        }
+
+        function redoLastAction() {
+            if (redoStack.length === 0) {
+                alert('No actions to redo');
+                return;
+            }
+
+            const actionToRedo = redoStack.pop();
+            console.log('Redoing action:', actionToRedo);
+
+            let success = false;
+
+            if (actionToRedo.type === 'allocate') {
+                success = allocateSubjectToTeacher(actionToRedo.subject, actionToRedo.toTeacher, actionToRedo.lineIndex, { recordAction: false });
+            } else if (actionToRedo.type === 'move') {
+                success = allocateSubjectToTeacher(actionToRedo.subject, actionToRedo.toTeacher, actionToRedo.lineIndex, { recordAction: false });
+            }
+
+            if (!success) {
+                redoStack.push(actionToRedo);
+                alert('Unable to redo the last action.');
+                return;
+            }
+
+            actionHistory.push(actionToRedo);
+            if (actionHistory.length > 10) {
+                actionHistory.shift();
+            }
+
+            const undoBtn = document.getElementById('undoBtn');
+            if (undoBtn) {
+                undoBtn.disabled = false;
+            }
+
+            if (redoStack.length === 0) {
+                const redoBtn = document.getElementById('redoBtn');
+                if (redoBtn) {
+                    redoBtn.disabled = true;
+                }
             }
         }
 
@@ -1958,11 +2114,20 @@
             if (confirm('Are you sure you want to reset all allocations? This action cannot be undone.')) {
                 allocations = {};
                 actionHistory = []; // Clear undo history
+                redoStack = [];
 
                 renderAllAllocations();
 
                 // Disable undo button
-                document.getElementById('undoBtn').disabled = true;
+                const undoBtn = document.getElementById('undoBtn');
+                if (undoBtn) {
+                    undoBtn.disabled = true;
+                }
+
+                const redoBtn = document.getElementById('redoBtn');
+                if (redoBtn) {
+                    redoBtn.disabled = true;
+                }
 
                 // Recreate subject pool
                 createSubjectPool();
@@ -2017,7 +2182,17 @@
         function loadAllocations(data) {
             allocations = {};
             actionHistory = [];
-            document.getElementById('undoBtn').disabled = true;
+            redoStack = [];
+
+            const undoBtn = document.getElementById('undoBtn');
+            if (undoBtn) {
+                undoBtn.disabled = true;
+            }
+
+            const redoBtn = document.getElementById('redoBtn');
+            if (redoBtn) {
+                redoBtn.disabled = true;
+            }
 
             if (data.subjects) subjects = data.subjects;
             if (data.teachers) teachers = data.teachers;
