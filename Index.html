@@ -165,6 +165,79 @@
             border-color: #2980b9;
         }
 
+        .subject-slot.split-subject:hover,
+        .subject-slot.split-segment:hover {
+            background: #ffe9cc;
+            border-color: #f39c12;
+        }
+
+        .subject-slot.split-subject,
+        .subject-slot.split-segment {
+            background: #fff7e6;
+            border-color: #f39c12;
+            color: #8a6d3b;
+        }
+
+        .subject-slot.split-subject {
+            border-style: dashed;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            gap: 4px;
+        }
+
+        .subject-slot.split-segment {
+            border-style: solid;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            gap: 4px;
+        }
+
+        .subject-slot.split-subject .split-subject-base,
+        .subject-slot.split-segment .split-subject-base {
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .subject-slot.split-subject .split-subject-details,
+        .subject-slot.split-segment .split-subject-details {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .split-period-badge {
+            background: #f39c12;
+            color: #fff;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .split-part-label {
+            color: #b9770e;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 10px;
+        }
+
+        .split-allocation-cell {
+            background: #fffaf0;
+        }
+
+        .split-allocation-header {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #b9770e;
+            margin-bottom: 4px;
+        }
+
         .subject-slot.allocated {
             background: #ffebee;
             border: 2px solid #e74c3c;
@@ -424,6 +497,11 @@
             border: 2px solid #f39c12;
         }
 
+        .legend-color.split {
+            background: #fff7e6;
+            border: 2px solid #f39c12;
+        }
+
         /* Autocomplete styles */
         .autocomplete-container {
             position: relative;
@@ -561,6 +639,7 @@
         <div class="controls">
             <button class="btn btn-primary" onclick="importSpreadsheet()">Import Spreadsheet</button>
             <button class="btn btn-primary" onclick="allocateNewSubject()">Allocate New Subject</button>
+            <button class="btn btn-primary" onclick="splitSubject()">Split Subject</button>
             <button class="btn btn-primary" onclick="moveExistingAllocation()">Move Existing Allocation</button>
             <button class="btn btn-secondary" onclick="undoLastAction()" id="undoBtn" disabled>Undo</button>
             <button class="btn btn-secondary" onclick="redoLastAction()" id="redoBtn" disabled>Redo</button>
@@ -576,6 +655,10 @@
                 <div class="legend-item">
                     <div class="legend-color allocated"></div>
                     <span>Allocated Subject</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color split"></div>
+                    <span>Split Allocation Portion</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color semester-pair"></div>
@@ -654,10 +737,12 @@
 
         let allocations = {};
         let draggedElement = null;
+        let subjectSplits = {};
+        let splitSubjectLookup = {};
 
         const YEAR_PERIOD_ALLOCATION = {
-            12: 6,
-            11: 6,
+            12: 7,
+            11: 7,
             10: 5,
             9: 6
         };
@@ -665,6 +750,108 @@
         const YEAR8_ELECTIVE_PERIODS = 3;
         const YEAR8_TECH_MANDATORY_PERIODS = 5;
         const YEAR7_TECH_MANDATORY_PERIODS = 5;
+
+        function resetSplitData() {
+            subjectSplits = {};
+            splitSubjectLookup = {};
+        }
+
+        function rebuildSplitLookup() {
+            splitSubjectLookup = {};
+
+            Object.entries(subjectSplits).forEach(([baseSubject, splits]) => {
+                if (!Array.isArray(splits)) {
+                    return;
+                }
+
+                splits.forEach(split => {
+                    if (!split || typeof split.code !== 'string') {
+                        return;
+                    }
+
+                    const totalSplits = Number.isFinite(split.totalSplits) ? split.totalSplits : splits.length;
+
+                    splitSubjectLookup[split.code] = {
+                        baseSubject: baseSubject,
+                        periods: Number.isFinite(split.periods) ? split.periods : parseInt(split.periods, 10) || 0,
+                        index: Number.isFinite(split.index) ? split.index : parseInt(split.index, 10) || 0,
+                        totalSplits: totalSplits
+                    };
+                });
+            });
+        }
+
+        function getSplitSubjectsForBase(baseSubject) {
+            if (!baseSubject || !subjectSplits[baseSubject]) {
+                return [];
+            }
+            return subjectSplits[baseSubject]
+                .filter(split => split && typeof split.code === 'string')
+                .map(split => split.code);
+        }
+
+        function isSplitSubject(subjectCode) {
+            return Boolean(splitSubjectLookup[subjectCode]);
+        }
+
+        function getSplitMetadata(subjectCode) {
+            return splitSubjectLookup[subjectCode] || null;
+        }
+
+        function applySubjectDisplay(element, subjectCode, options = {}) {
+            if (!element) {
+                return;
+            }
+
+            element.classList.remove('split-subject', 'split-segment');
+            element.innerHTML = '';
+            element.dataset.baseSubject = '';
+            element.dataset.splitIndex = '';
+            element.dataset.splitTotal = '';
+            element.dataset.periods = '';
+
+            const splitInfo = getSplitMetadata(subjectCode);
+
+            if (!splitInfo) {
+                element.textContent = subjectCode;
+                element.title = subjectCode || '';
+                return;
+            }
+
+            const { baseSubject, periods, index, totalSplits } = splitInfo;
+            const hideBaseLabel = options.hideBaseLabel === true;
+
+            element.classList.add(options.forceSegmentStyle ? 'split-segment' : 'split-subject');
+
+            element.dataset.baseSubject = baseSubject;
+            element.dataset.splitIndex = index;
+            element.dataset.splitTotal = totalSplits;
+            element.dataset.periods = periods;
+
+            if (!hideBaseLabel) {
+                const baseLabel = document.createElement('div');
+                baseLabel.className = 'split-subject-base';
+                baseLabel.textContent = baseSubject;
+                element.appendChild(baseLabel);
+            }
+
+            const details = document.createElement('div');
+            details.className = 'split-subject-details';
+
+            const periodBadge = document.createElement('span');
+            periodBadge.className = 'split-period-badge';
+            periodBadge.textContent = `${periods}p`;
+            details.appendChild(periodBadge);
+
+            const partLabel = document.createElement('span');
+            partLabel.className = 'split-part-label';
+            partLabel.textContent = `Split ${index + 1}/${totalSplits}`;
+            details.appendChild(partLabel);
+
+            element.appendChild(details);
+
+            element.title = `${baseSubject} – ${periods} period${periods === 1 ? '' : 's'} (Split ${index + 1}/${totalSplits})`;
+        }
 
         function getAllocationKey(lineIndex, teacherIndex) {
             return `${lineIndex}-${teacherIndex}`;
@@ -738,6 +925,11 @@
         function getSubjectPeriodValue(subjectCode) {
             if (!subjectCode) {
                 return 0;
+            }
+
+            const splitInfo = getSplitMetadata(subjectCode);
+            if (splitInfo) {
+                return Number.isFinite(splitInfo.periods) ? splitInfo.periods : parseInt(splitInfo.periods, 10) || 0;
             }
 
             const normalized = normalizeSubjectCodeForPeriods(subjectCode);
@@ -837,8 +1029,8 @@
                 const legend = document.createElement('div');
                 legend.className = 'teacher-period-legend';
                 legend.innerHTML = [
-                    '<span>Year 12 = 6</span>',
-                    '<span>Year 11 = 6</span>',
+                    '<span>Year 12 = 7</span>',
+                    '<span>Year 11 = 7</span>',
                     '<span>Year 10 = 5</span>',
                     '<span>Year 9 = 6</span>',
                     '<span>Year 8 Elective = 3</span>',
@@ -945,8 +1137,23 @@
                 return 'empty';
             }
             if (subjects.length === 1) {
-                return 'single';
+                return isSplitSubject(subjects[0]) ? 'splitSingle' : 'single';
             }
+
+            const splitMetadata = subjects.map(getSplitMetadata);
+            const hasSplit = splitMetadata.some(info => info !== null);
+
+            if (hasSplit) {
+                const validSplitMetadata = splitMetadata.filter(info => info !== null);
+                if (validSplitMetadata.length === subjects.length) {
+                    const baseSubject = validSplitMetadata[0].baseSubject;
+                    const allSameBase = validSplitMetadata.every(info => info.baseSubject === baseSubject);
+                    if (allSameBase) {
+                        return 'splitGroup';
+                    }
+                }
+            }
+
             if (isYear8SemesterPair(subjects)) {
                 return 'semesterPair';
             }
@@ -989,12 +1196,13 @@
         function createSubjectElement(subjectCode) {
             const subjectElement = document.createElement('div');
             subjectElement.className = 'subject-slot';
-            subjectElement.textContent = subjectCode;
             subjectElement.draggable = true;
             subjectElement.dataset.subject = subjectCode;
 
             const mappedLine = subjectLineMapping[subjectCode];
             subjectElement.dataset.line = mappedLine !== undefined ? mappedLine : 'unassigned';
+
+            applySubjectDisplay(subjectElement, subjectCode);
 
             subjectElement.addEventListener('dragstart', handleDragStart);
             subjectElement.addEventListener('dragend', handleDragEnd);
@@ -1124,8 +1332,8 @@
                 return;
             }
 
-            cell.classList.remove('clash-cell', 'semester-pair-cell');
-            cell.querySelectorAll('.subject-slot').forEach(slot => slot.remove());
+            cell.classList.remove('clash-cell', 'semester-pair-cell', 'split-allocation-cell');
+            cell.querySelectorAll('.subject-slot, .split-allocation-header').forEach(element => element.remove());
 
             const key = getAllocationKey(lineIndex, teacherIndex);
             const subjects = getAllocationSubjects(key);
@@ -1163,6 +1371,20 @@
                 return;
             }
 
+            if (status === 'splitGroup' || status === 'splitSingle') {
+                cell.classList.add('split-allocation-cell');
+            }
+
+            if (status === 'splitGroup') {
+                const metadata = getSplitMetadata(subjects[0]);
+                if (metadata) {
+                    const header = document.createElement('div');
+                    header.className = 'split-allocation-header';
+                    header.textContent = `${metadata.baseSubject} – split allocation`;
+                    cell.appendChild(header);
+                }
+            }
+
             if (status === 'clash') {
                 cell.classList.add('clash-cell');
             }
@@ -1173,7 +1395,13 @@
                 if (status === 'clash') {
                     subjectElement.classList.add('clash');
                 }
-                subjectElement.textContent = subject;
+
+                const shouldForceSegment = status === 'splitGroup' || status === 'splitSingle' || isSplitSubject(subject);
+                applySubjectDisplay(subjectElement, subject, {
+                    hideBaseLabel: status === 'splitGroup',
+                    forceSegmentStyle: shouldForceSegment
+                });
+
                 subjectElement.dataset.subject = subject;
                 subjectElement.dataset.teacher = teacherIndex;
                 subjectElement.dataset.line = lineIndex;
@@ -1187,8 +1415,8 @@
 
         function renderAllAllocations() {
             document.querySelectorAll('.drop-zone').forEach(cell => {
-                cell.classList.remove('clash-cell', 'semester-pair-cell');
-                cell.querySelectorAll('.subject-slot').forEach(slot => slot.remove());
+                cell.classList.remove('clash-cell', 'semester-pair-cell', 'split-allocation-cell');
+                cell.querySelectorAll('.subject-slot, .split-allocation-header').forEach(slot => slot.remove());
             });
 
             Object.keys(allocations).forEach(key => {
@@ -1415,6 +1643,9 @@
             columnBodies.unassigned = createColumn('Unassigned', 'unassigned', 'subject-pool-column--unassigned');
 
             subjects.forEach(subject => {
+                if (subjectSplits[subject]) {
+                    return;
+                }
                 const subjectElement = createSubjectElement(subject);
                 const mappedLine = subjectLineMapping[subject];
                 const targetColumn = columnBodies[mappedLine !== undefined ? mappedLine : 'unassigned'] || columnBodies.unassigned;
@@ -1621,6 +1852,7 @@
             subjects = [];
             allocations = {};
             subjectLineMapping = {};
+            resetSplitData();
 
             console.log('=== DEBUGGING CSV PARSING ===');
 
@@ -1785,7 +2017,12 @@
         // Get available (unallocated) subjects
         function getAvailableSubjects() {
             const allocatedSubjects = new Set(flattenAllocatedSubjects());
-            return subjects.filter(subject => !allocatedSubjects.has(subject));
+            return subjects.filter(subject => {
+                if (subjectSplits[subject]) {
+                    return false;
+                }
+                return !allocatedSubjects.has(subject);
+            });
         }
 
         // Get allocated subjects with their current teacher
@@ -1834,6 +2071,152 @@
                         }
                     });
                 }, 200); // 200ms delay to ensure first modal is fully closed
+            });
+        }
+
+        function splitSubject() {
+            if (subjects.length === 0) {
+                alert('Please import spreadsheet data first!');
+                return;
+            }
+
+            const labelToSubject = new Map();
+
+            subjects.forEach(subject => {
+                if (!isSplitSubject(subject) && !subjectSplits[subject]) {
+                    labelToSubject.set(subject, subject);
+                }
+            });
+
+            Object.keys(subjectSplits).forEach(baseSubject => {
+                const label = `${baseSubject} (currently split)`;
+                labelToSubject.set(label, baseSubject);
+            });
+
+            const labels = Array.from(labelToSubject.keys());
+
+            if (labels.length === 0) {
+                alert('No subjects are available to split at this time.');
+                return;
+            }
+
+            showAutocomplete('Select subject to split', labels, function(selectedLabel) {
+                const baseSubject = labelToSubject.get(selectedLabel);
+
+                if (!baseSubject) {
+                    alert('Invalid subject selection.');
+                    return;
+                }
+
+                const existingLocation = findSubjectLocation(baseSubject);
+                if (existingLocation) {
+                    alert('Please remove this subject from the timetable before splitting it.');
+                    return;
+                }
+
+                const existingSplits = subjectSplits[baseSubject] || [];
+                const activeSplit = existingSplits.find(split => findSubjectLocation(split.code));
+                if (activeSplit) {
+                    alert('Please remove all allocated split portions for this subject before changing the split.');
+                    return;
+                }
+
+                const totalPeriods = getSubjectPeriodValue(baseSubject);
+                if (!Number.isFinite(totalPeriods) || totalPeriods <= 0) {
+                    alert('Unable to determine the period value for the selected subject.');
+                    return;
+                }
+
+                setTimeout(() => {
+                    const input = prompt(`Enter the number of periods for each portion of ${baseSubject} (total ${totalPeriods} periods). Separate values with commas, e.g. 4,3.`);
+                    if (input === null) {
+                        return;
+                    }
+
+                    const sanitized = input.replace(/\+/g, ',');
+                    const splitValues = sanitized
+                        .split(',')
+                        .map(value => parseInt(value.trim(), 10))
+                        .filter(value => Number.isFinite(value) && value > 0);
+
+                    if (splitValues.length === 0) {
+                        alert('Please enter at least one positive number.');
+                        return;
+                    }
+
+                    const sum = splitValues.reduce((acc, value) => acc + value, 0);
+                    if (sum !== totalPeriods) {
+                        alert(`The split values must add up to ${totalPeriods} periods. Currently they add up to ${sum}.`);
+                        return;
+                    }
+
+                    const existingSplitCodes = new Set(existingSplits.map(split => split.code));
+                    const removalSet = new Set(existingSplitCodes);
+                    removalSet.add(baseSubject);
+
+                    let insertIndex = subjects.findIndex(subject => removalSet.has(subject));
+                    if (insertIndex === -1 && existingSplits.length > 0) {
+                        const firstExistingSplitIndex = subjects.findIndex(subject => existingSplitCodes.has(subject));
+                        if (firstExistingSplitIndex !== -1) {
+                            insertIndex = firstExistingSplitIndex;
+                        }
+                    }
+                    if (insertIndex === -1) {
+                        insertIndex = subjects.length;
+                    }
+
+                    subjects = subjects.filter(subject => !removalSet.has(subject));
+
+                    existingSplits.forEach(split => {
+                        delete subjectLineMapping[split.code];
+                    });
+
+                    if (splitValues.length === 1 && splitValues[0] === totalPeriods) {
+                        delete subjectSplits[baseSubject];
+                        rebuildSplitLookup();
+
+                        subjects.splice(insertIndex, 0, baseSubject);
+
+                        removalSet.forEach(subject => removeSubjectFromPool(subject));
+
+                        createSubjectPool();
+                        updateStats();
+
+                        alert(`${baseSubject} has been restored to a single ${totalPeriods}-period allocation.`);
+                        return;
+                    }
+
+                    const mappedLine = subjectLineMapping[baseSubject];
+                    const totalSplits = splitValues.length;
+                    const newSplits = splitValues.map((periods, index) => {
+                        const code = `${baseSubject} ▸ ${periods}p (Split ${index + 1}/${totalSplits})`;
+                        return {
+                            code: code,
+                            periods: periods,
+                            index: index,
+                            totalSplits: totalSplits
+                        };
+                    });
+
+                    subjectSplits[baseSubject] = newSplits;
+                    rebuildSplitLookup();
+
+                    const newCodes = newSplits.map(split => split.code);
+                    subjects.splice(insertIndex, 0, ...newCodes);
+
+                    newCodes.forEach(code => {
+                        if (mappedLine !== undefined) {
+                            subjectLineMapping[code] = mappedLine;
+                        }
+                    });
+
+                    removalSet.forEach(subject => removeSubjectFromPool(subject));
+
+                    createSubjectPool();
+                    updateStats();
+
+                    alert(`Created ${newSplits.length} split allocation${newSplits.length === 1 ? '' : 's'} for ${baseSubject}.`);
+                }, 200);
             });
         }
 
@@ -2116,7 +2499,8 @@
                 teachers: teachers,
                 lines: lines,
                 csvData: csvData,
-                subjectLineMapping: subjectLineMapping
+                subjectLineMapping: subjectLineMapping,
+                subjectSplits: subjectSplits
             };
 
             localStorage.setItem('facultyAllocations', JSON.stringify(data));
@@ -2156,7 +2540,8 @@
                 teachers: teachers,
                 lines: lines,
                 csvData: csvData,
-                subjectLineMapping: subjectLineMapping
+                subjectLineMapping: subjectLineMapping,
+                subjectSplits: subjectSplits
             };
 
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2210,6 +2595,44 @@
             if (data.subjects) subjects = data.subjects;
             if (data.teachers) teachers = data.teachers;
             if (data.lines) lines = data.lines;
+
+            if (!Array.isArray(subjects)) {
+                subjects = [];
+            }
+
+            if (data.subjectSplits) {
+                try {
+                    subjectSplits = JSON.parse(JSON.stringify(data.subjectSplits));
+                } catch (error) {
+                    subjectSplits = data.subjectSplits;
+                }
+                rebuildSplitLookup();
+            } else {
+                resetSplitData();
+            }
+
+            if (Array.isArray(subjects) && Object.keys(subjectSplits).length > 0) {
+                const splitCodes = [];
+                Object.values(subjectSplits).forEach(splits => {
+                    if (!Array.isArray(splits)) {
+                        return;
+                    }
+                    splits.forEach(split => {
+                        if (split && typeof split.code === 'string') {
+                            splitCodes.push(split.code);
+                        }
+                    });
+                });
+
+                const baseSubjects = new Set(Object.keys(subjectSplits));
+                subjects = subjects.filter(subject => !baseSubjects.has(subject));
+
+                splitCodes.forEach(code => {
+                    if (!subjects.includes(code)) {
+                        subjects.push(code);
+                    }
+                });
+            }
 
             let parsedCSV = null;
             if (data.csvData) {
