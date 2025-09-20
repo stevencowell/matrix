@@ -2533,6 +2533,36 @@
             }
         }
 
+        function getSubjectYearLabel(subjectCode) {
+            if (!subjectCode) {
+                return null;
+            }
+
+            const splitInfo = getSplitMetadata(subjectCode);
+            const baseSubject = splitInfo ? splitInfo.baseSubject : subjectCode;
+
+            if (!baseSubject) {
+                return null;
+            }
+
+            const normalized = normalizeSubjectCodeForPeriods(baseSubject);
+            if (!normalized) {
+                return null;
+            }
+
+            const match = normalized.match(/^(\d{1,2})/);
+            if (!match) {
+                return null;
+            }
+
+            const yearValue = parseInt(match[1], 10);
+            if (!Number.isInteger(yearValue)) {
+                return null;
+            }
+
+            return `Year ${yearValue}`;
+        }
+
         function formatSubjectForExport(subject) {
             if (typeof subject !== 'string') {
                 return '';
@@ -2543,44 +2573,46 @@
                 return '';
             }
 
+            const yearLabel = getSubjectYearLabel(cleanedSubject);
             const splitInfo = getSplitMetadata(cleanedSubject);
+
+            let formattedSubject = '';
+
             if (!splitInfo) {
-                return cleanedSubject;
+                formattedSubject = cleanedSubject;
+            } else {
+                const baseLabel = (typeof splitInfo.baseSubject === 'string' && splitInfo.baseSubject.trim() !== '')
+                    ? splitInfo.baseSubject.trim()
+                    : cleanedSubject;
+
+                const periodLabel = Number.isFinite(splitInfo.periods) && splitInfo.periods > 0
+                    ? `${splitInfo.periods}p`
+                    : '';
+
+                const hasValidTotal = Number.isFinite(splitInfo.totalSplits) && splitInfo.totalSplits > 0;
+                const partIndex = Number.isFinite(splitInfo.index) ? splitInfo.index + 1 : null;
+
+                let splitLabel = '';
+                if (partIndex !== null && hasValidTotal) {
+                    splitLabel = `Split ${partIndex}/${splitInfo.totalSplits}`;
+                } else if (partIndex !== null) {
+                    splitLabel = `Split ${partIndex}`;
+                } else if (hasValidTotal && splitInfo.totalSplits > 1) {
+                    splitLabel = `Split of ${splitInfo.totalSplits}`;
+                }
+
+                if (!periodLabel && !splitLabel) {
+                    formattedSubject = baseLabel;
+                } else if (periodLabel && splitLabel) {
+                    formattedSubject = `${baseLabel} - ${periodLabel} (${splitLabel})`;
+                } else if (periodLabel) {
+                    formattedSubject = `${baseLabel} - ${periodLabel}`;
+                } else {
+                    formattedSubject = `${baseLabel} - ${splitLabel}`;
+                }
             }
 
-            const baseLabel = (typeof splitInfo.baseSubject === 'string' && splitInfo.baseSubject.trim() !== '')
-                ? splitInfo.baseSubject.trim()
-                : cleanedSubject;
-
-            const periodLabel = Number.isFinite(splitInfo.periods) && splitInfo.periods > 0
-                ? `${splitInfo.periods}p`
-                : '';
-
-            const hasValidTotal = Number.isFinite(splitInfo.totalSplits) && splitInfo.totalSplits > 0;
-            const partIndex = Number.isFinite(splitInfo.index) ? splitInfo.index + 1 : null;
-
-            let splitLabel = '';
-            if (partIndex !== null && hasValidTotal) {
-                splitLabel = `Split ${partIndex}/${splitInfo.totalSplits}`;
-            } else if (partIndex !== null) {
-                splitLabel = `Split ${partIndex}`;
-            } else if (hasValidTotal && splitInfo.totalSplits > 1) {
-                splitLabel = `Split of ${splitInfo.totalSplits}`;
-            }
-
-            if (!periodLabel && !splitLabel) {
-                return baseLabel;
-            }
-
-            if (periodLabel && splitLabel) {
-                return `${baseLabel} - ${periodLabel} (${splitLabel})`;
-            }
-
-            if (periodLabel) {
-                return `${baseLabel} - ${periodLabel}`;
-            }
-
-            return `${baseLabel} - ${splitLabel}`;
+            return yearLabel ? `${yearLabel} – ${formattedSubject}` : formattedSubject;
         }
 
         function formatSubjectsForCellExport(subjects) {
@@ -2588,12 +2620,52 @@
                 return '';
             }
 
-            const formatted = subjects
+            const sanitizedSubjects = subjects
                 .map(subject => (typeof subject === 'string' ? subject.trim() : ''))
-                .filter(subject => subject !== '')
-                .map(formatSubjectForExport);
+                .filter(subject => subject !== '');
 
-            return formatted.join('\n');
+            if (sanitizedSubjects.length === 0) {
+                return '';
+            }
+
+            const sortedSubjects = sanitizedSubjects
+                .map(subject => {
+                    const splitInfo = getSplitMetadata(subject);
+                    const baseSubject = splitInfo ? splitInfo.baseSubject : subject;
+                    const normalizedBase = baseSubject ? normalizeSubjectCodeForPeriods(baseSubject) : '';
+                    const match = normalizedBase.match(/^(\d{1,2})/);
+                    const yearValue = match ? parseInt(match[1], 10) : null;
+                    const sortKey = normalizedBase && normalizedBase.trim().length > 0
+                        ? normalizedBase
+                        : (baseSubject || subject);
+
+                    return {
+                        subject: subject,
+                        baseSubject: baseSubject || subject,
+                        year: Number.isInteger(yearValue) ? yearValue : null,
+                        splitIndex: splitInfo && Number.isFinite(splitInfo.index) ? splitInfo.index : 0,
+                        sortKey: sortKey
+                    };
+                })
+                .sort((a, b) => {
+                    if (a.year !== null && b.year !== null && a.year !== b.year) {
+                        return b.year - a.year;
+                    }
+
+                    if (a.sortKey !== b.sortKey) {
+                        return a.sortKey.localeCompare(b.sortKey);
+                    }
+
+                    if (a.splitIndex !== b.splitIndex) {
+                        return a.splitIndex - b.splitIndex;
+                    }
+
+                    return a.subject.localeCompare(b.subject);
+                })
+                .map(item => item.subject);
+
+            const formatted = sortedSubjects.map(formatSubjectForExport);
+            return formatted.join(formatted.length > 1 ? ' | ' : '');
         }
 
         function buildAllocationSpreadsheetRows() {
