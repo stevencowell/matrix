@@ -464,6 +464,71 @@
         let selectedIndex = -1;
         let filteredItems = [];
 
+        function normalizeSubjectCode(rawCode) {
+            if (!rawCode) {
+                return '';
+            }
+
+            let code = rawCode.replace(/\r/g, '').trim().toUpperCase();
+            code = code.replace(/\s+/g, ' ');
+            code = code.replace(/([A-Z])\s+(\d)/g, '$1$2');
+            return code;
+        }
+
+        function convertCSVToArray(csvText) {
+            const rows = [];
+            let field = '';
+            let row = [];
+            let inQuotes = false;
+
+            const text = csvText.replace(/^\uFEFF/, '');
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+
+                if (char === '"') {
+                    if (inQuotes && text[i + 1] === '"') {
+                        field += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    row.push(field.trim());
+                    field = '';
+                } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                    if (char === '\r' && text[i + 1] === '\n') {
+                        i++;
+                    }
+
+                    row.push(field.trim());
+                    const cleanedRow = row.map(cell => cell.replace(/\r/g, ''));
+                    if (cleanedRow.some(cell => cell.length > 0)) {
+                        rows.push(cleanedRow);
+                    }
+
+                    row = [];
+                    field = '';
+                } else {
+                    field += char;
+                }
+            }
+
+            if (inQuotes) {
+                throw new Error('Malformed CSV: unmatched quotes detected.');
+            }
+
+            if (field.length > 0 || row.length > 0) {
+                row.push(field.trim());
+                const cleanedRow = row.map(cell => cell.replace(/\r/g, ''));
+                if (cleanedRow.some(cell => cell.length > 0)) {
+                    rows.push(cleanedRow);
+                }
+            }
+
+            return rows;
+        }
+
         // Initialize the timetable
         function initializeTimetable() {
             const thead = document.getElementById('timetableHead');
@@ -703,6 +768,7 @@
                         try {
                             parseCSVData(e.target.result);
                             initializeTimetable();
+                            createSubjectPool();
                             alert(`Spreadsheet imported successfully!\nTeachers: ${teachers.length}\nSubjects: ${subjects.length}`);
                         } catch (error) {
                             alert('Error importing CSV: ' + error.message);
@@ -719,51 +785,15 @@
             if (!csvText || csvText.trim().length === 0) {
                 throw new Error('Empty CSV file');
             }
-            
-            const lines = csvText.split('\n');
-            const parsedData = [];
-            let currentRow = [];
-            let inQuotedField = false;
-            let currentField = '';
-            
-            // Parse CSV properly handling quoted fields with line breaks
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                
-                for (let j = 0; j < line.length; j++) {
-                    const char = line[j];
-                    
-                    if (char === '"') {
-                        inQuotedField = !inQuotedField;
-                    } else if (char === ',' && !inQuotedField) {
-                        currentRow.push(currentField.trim());
-                        currentField = '';
-                    } else {
-                        currentField += char;
-                    }
-                }
-                
-                // If we're not in a quoted field, end the row
-                if (!inQuotedField) {
-                    if (currentField !== '') {
-                        currentRow.push(currentField.trim());
-                    }
-                    if (currentRow.length > 0 && currentRow.some(cell => cell.length > 0)) {
-                        parsedData.push(currentRow);
-                    }
-                    currentRow = [];
-                    currentField = '';
-                } else {
-                    // We're in a quoted field that spans multiple lines, add newline
-                    currentField += '\n';
-                }
-            }
+
+            const parsedData = convertCSVToArray(csvText);
 
             // Reset data
             teachers = [];
             subjects = [];
             allocations = {};
-            
+            subjectLineMapping = {};
+
             console.log('=== DEBUGGING CSV PARSING ===');
             
             // Step 1: Find Teacher Matrix section and extract teachers
@@ -817,60 +847,49 @@
                         
                         const rowLabel = nextRow[5].trim();
                         console.log('Processing row:', rowLabel, 'at CSV row', j);
-                        
+
                         // Check each line column (G-L) for subject codes
                         for (let colIndex = 6; colIndex <= 11; colIndex++) {
-                            const cell = nextRow[colIndex] ? nextRow[colIndex].trim() : '';
-                            
+                            const cell = nextRow[colIndex] ? nextRow[colIndex] : '';
+
                             if (cell) {
                                 // Handle multi-line entries (like Year 8 semester data)
                                 const cellLines = cell.split('\n');
-                                
+
                                 cellLines.forEach(cellLine => {
                                     const trimmedLine = cellLine.trim();
-                                    
+
                                     // Extract ALL subject codes from this line (there might be multiple)
                                     const subjectCodes = [];
-                                    
-                                    // Pattern 1: Semester format (S1: 8AGRE1, S2: 8AGRE4) - CHECK THIS FIRST for Year 8
-                                    let match;
-                                    const semesterRegex = /S\d:\s*(\d{1,2}[A-Z]{2,4}\d{0,2})/g;
-                                    while ((match = semesterRegex.exec(trimmedLine)) !== null) {
-                                        subjectCodes.push(match[1]);
-                                    }
-                                    
-                                    // Pattern 2: Standard format (12 DAT1, 11 COV, etc.)
-                                    const standardRegex = /(\d{1,2}\s+[A-Z]{2,4}\d{0,2})/g;
-                                    while ((match = standardRegex.exec(trimmedLine)) !== null) {
-                                        if (!subjectCodes.includes(match[1])) {
-                                            subjectCodes.push(match[1]);
+
+                                    if (trimmedLine.length > 0) {
+                                        const codeRegex = /\b\d{1,2}\s*[A-Z]{2,4}\s*\d{0,2}\b/g;
+                                        let match;
+
+                                        while ((match = codeRegex.exec(trimmedLine)) !== null) {
+                                            const normalizedCode = normalizeSubjectCode(match[0]);
+                                            if (normalizedCode && !subjectCodes.includes(normalizedCode)) {
+                                                subjectCodes.push(normalizedCode);
+                                            }
                                         }
                                     }
-                                    
-                                    // Pattern 3: No space format (9AGRE1, etc.)
-                                    const noSpaceRegex = /(\d{1,2}[A-Z]{2,4}\d{0,2})/g;
-                                    while ((match = noSpaceRegex.exec(trimmedLine)) !== null) {
-                                        if (!subjectCodes.includes(match[1])) {
-                                            subjectCodes.push(match[1]);
-                                        }
-                                    }
-                                    
+
                                     // Process all found subject codes
                                     subjectCodes.forEach(subjectCode => {
                                         const lineIndex = lineColumnMapping[colIndex];
                                         const lineName = `Line ${lineIndex + 1}`;
-                                        
+
                                         console.log(`Found subject: ${subjectCode} belongs in ${lineName} (column ${colIndex}) from "${trimmedLine}"`);
-                                        
+
                                         // Add to subjects list
                                         if (!subjects.includes(subjectCode)) {
                                             subjects.push(subjectCode);
                                         }
-                                        
+
                                         // Store which line this subject belongs to
                                         subjectLineMapping[subjectCode] = lineIndex;
                                     });
-                                    
+
                                     // Debug: show what we couldn't parse
                                     if (subjectCodes.length === 0 && trimmedLine && trimmedLine.length > 0) {
                                         console.log(`Could not parse any subject codes from: "${trimmedLine}"`);
@@ -881,14 +900,14 @@
                     }
                 }
             }
-            
+
             // Step 3: Also collect any additional subjects from year sections for completeness
 
             console.log('Final allocations:', allocations);
             console.log('Total subjects found:', subjects.length);
             console.log('Total allocations made:', Object.keys(allocations).length);
             console.log('=== END DEBUGGING ===');
-            
+
             csvData = parsedData;
         }
 
