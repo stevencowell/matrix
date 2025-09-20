@@ -244,6 +244,85 @@
             margin-top: 10px;
         }
 
+        .teacher-period-summary {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .teacher-period-summary h3 {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin-bottom: 6px;
+        }
+
+        .teacher-period-subtitle {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-bottom: 12px;
+        }
+
+        .teacher-period-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+            font-size: 0.75rem;
+            color: #7f8c8d;
+        }
+
+        .teacher-period-legend span {
+            background: #ecf0f1;
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+
+        .teacher-period-grid {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+
+        .teacher-period-card {
+            background: white;
+            border: 1px solid #dbe2e8;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .teacher-period-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 8px;
+        }
+
+        .teacher-period-count {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #2980b9;
+        }
+
+        .teacher-period-label {
+            margin-top: 4px;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #95a5a6;
+        }
+
+        .teacher-period-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 10px 0;
+        }
+
         .subject-slot.dragging {
             opacity: 0.5;
             transform: rotate(5deg);
@@ -560,6 +639,17 @@
         let allocations = {};
         let draggedElement = null;
 
+        const YEAR_PERIOD_ALLOCATION = {
+            12: 6,
+            11: 6,
+            10: 5,
+            9: 6
+        };
+
+        const YEAR8_ELECTIVE_PERIODS = 3;
+        const YEAR8_TECH_MANDATORY_PERIODS = 5;
+        const YEAR7_TECH_MANDATORY_PERIODS = 5;
+
         function getAllocationKey(lineIndex, teacherIndex) {
             return `${lineIndex}-${teacherIndex}`;
         }
@@ -616,6 +706,201 @@
             const normalized = subjectCode.toUpperCase().replace(/\s+/g, ' ');
             const match = normalized.match(/^S\s*([12])\s*8/);
             return match ? match[1] : null;
+        }
+
+        function normalizeSubjectCodeForPeriods(subjectCode) {
+            if (!subjectCode) {
+                return '';
+            }
+
+            let normalized = subjectCode.toString().toUpperCase().replace(/\s+/g, ' ').trim();
+            normalized = normalized.replace(/^S[12]\s*:?\s*/, '');
+            normalized = normalized.replace(/^(?:YEAR|YR)\s*/, '');
+            return normalized;
+        }
+
+        function getSubjectPeriodValue(subjectCode) {
+            if (!subjectCode) {
+                return 0;
+            }
+
+            const normalized = normalizeSubjectCodeForPeriods(subjectCode);
+            if (!normalized) {
+                return 0;
+            }
+
+            const match = normalized.match(/^(\d{1,2})/);
+            if (!match) {
+                return 0;
+            }
+
+            const year = parseInt(match[1], 10);
+            if (!Number.isInteger(year)) {
+                return 0;
+            }
+
+            if (YEAR_PERIOD_ALLOCATION[year]) {
+                return YEAR_PERIOD_ALLOCATION[year];
+            }
+
+            const remainder = normalized.slice(match[1].length).trim();
+            const compactRemainder = remainder.replace(/\s+/g, '');
+
+            if (year === 8) {
+                const techKeyword = /\bTECH\b/.test(remainder) || compactRemainder.includes('TECHMAND');
+                const mandatoryKeyword = /(^|\s)MAND(?:ATORY)?\b/.test(remainder) || compactRemainder.includes('MANDATORY');
+                const isTechMandatory = compactRemainder.startsWith('TM') || techKeyword || mandatoryKeyword;
+                return isTechMandatory ? YEAR8_TECH_MANDATORY_PERIODS : YEAR8_ELECTIVE_PERIODS;
+            }
+
+            if (year === 7) {
+                return YEAR7_TECH_MANDATORY_PERIODS;
+            }
+
+            return 0;
+        }
+
+        function calculateTeacherPeriodTotals() {
+            const totals = new Array(teachers.length).fill(0);
+
+            Object.entries(allocations).forEach(([key, value]) => {
+                const parts = key.split('-');
+                if (parts.length !== 2) {
+                    return;
+                }
+
+                const teacherIndex = parseInt(parts[1], 10);
+                if (Number.isNaN(teacherIndex) || teacherIndex < 0 || teacherIndex >= teachers.length) {
+                    return;
+                }
+
+                const subjectList = Array.isArray(value) ? value : [value];
+                subjectList.forEach(subject => {
+                    totals[teacherIndex] += getSubjectPeriodValue(subject);
+                });
+            });
+
+            return totals;
+        }
+
+        function ensureTeacherPeriodTotalsContainer() {
+            const container = document.querySelector('.timetable-container');
+            if (!container) {
+                return null;
+            }
+
+            let summary = document.getElementById('teacherPeriodTotals');
+            if (!summary) {
+                summary = document.createElement('div');
+                summary.id = 'teacherPeriodTotals';
+                summary.className = 'teacher-period-summary';
+
+                const heading = document.createElement('h3');
+                heading.textContent = 'Teacher period allocation totals (per fortnight)';
+                summary.appendChild(heading);
+
+                const subtitle = document.createElement('p');
+                subtitle.className = 'teacher-period-subtitle';
+                subtitle.id = 'teacherPeriodSubtitle';
+                subtitle.textContent = 'Calculated from subject allocations.';
+                summary.appendChild(subtitle);
+
+                const legend = document.createElement('div');
+                legend.className = 'teacher-period-legend';
+                legend.innerHTML = [
+                    '<span>Year 12 = 6</span>',
+                    '<span>Year 11 = 6</span>',
+                    '<span>Year 10 = 5</span>',
+                    '<span>Year 9 = 6</span>',
+                    '<span>Year 8 Elective = 3</span>',
+                    '<span>Year 8 Tech Mandatory = 5</span>',
+                    '<span>Year 7 Tech Mandatory = 5</span>'
+                ].join('');
+                summary.appendChild(legend);
+
+                const grid = document.createElement('div');
+                grid.id = 'teacherPeriodTotalsGrid';
+                grid.className = 'teacher-period-grid';
+                summary.appendChild(grid);
+            }
+
+            const containerHasSummary = summary.parentElement === container;
+            const subjectPool = document.getElementById('subjectPool');
+
+            if (subjectPool && subjectPool.parentElement === container) {
+                if (!containerHasSummary || subjectPool.previousElementSibling !== summary) {
+                    container.insertBefore(summary, subjectPool);
+                }
+            } else if (!containerHasSummary) {
+                container.appendChild(summary);
+            }
+
+            return summary;
+        }
+
+        function updateTeacherPeriodTotals() {
+            const hasTeachers = Array.isArray(teachers) && teachers.length > 0;
+            const existingSummary = document.getElementById('teacherPeriodTotals');
+
+            if (!hasTeachers) {
+                if (existingSummary) {
+                    const grid = existingSummary.querySelector('#teacherPeriodTotalsGrid');
+                    if (grid) {
+                        grid.innerHTML = '';
+                    }
+                    const subtitle = existingSummary.querySelector('#teacherPeriodSubtitle');
+                    if (subtitle) {
+                        subtitle.textContent = 'Import spreadsheet data to view teacher period totals.';
+                    }
+                    existingSummary.style.display = 'none';
+                }
+                return;
+            }
+
+            const summary = ensureTeacherPeriodTotalsContainer();
+            if (!summary) {
+                return;
+            }
+
+            summary.style.display = 'block';
+
+            const grid = summary.querySelector('#teacherPeriodTotalsGrid');
+            if (!grid) {
+                return;
+            }
+
+            grid.innerHTML = '';
+
+            const totals = calculateTeacherPeriodTotals();
+            const overallTotal = totals.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
+            const subtitle = summary.querySelector('#teacherPeriodSubtitle');
+            if (subtitle) {
+                subtitle.textContent = `Calculated from subject allocations. Total allocated: ${overallTotal} period${overallTotal === 1 ? '' : 's'} per fortnight.`;
+            }
+
+            teachers.forEach((teacher, index) => {
+                const card = document.createElement('div');
+                card.className = 'teacher-period-card';
+
+                const name = document.createElement('div');
+                name.className = 'teacher-period-name';
+                name.textContent = teacher;
+
+                const countValue = typeof totals[index] === 'number' ? totals[index] : 0;
+                const count = document.createElement('div');
+                count.className = 'teacher-period-count';
+                count.textContent = countValue;
+
+                const label = document.createElement('div');
+                label.className = 'teacher-period-label';
+                label.textContent = 'periods / fortnight';
+
+                card.appendChild(name);
+                card.appendChild(count);
+                card.appendChild(label);
+
+                grid.appendChild(card);
+            });
         }
 
         function isYear8SemesterPair(subjects) {
@@ -912,6 +1197,7 @@
 
             if (teachers.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="1" style="text-align: center; padding: 40px; color: #7f8c8d;">Please import spreadsheet data first</td></tr>';
+                updateStats();
                 return;
             }
 
@@ -1786,6 +2072,8 @@
             document.getElementById('allocatedSubjects').textContent = allocatedSubjects;
             document.getElementById('remainingSubjects').textContent = availableSubjects;
             document.getElementById('allocationPercentage').textContent = allocationPercentage + '%';
+
+            updateTeacherPeriodTotals();
         }
 
         // Load saved data on page load
