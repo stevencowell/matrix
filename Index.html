@@ -249,8 +249,8 @@
         }
 
         .drop-zone.clash-cell {
-            background: #fff7e6;
-            border-color: #f39c12;
+            background: #e6f0ff;
+            border-color: #2980b9;
         }
 
         .drop-zone.semester-pair-cell {
@@ -259,9 +259,9 @@
         }
 
         .subject-slot.clash {
-            background: #fff4e6;
-            border: 2px solid #f39c12;
-            color: #b9770e;
+            background: #e6f0ff;
+            border: 2px solid #2980b9;
+            color: #1f4e79;
         }
 
         .subject-slot.semester-pair {
@@ -493,8 +493,8 @@
         }
 
         .legend-color.clash {
-            background: #fff4e6;
-            border: 2px solid #f39c12;
+            background: #e6f0ff;
+            border: 2px solid #2980b9;
         }
 
         .legend-color.split {
@@ -646,7 +646,6 @@
             <button class="btn btn-success" onclick="saveAllocations()">Save Allocations</button>
             <button class="btn btn-warning" onclick="resetAllocations()">Reset Allocations</button>
             <button class="btn btn-primary" onclick="exportData()">Export Data</button>
-            <button class="btn btn-primary" onclick="downloadAllocationSpreadsheet()">Download Allocation Spreadsheet</button>
 
             <div class="legend">
                 <div class="legend-item">
@@ -667,7 +666,7 @@
                 </div>
                 <div class="legend-item">
                     <div class="legend-color clash"></div>
-                    <span>Allocation Clash</span>
+                    <span>Allocation Clash (Blue)</span>
                 </div>
             </div>
         </div>
@@ -2761,22 +2760,23 @@
         }
 
         function exportData() {
-            const data = {
-                allocations: allocations,
-                timestamp: new Date().toISOString(),
-                subjects: subjects,
-                teachers: teachers,
-                lines: lines,
-                csvData: csvData,
-                subjectLineMapping: subjectLineMapping,
-                subjectSplits: subjectSplits
-            };
+            if (!Array.isArray(teachers) || teachers.length === 0) {
+                alert('No teacher data available to export. Import spreadsheet data to begin.');
+                return;
+            }
 
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const rows = buildAllocationSpreadsheetRows();
+            if (!rows || rows.length === 0) {
+                alert('No allocation data available to export.');
+                return;
+            }
+
+            const csvContent = convertRowsToCSV(rows);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `faculty-allocations-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = 'export.csv';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
