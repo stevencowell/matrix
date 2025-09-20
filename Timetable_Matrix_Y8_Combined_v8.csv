@@ -1,0 +1,76 @@
+﻿,,,,,Year 12,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,,,,,
+,,,,,Row 2,,,,,,
+,,,,,Row 3,12 DAT1,,,12 MAV1,,12 COV 1
+,,,,,Row 4,,12 PIV1,,,,12 HOV 1
+,,,,,Row 5,,,,,,
+,,,,,Row 6,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 11,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,,,,,
+,,,,,Row 2,,,,11 DAT,11 COV,
+,,,,,Row 3,,,,,,11 PIV
+,,,,,Row 4,,,,11 HOV,,
+,,,,,Row 5,,,,11 MUM,,
+,,,,,Row 6,,,11 MAV,,11 WKS,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 10,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,10 AGRE 1,,,,10 AGRE2
+,,,,,Row 2,,,,,,10 FOTET
+,,,,,Row 3,,10 METE 1,10 ENSE 1,,,
+,,,,,Row 4,,,10 FOTE 1,,,
+,,,,,Row 5,,,,,,
+,,,,,Row 6,,10 WOTE 1,10 WOTE2,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 9,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,,,9AGRE1,,9AGRE2
+,,,,,Row 2,9FOTE2,,,,,
+,,,,,Row 3,9METE 1,,,9ENSE,,
+,,,,,Row 4,,,,9METE2,,9FOTE 1
+,,,,,Row 5,9WOTE,,,,,
+,,,,,Row 6,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 8 (Semesters combined into one cell),,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,"S1: 8AGRE1
+S2: 8AGRE4",,,"S1: 8AGRE3
+S2: 8AGRE2",
+,,,,,Row 2,,,,,,
+,,,,,Row 3,,,,,"S1: 8FOTE3
+S2: 8FOTE4",
+,,,,,Row 4,,"S1: 8FOTE2
+S2: 8FOTE 1",,,"S1: 8METE3
+S2: 8WOTE 1",
+,,,,,Row 5,,"S1: 8METE2
+S2: 8METE 1",,,"S1: 8MUME
+S2: 8ANIE",
+,,,,,Row 6,,,,,,
+,,,,,Row 7,,"S1: 8WOTE2
+S2: 8WOTE3",,,"S1: 8TEXE
+S2: 8JEWE",
+,,,,,,,,,,,
+,,,,,,,,,,,
+Teacher Matrix (Lines aligned G–L),,,,,,,,,,,
+Teacher,Loads,Allowance,Plus/minus,Current,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+Steve Cowell,,,0,0,,,,,,,
+Scott Trenaman,,,0,0,,,,,,,
+Josh Harris,,,0,0,,12 DAT1,,,,,
+Clint Campbell,,,0,0,,,,,,,
+,,,0,0,,,,,,,
+,,,0,0,,,,,,,
+Louis Orr,,,0,0,,,12 PIV1,,,,
+Deborah Clark (Deb),,,0,0,,,,,,,
+Emma Fuller,,,0,0,,,,,,,
+,,,0,0,,,,,,,
+Joanne Dennis (Jo),,,0,0,,,,,,,
+Josh McKenzie,,,0,0,,,,,,,
+Katrina Bedford (Trina),,,0,0,,,,,,,
+,,,0,0,,,,,,,
