@@ -472,6 +472,7 @@
             let code = rawCode.replace(/\r/g, '').trim().toUpperCase();
             code = code.replace(/\s+/g, ' ');
             code = code.replace(/([A-Z])\s+(\d)/g, '$1$2');
+            code = code.replace(/(\d)\s+([A-Z])/g, '$1$2');
             return code;
         }
 
@@ -829,6 +830,7 @@
                 // Look for year headers
                 if (row[5] && row[5].includes('Year')) {
                     const year = row[5].trim();
+                    const isYear8 = /year\s*8/i.test(year);
                     console.log('Processing year:', year, 'to place subjects in correct lines');
                     
                     // Process data rows for this year
@@ -867,9 +869,22 @@
                                         let match;
 
                                         while ((match = codeRegex.exec(trimmedLine)) !== null) {
-                                            const normalizedCode = normalizeSubjectCode(match[0]);
-                                            if (normalizedCode && !subjectCodes.includes(normalizedCode)) {
-                                                subjectCodes.push(normalizedCode);
+                                            let normalizedCode = normalizeSubjectCode(match[0]);
+
+                                            if (normalizedCode) {
+                                                if (isYear8) {
+                                                    const semesterMatch = trimmedLine.match(/\bS\s*([12])\b/i);
+                                                    if (semesterMatch) {
+                                                        const semesterLabel = `S${semesterMatch[1]}`.toUpperCase();
+                                                        if (!normalizedCode.includes(semesterLabel)) {
+                                                            normalizedCode = `${semesterLabel} ${normalizedCode}`.trim();
+                                                        }
+                                                    }
+                                                }
+
+                                                if (!subjectCodes.includes(normalizedCode)) {
+                                                    subjectCodes.push(normalizedCode);
+                                                }
                                             }
                                         }
                                     }
@@ -1075,13 +1090,18 @@
                 // Show teacher autocomplete with a small delay
                 setTimeout(() => {
                     showAutocomplete('Select Teacher for ' + selectedSubject, teachers, function(selectedTeacher) {
-                    const teacherIndex = teachers.indexOf(selectedTeacher);
-                    if (allocateSubjectToTeacher(selectedSubject, teacherIndex)) {
-                        alert('Subject ' + selectedSubject + ' allocated to ' + selectedTeacher + ' successfully!');
-                updateStats();
-                    } else {
-                        alert('No available slots for this teacher!');
-                    }
+                        const teacherIndex = teachers.indexOf(selectedTeacher);
+                        if (allocateSubjectToTeacher(selectedSubject, teacherIndex)) {
+                            alert('Subject ' + selectedSubject + ' allocated to ' + selectedTeacher + ' successfully!');
+                            updateStats();
+                        } else {
+                            const requiredLine = subjectLineMapping[selectedSubject];
+                            if (requiredLine !== undefined) {
+                                alert(`No available slots for this teacher on Line ${requiredLine + 1}.`);
+                            } else {
+                                alert('No available slots for this teacher!');
+                            }
+                        }
                     });
                 }, 200); // 200ms delay to ensure first modal is fully closed
             });
@@ -1110,44 +1130,45 @@
                 // Show teacher selection autocomplete with a small delay
                 setTimeout(() => {
                     showAutocomplete(`Move ${allocation.subject} to which teacher?`, teachers, function(selectedTeacher) {
-                    const newTeacherIndex = teachers.indexOf(selectedTeacher);
-                    
-                    // Remove old allocation
-                    const oldKey = `${allocation.lineIndex}-${allocation.teacherIndex}`;
-                    delete allocations[oldKey];
-                    
-                    // Remove old visual element
-                    const oldCell = document.querySelector(`[data-period="${allocation.lineIndex}"][data-teacher="${allocation.teacherIndex}"]`);
-                    const oldElement = oldCell.querySelector('.subject-slot');
-                    if (oldElement) oldElement.remove();
+                        const newTeacherIndex = teachers.indexOf(selectedTeacher);
 
-                    // Create new allocation, preserving the original line
-                    if (allocateSubjectToTeacher(allocation.subject, newTeacherIndex, allocation.lineIndex)) {
-                        alert(`${allocation.subject} moved from ${allocation.teacher} to ${selectedTeacher} on Line ${allocation.lineIndex + 1} successfully!`);
-                        updateStats();
-                    } else {
-                        alert('No available slots for the new teacher! Reverting...');
-                        // Revert the allocation
-                        allocations[oldKey] = allocation.subject;
-                        const oldSubjectElement = document.createElement('div');
-                        oldSubjectElement.className = 'subject-slot allocated';
-                        oldSubjectElement.textContent = allocation.subject;
-                        oldSubjectElement.dataset.subject = allocation.subject;
-                        oldSubjectElement.dataset.teacher = allocation.teacherIndex;
-                        oldSubjectElement.dataset.line = allocation.lineIndex;
+                        // Remove old allocation
+                        const oldKey = `${allocation.lineIndex}-${allocation.teacherIndex}`;
+                        delete allocations[oldKey];
 
-                        oldSubjectElement.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            if (confirm('Remove ' + allocation.subject + ' from ' + allocation.teacher + '?')) {
-                                oldSubjectElement.remove();
-                                delete allocations[oldKey];
-                                updateStats();
-                            }
-                        });
+                        // Remove old visual element
+                        const oldCell = document.querySelector(`[data-period="${allocation.lineIndex}"][data-teacher="${allocation.teacherIndex}"]`);
+                        const oldElement = oldCell.querySelector('.subject-slot');
+                        if (oldElement) oldElement.remove();
 
-                        oldCell.appendChild(oldSubjectElement);
-                        updateStats();
-                    }
+                        // Create new allocation, preserving the original line
+                        if (allocateSubjectToTeacher(allocation.subject, newTeacherIndex, allocation.lineIndex)) {
+                            alert(`${allocation.subject} moved from ${allocation.teacher} to ${selectedTeacher} on Line ${allocation.lineIndex + 1} successfully!`);
+                            updateStats();
+                        } else {
+                            const requiredLine = subjectLineMapping[allocation.subject] !== undefined ? subjectLineMapping[allocation.subject] : allocation.lineIndex;
+                            alert(`No available slots for the new teacher on Line ${requiredLine + 1}! Reverting...`);
+                            // Revert the allocation
+                            allocations[oldKey] = allocation.subject;
+                            const oldSubjectElement = document.createElement('div');
+                            oldSubjectElement.className = 'subject-slot allocated';
+                            oldSubjectElement.textContent = allocation.subject;
+                            oldSubjectElement.dataset.subject = allocation.subject;
+                            oldSubjectElement.dataset.teacher = allocation.teacherIndex;
+                            oldSubjectElement.dataset.line = allocation.lineIndex;
+
+                            oldSubjectElement.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                if (confirm('Remove ' + allocation.subject + ' from ' + allocation.teacher + '?')) {
+                                    oldSubjectElement.remove();
+                                    delete allocations[oldKey];
+                                    updateStats();
+                                }
+                            });
+
+                            oldCell.appendChild(oldSubjectElement);
+                            updateStats();
+                        }
                     });
                 }, 200); // 200ms delay to ensure first modal is fully closed
             });
@@ -1178,32 +1199,33 @@
         function allocateSubjectToTeacher(subjectCode, teacherIndex, preferredLine = null) {
             // Get the correct line for this subject from the mapping
             let targetLine = preferredLine;
-            
+
             if (targetLine === null && subjectLineMapping[subjectCode] !== undefined) {
                 targetLine = subjectLineMapping[subjectCode];
                 console.log(`Subject ${subjectCode} must stay in Line ${targetLine + 1}`);
             }
-            
-            // If still no line found, allow any available line
+
             const cells = document.querySelectorAll(`[data-teacher="${teacherIndex}"]`);
-            const availableCells = Array.from(cells).filter(cell => !cell.querySelector('.subject-slot'));
-            
-            if (availableCells.length === 0) {
-                return false;
-            }
-            
-            // Prefer the target line if available, otherwise use first available
+            const cellArray = Array.from(cells);
+
             let targetCell = null;
-            if (targetLine !== null && availableCells.some(cell => parseInt(cell.dataset.period) === targetLine)) {
-                targetCell = availableCells.find(cell => parseInt(cell.dataset.period) === targetLine);
+
+            if (targetLine !== null) {
+                targetCell = cellArray.find(cell => parseInt(cell.dataset.period) === targetLine);
+
+                if (!targetCell || targetCell.querySelector('.subject-slot')) {
+                    return false;
+                }
             } else {
-                targetCell = availableCells[0];
+                targetCell = cellArray.find(cell => !cell.querySelector('.subject-slot'));
+
+                if (!targetCell) {
+                    return false;
+                }
+
+                targetLine = parseInt(targetCell.dataset.period);
             }
-            
-            if (!targetCell) {
-                return false;
-            }
-            
+
             const lineIndex = parseInt(targetCell.dataset.period);
             
             // Create subject element
