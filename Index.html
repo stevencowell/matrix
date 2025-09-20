@@ -2548,26 +2548,39 @@
                 return cleanedSubject;
             }
 
-            const details = [];
+            const baseLabel = (typeof splitInfo.baseSubject === 'string' && splitInfo.baseSubject.trim() !== '')
+                ? splitInfo.baseSubject.trim()
+                : cleanedSubject;
 
-            if (splitInfo.baseSubject && splitInfo.baseSubject !== cleanedSubject) {
-                details.push(splitInfo.baseSubject);
-            }
+            const periodLabel = Number.isFinite(splitInfo.periods) && splitInfo.periods > 0
+                ? `${splitInfo.periods}p`
+                : '';
 
-            if (Number.isFinite(splitInfo.periods) && splitInfo.periods > 0) {
-                details.push(`${splitInfo.periods}p`);
-            }
-
+            const hasValidTotal = Number.isFinite(splitInfo.totalSplits) && splitInfo.totalSplits > 0;
             const partIndex = Number.isFinite(splitInfo.index) ? splitInfo.index + 1 : null;
-            if (partIndex !== null && Number.isFinite(splitInfo.totalSplits) && splitInfo.totalSplits > 1) {
-                details.push(`split ${partIndex}/${splitInfo.totalSplits}`);
+
+            let splitLabel = '';
+            if (partIndex !== null && hasValidTotal) {
+                splitLabel = `Split ${partIndex}/${splitInfo.totalSplits}`;
+            } else if (partIndex !== null) {
+                splitLabel = `Split ${partIndex}`;
+            } else if (hasValidTotal && splitInfo.totalSplits > 1) {
+                splitLabel = `Split of ${splitInfo.totalSplits}`;
             }
 
-            if (details.length === 0) {
-                return cleanedSubject;
+            if (!periodLabel && !splitLabel) {
+                return baseLabel;
             }
 
-            return `${cleanedSubject} (${details.join(', ')})`;
+            if (periodLabel && splitLabel) {
+                return `${baseLabel} - ${periodLabel} (${splitLabel})`;
+            }
+
+            if (periodLabel) {
+                return `${baseLabel} - ${periodLabel}`;
+            }
+
+            return `${baseLabel} - ${splitLabel}`;
         }
 
         function formatSubjectsForCellExport(subjects) {
