@@ -791,8 +791,21 @@
                 }
 
                 const subjectList = Array.isArray(value) ? value : [value];
-                subjectList.forEach(subject => {
-                    totals[teacherIndex] += getSubjectPeriodValue(subject);
+                const validSubjects = subjectList.filter(subject => typeof subject === 'string' && subject.trim() !== '');
+
+                if (validSubjects.length === 0) {
+                    return;
+                }
+
+                const periodValues = validSubjects.map(subject => getSubjectPeriodValue(subject));
+
+                if (isYear8SemesterPair(validSubjects) && periodValues.every(value => value === YEAR8_ELECTIVE_PERIODS)) {
+                    totals[teacherIndex] += YEAR8_ELECTIVE_PERIODS;
+                    return;
+                }
+
+                periodValues.forEach(periodValue => {
+                    totals[teacherIndex] += periodValue;
                 });
             });
 
