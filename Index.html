@@ -1116,6 +1116,115 @@
             input.click();
         }
 
+        function extractSubjectsFromParsedData(parsedData, options = {}) {
+            const { debug = false } = options;
+            const subjectSet = new Set();
+            const mapping = {};
+
+            if (!Array.isArray(parsedData)) {
+                return { subjects: [], subjectLineMapping: {} };
+            }
+
+            // Column mapping: G=6, H=7, I=8, J=9, K=10, L=11 → Lines 0-5
+            const lineColumnMapping = {6: 0, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5};
+
+            for (let i = 0; i < parsedData.length; i++) {
+                const row = parsedData[i];
+
+                if (!row || !row[5] || !row[5].includes('Year')) {
+                    continue;
+                }
+
+                const year = row[5].trim();
+                const isYear8 = /year\s*8/i.test(year);
+
+                if (debug) {
+                    console.log('Processing year:', year, 'to place subjects in correct lines');
+                }
+
+                for (let j = i + 1; j < parsedData.length; j++) {
+                    const nextRow = parsedData[j];
+
+                    if (nextRow[5] && (nextRow[5].includes('Year') || nextRow[5].includes('Teacher Matrix'))) {
+                        break;
+                    }
+
+                    if (!nextRow[5] || !nextRow[5].includes('Row')) {
+                        continue;
+                    }
+
+                    const rowLabel = nextRow[5].trim();
+                    if (debug) {
+                        console.log('Processing row:', rowLabel, 'at CSV row', j);
+                    }
+
+                    for (let colIndex = 6; colIndex <= 11; colIndex++) {
+                        const cell = nextRow[colIndex] ? nextRow[colIndex] : '';
+                        if (!cell) {
+                            continue;
+                        }
+
+                        const cellLines = cell.split('\n');
+                        cellLines.forEach(cellLine => {
+                            const trimmedLine = cellLine.trim();
+                            if (trimmedLine.length === 0) {
+                                return;
+                            }
+
+                            const subjectCodes = [];
+                            const codeRegex = /\b\d{1,2}\s*[A-Z]{2,4}\s*\d{0,2}\b/g;
+                            let match;
+
+                            while ((match = codeRegex.exec(trimmedLine)) !== null) {
+                                let normalizedCode = normalizeSubjectCode(match[0]);
+                                if (!normalizedCode) {
+                                    continue;
+                                }
+
+                                if (isYear8) {
+                                    const semesterMatch = trimmedLine.match(/\bS\s*([12])\b/i);
+                                    if (semesterMatch) {
+                                        const semesterLabel = `S${semesterMatch[1]}`.toUpperCase();
+                                        if (!normalizedCode.includes(semesterLabel)) {
+                                            normalizedCode = `${semesterLabel} ${normalizedCode}`.trim();
+                                        }
+                                    }
+                                }
+
+                                if (!subjectCodes.includes(normalizedCode)) {
+                                    subjectCodes.push(normalizedCode);
+                                }
+                            }
+
+                            subjectCodes.forEach(subjectCode => {
+                                const lineIndex = lineColumnMapping[colIndex];
+                                if (lineIndex === undefined) {
+                                    return;
+                                }
+
+                                mapping[subjectCode] = lineIndex;
+                                subjectSet.add(subjectCode);
+
+                                if (debug) {
+                                    const lineName = `Line ${lineIndex + 1}`;
+                                    console.log(`Found subject: ${subjectCode} belongs in ${lineName} (column ${colIndex}) from "${trimmedLine}"`);
+                                }
+                            });
+
+                            if (debug && subjectCodes.length === 0) {
+                                console.log(`Could not parse any subject codes from: "${trimmedLine}"`);
+                            }
+                        });
+                    }
+                }
+            }
+
+            return {
+                subjects: Array.from(subjectSet),
+                subjectLineMapping: mapping
+            };
+        }
+
         function parseCSVData(csvText) {
             if (!csvText || csvText.trim().length === 0) {
                 throw new Error('Empty CSV file');
@@ -1130,7 +1239,7 @@
             subjectLineMapping = {};
 
             console.log('=== DEBUGGING CSV PARSING ===');
-            
+
             // Step 1: Find Teacher Matrix section and extract teachers
             let teacherMatrixStart = -1;
             for (let i = 0; i < parsedData.length; i++) {
@@ -1150,107 +1259,12 @@
                     }
                 }
             }
-            
+
             console.log('Teachers found:', teachers);
 
-            // Step 2: Extract subjects and their CORRECT LINE positions from Year sections
-            // Column mapping: G=6, H=7, I=8, J=9, K=10, L=11 → Lines 0,1,2,3,4,5
-            const lineColumnMapping = {6: 0, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5};
-            
-            // Process each year section to get subjects in their correct lines (UNALLOCATED)
-            for (let i = 0; i < parsedData.length; i++) {
-                const row = parsedData[i];
-                
-                // Look for year headers
-                if (row[5] && row[5].includes('Year')) {
-                    const year = row[5].trim();
-                    const isYear8 = /year\s*8/i.test(year);
-                    console.log('Processing year:', year, 'to place subjects in correct lines');
-                    
-                    // Process data rows for this year
-                    for (let j = i + 1; j < parsedData.length; j++) {
-                        const nextRow = parsedData[j];
-                        
-                        // Stop if we hit another year or Teacher Matrix
-                        if (nextRow[5] && (nextRow[5].includes('Year') || nextRow[5].includes('Teacher Matrix'))) {
-                            break;
-                        }
-                        
-                        // Skip empty rows
-                        if (!nextRow[5] || !nextRow[5].includes('Row')) {
-                            continue;
-                        }
-                        
-                        const rowLabel = nextRow[5].trim();
-                        console.log('Processing row:', rowLabel, 'at CSV row', j);
-
-                        // Check each line column (G-L) for subject codes
-                        for (let colIndex = 6; colIndex <= 11; colIndex++) {
-                            const cell = nextRow[colIndex] ? nextRow[colIndex] : '';
-
-                            if (cell) {
-                                // Handle multi-line entries (like Year 8 semester data)
-                                const cellLines = cell.split('\n');
-
-                                cellLines.forEach(cellLine => {
-                                    const trimmedLine = cellLine.trim();
-
-                                    // Extract ALL subject codes from this line (there might be multiple)
-                                    const subjectCodes = [];
-
-                                    if (trimmedLine.length > 0) {
-                                        const codeRegex = /\b\d{1,2}\s*[A-Z]{2,4}\s*\d{0,2}\b/g;
-                                        let match;
-
-                                        while ((match = codeRegex.exec(trimmedLine)) !== null) {
-                                            let normalizedCode = normalizeSubjectCode(match[0]);
-
-                                            if (normalizedCode) {
-                                                if (isYear8) {
-                                                    const semesterMatch = trimmedLine.match(/\bS\s*([12])\b/i);
-                                                    if (semesterMatch) {
-                                                        const semesterLabel = `S${semesterMatch[1]}`.toUpperCase();
-                                                        if (!normalizedCode.includes(semesterLabel)) {
-                                                            normalizedCode = `${semesterLabel} ${normalizedCode}`.trim();
-                                                        }
-                                                    }
-                                                }
-
-                                                if (!subjectCodes.includes(normalizedCode)) {
-                                                    subjectCodes.push(normalizedCode);
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    // Process all found subject codes
-                                    subjectCodes.forEach(subjectCode => {
-                                        const lineIndex = lineColumnMapping[colIndex];
-                                        const lineName = `Line ${lineIndex + 1}`;
-
-                                        console.log(`Found subject: ${subjectCode} belongs in ${lineName} (column ${colIndex}) from "${trimmedLine}"`);
-
-                                        // Add to subjects list
-                                        if (!subjects.includes(subjectCode)) {
-                                            subjects.push(subjectCode);
-                                        }
-
-                                        // Store which line this subject belongs to
-                                        subjectLineMapping[subjectCode] = lineIndex;
-                                    });
-
-                                    // Debug: show what we couldn't parse
-                                    if (subjectCodes.length === 0 && trimmedLine && trimmedLine.length > 0) {
-                                        console.log(`Could not parse any subject codes from: "${trimmedLine}"`);
-                                    }
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Step 3: Also collect any additional subjects from year sections for completeness
+            const extracted = extractSubjectsFromParsedData(parsedData, { debug: true });
+            subjects = extracted.subjects;
+            subjectLineMapping = extracted.subjectLineMapping;
 
             console.log('Final allocations:', allocations);
             console.log('Total subjects found:', subjects.length);
@@ -1646,7 +1660,8 @@
                 subjects: subjects,
                 teachers: teachers,
                 lines: lines,
-                csvData: csvData
+                csvData: csvData,
+                subjectLineMapping: subjectLineMapping
             };
 
             localStorage.setItem('facultyAllocations', JSON.stringify(data));
@@ -1676,7 +1691,8 @@
                 subjects: subjects,
                 teachers: teachers,
                 lines: lines,
-                csvData: csvData
+                csvData: csvData,
+                subjectLineMapping: subjectLineMapping
             };
 
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1720,7 +1736,33 @@
             if (data.subjects) subjects = data.subjects;
             if (data.teachers) teachers = data.teachers;
             if (data.lines) lines = data.lines;
-            if (data.csvData) csvData = data.csvData;
+
+            let parsedCSV = null;
+            if (data.csvData) {
+                if (Array.isArray(data.csvData)) {
+                    parsedCSV = data.csvData;
+                } else if (typeof data.csvData === 'string') {
+                    parsedCSV = convertCSVToArray(data.csvData);
+                }
+            }
+
+            csvData = parsedCSV || [];
+
+            if (data.subjectLineMapping) {
+                subjectLineMapping = { ...data.subjectLineMapping };
+            } else if (parsedCSV) {
+                const extracted = extractSubjectsFromParsedData(parsedCSV);
+                subjectLineMapping = extracted.subjectLineMapping;
+                if (!data.subjects || data.subjects.length === 0) {
+                    subjects = extracted.subjects;
+                }
+            } else {
+                subjectLineMapping = {};
+            }
+
+            if (!Array.isArray(subjects)) {
+                subjects = [];
+            }
 
             if (data.allocations) {
                 Object.entries(data.allocations).forEach(([key, value]) => {
