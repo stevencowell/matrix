@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Staff Allocation Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 20px;
+            background: #ecf0f1;
+            border-bottom: 1px solid #bdc3c7;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .timetable-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .timetable {
+            min-width: 1200px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .timetable th {
+            background: #34495e;
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+            border: 1px solid #2c3e50;
+        }
+
+        .timetable td {
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            vertical-align: top;
+            min-height: 60px;
+            position: relative;
+        }
+
+        .teacher-column {
+            background: #ecf0f1;
+            font-weight: 600;
+            text-align: center;
+            width: 150px;
+        }
+
+        .period-row {
+            background: #f8f9fa;
+            font-weight: 600;
+            text-align: center;
+            width: 100px;
+        }
+
+        .subject-slot {
+            background: #e8f4f8;
+            border: 2px dashed #3498db;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 2px 0;
+            cursor: move;
+            transition: all 0.3s ease;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .subject-slot:hover {
+            background: #d5e8f0;
+            border-color: #2980b9;
+        }
+
+        .subject-slot.allocated {
+            background: #ffebee;
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+        }
+
+        .subject-slot.allocated:hover {
+            background: #ffcdd2;
+        }
+
+        .subject-slot.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .drop-zone {
+            background: #f0f8ff;
+            border: 2px dashed #3498db;
+            border-radius: 4px;
+            min-height: 60px;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.drag-over {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            transform: scale(1.02);
+        }
+
+        .stats {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-color.available {
+            background: #e8f4f8;
+            border: 2px dashed #3498db;
+        }
+
+        .legend-color.allocated {
+            background: #ffebee;
+            border: 2px solid #e74c3c;
+        }
+
+        /* Autocomplete styles */
+        .autocomplete-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .autocomplete-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .autocomplete-input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #f0f8ff;
+            color: #2c3e50;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .timetable-container {
+                padding: 10px;
+            }
+            
+            .timetable {
+                font-size: 12px;
+            }
+
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Faculty Staff Allocation Interface</h1>
+            <p>Import your spreadsheet data and allocate subject codes to teachers by line</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="importSpreadsheet()">Import Spreadsheet</button>
+            <button class="btn btn-primary" onclick="allocateNewSubject()">Allocate New Subject</button>
+            <button class="btn btn-primary" onclick="moveExistingAllocation()">Move Existing Allocation</button>
+            <button class="btn btn-secondary" onclick="undoLastAction()" id="undoBtn" disabled>Undo</button>
+            <button class="btn btn-success" onclick="saveAllocations()">Save Allocations</button>
+            <button class="btn btn-warning" onclick="resetAllocations()">Reset Allocations</button>
+            <button class="btn btn-primary" onclick="exportData()">Export Data</button>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color available"></div>
+                    <span>Available Subject</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color allocated"></div>
+                    <span>Allocated Subject</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="timetable-container">
+            <table class="timetable" id="timetable">
+                <thead id="timetableHead">
+                    <tr>
+                        <th>Line</th>
+                        <!-- Teachers will be dynamically added here -->
+                    </tr>
+                </thead>
+                <tbody id="timetableBody">
+                    <!-- Periods will be generated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalSubjects">0</div>
+                <div class="stat-label">Total Subjects</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="allocatedSubjects">0</div>
+                <div class="stat-label">Allocated Subjects</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="remainingSubjects">0</div>
+                <div class="stat-label">Available Subjects</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="allocationPercentage">0%</div>
+                <div class="stat-label">Allocation Progress</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Autocomplete Modal -->
+    <div id="autocompleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">Select Item</span>
+                <span class="close">&times;</span>
+            </div>
+            <div class="autocomplete-container">
+                <input type="text" id="autocompleteInput" class="autocomplete-input" placeholder="Start typing to search...">
+                <div id="autocompleteList" class="autocomplete-list" style="display: none;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="confirmBtn">Confirm</button>
+                <button class="btn btn-warning" id="cancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dynamic data loaded from spreadsheet
+        let subjects = [];
+        let teachers = [];
+        let years = ['Year 12', 'Year 11', 'Year 10', 'Year 9', 'Year 8'];
+        let lines = ['Line 1', 'Line 2', 'Line 3', 'Line 4', 'Line 5', 'Line 6'];
+        let teacherAllocations = {}; // Stores which teachers can teach which lines
+        let subjectLineMapping = {}; // Maps subject codes to their correct line index
+        let actionHistory = []; // Stores undo history
+        let csvData = [];
+
+        let allocations = {};
+        let draggedElement = null;
+
+        // Autocomplete functionality
+        let currentAutocompleteCallback = null;
+        let selectedIndex = -1;
+        let filteredItems = [];
+
+        // Initialize the timetable
+        function initializeTimetable() {
+            const thead = document.getElementById('timetableHead');
+            const tbody = document.getElementById('timetableBody');
+            
+            // Clear existing content
+            thead.innerHTML = '<tr><th>Line</th></tr>';
+            tbody.innerHTML = '';
+
+            if (teachers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="1" style="text-align: center; padding: 40px; color: #7f8c8d;">Please import spreadsheet data first</td></tr>';
+                return;
+            }
+
+            // Add teacher headers
+            const headerRow = thead.querySelector('tr');
+            teachers.forEach((teacher, index) => {
+                const th = document.createElement('th');
+                th.textContent = teacher;
+                th.dataset.teacherIndex = index;
+                headerRow.appendChild(th);
+            });
+
+            // Add line rows
+            lines.forEach((line, lineIndex) => {
+                const row = document.createElement('tr');
+                
+                // Add line cell
+                const lineCell = document.createElement('td');
+                lineCell.className = 'period-row';
+                lineCell.textContent = line;
+                row.appendChild(lineCell);
+
+                // Add teacher cells
+                teachers.forEach((teacher, teacherIndex) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'drop-zone';
+                    cell.dataset.period = lineIndex;
+                    cell.dataset.teacher = teacherIndex;
+                    
+                    // Add click event for popup allocation
+                    cell.addEventListener('click', function() {
+                        showAllocationPopup(lineIndex, teacherIndex);
+                    });
+                    
+                    row.appendChild(cell);
+                });
+
+                tbody.appendChild(row);
+            });
+
+            updateStats();
+            
+            // Create visual elements for pre-allocated subjects
+            createAllocationVisuals();
+        }
+
+        function createAllocationVisuals() {
+            // Clear any existing allocations first
+            document.querySelectorAll('.subject-slot.allocated').forEach(slot => {
+                slot.remove();
+            });
+
+            // Create visual elements for each allocation
+            Object.entries(allocations).forEach(([key, subjectCode]) => {
+                const [lineIndex, teacherIndex] = key.split('-');
+                const cell = document.querySelector(`[data-period="${lineIndex}"][data-teacher="${teacherIndex}"]`);
+                
+                if (cell && !cell.querySelector('.subject-slot')) {
+                    const subjectElement = document.createElement('div');
+                    subjectElement.className = 'subject-slot allocated';
+                    subjectElement.textContent = subjectCode;
+                    subjectElement.dataset.subject = subjectCode;
+                    subjectElement.dataset.teacher = teacherIndex;
+                    subjectElement.dataset.line = lineIndex;
+
+                    // Add click to remove functionality
+                    subjectElement.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (confirm('Remove ' + subjectCode + ' from ' + teachers[teacherIndex] + '?')) {
+                            subjectElement.remove();
+                            delete allocations[key];
+                            updateStats();
+                        }
+                    });
+
+                    cell.appendChild(subjectElement);
+                }
+            });
+        }
+
+        // Create the subject pool
+        function createSubjectPool() {
+            const container = document.querySelector('.timetable-container');
+            
+            // Remove existing subject pool if it exists
+            const existingPool = document.getElementById('subjectPool');
+            if (existingPool) {
+                existingPool.remove();
+            }
+
+            const subjectPool = document.createElement('div');
+            subjectPool.id = 'subjectPool';
+            subjectPool.style.cssText = `
+                margin-top: 20px;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                border: 1px solid #dee2e6;
+            `;
+
+            const title = document.createElement('h3');
+            title.textContent = 'Subject Pool - Drag subjects to allocate them';
+            title.style.marginBottom = '15px';
+            title.style.color = '#2c3e50';
+            subjectPool.appendChild(title);
+
+            const subjectsContainer = document.createElement('div');
+            subjectsContainer.style.cssText = `
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            `;
+
+            subjects.forEach((subject, index) => {
+                const subjectElement = document.createElement('div');
+                subjectElement.className = 'subject-slot';
+                subjectElement.textContent = subject;
+                subjectElement.draggable = true;
+                subjectElement.dataset.subject = subject;
+                subjectElement.dataset.index = index;
+
+                subjectElement.addEventListener('dragstart', handleDragStart);
+                subjectElement.addEventListener('dragend', handleDragEnd);
+
+                subjectsContainer.appendChild(subjectElement);
+            });
+
+            subjectPool.appendChild(subjectsContainer);
+            container.appendChild(subjectPool);
+        }
+
+        // Drag and drop event handlers
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', e.target.outerHTML);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedElement = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.target.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.target.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.target.classList.remove('drag-over');
+
+            if (draggedElement) {
+                const subject = draggedElement.dataset.subject;
+                const period = e.target.dataset.period;
+                const teacher = e.target.dataset.teacher;
+
+                // Check if this slot is already occupied
+                const existingSubject = e.target.querySelector('.subject-slot');
+                if (existingSubject) {
+                    // Move existing subject back to pool
+                    moveSubjectToPool(existingSubject);
+                }
+
+                // Create new subject element in the slot
+                const newSubjectElement = document.createElement('div');
+                newSubjectElement.className = 'subject-slot allocated';
+                newSubjectElement.textContent = subject;
+                newSubjectElement.draggable = true;
+                newSubjectElement.dataset.subject = subject;
+                newSubjectElement.dataset.period = period;
+                newSubjectElement.dataset.teacher = teacher;
+
+                newSubjectElement.addEventListener('dragstart', handleDragStart);
+                newSubjectElement.addEventListener('dragend', handleDragEnd);
+
+                e.target.appendChild(newSubjectElement);
+
+                // Update allocations data
+                const key = `${period}-${teacher}`;
+                allocations[key] = subject;
+
+                // Remove from subject pool
+                draggedElement.remove();
+
+                updateStats();
+            }
+        }
+
+        function moveSubjectToPool(subjectElement) {
+            const subjectPool = document.getElementById('subjectPool');
+            const subjectsContainer = subjectPool.querySelector('div:last-child');
+            
+            const newSubjectElement = document.createElement('div');
+            newSubjectElement.className = 'subject-slot';
+            newSubjectElement.textContent = subjectElement.textContent;
+            newSubjectElement.draggable = true;
+            newSubjectElement.dataset.subject = subjectElement.dataset.subject;
+
+            newSubjectElement.addEventListener('dragstart', handleDragStart);
+            newSubjectElement.addEventListener('dragend', handleDragEnd);
+
+            subjectsContainer.appendChild(newSubjectElement);
+        }
+
+        // CSV Import functionality
+        function importSpreadsheet() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            parseCSVData(e.target.result);
+                            initializeTimetable();
+                            alert(`Spreadsheet imported successfully!\nTeachers: ${teachers.length}\nSubjects: ${subjects.length}`);
+                        } catch (error) {
+                            alert('Error importing CSV: ' + error.message);
+                            console.error('CSV Import Error:', error);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function parseCSVData(csvText) {
+            if (!csvText || csvText.trim().length === 0) {
+                throw new Error('Empty CSV file');
+            }
+            
+            const lines = csvText.split('\n');
+            const parsedData = [];
+            let currentRow = [];
+            let inQuotedField = false;
+            let currentField = '';
+            
+            // Parse CSV properly handling quoted fields with line breaks
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    
+                    if (char === '"') {
+                        inQuotedField = !inQuotedField;
+                    } else if (char === ',' && !inQuotedField) {
+                        currentRow.push(currentField.trim());
+                        currentField = '';
+                    } else {
+                        currentField += char;
+                    }
+                }
+                
+                // If we're not in a quoted field, end the row
+                if (!inQuotedField) {
+                    if (currentField !== '') {
+                        currentRow.push(currentField.trim());
+                    }
+                    if (currentRow.length > 0 && currentRow.some(cell => cell.length > 0)) {
+                        parsedData.push(currentRow);
+                    }
+                    currentRow = [];
+                    currentField = '';
+                } else {
+                    // We're in a quoted field that spans multiple lines, add newline
+                    currentField += '\n';
+                }
+            }
+
+            // Reset data
+            teachers = [];
+            subjects = [];
+            allocations = {};
+            
+            console.log('=== DEBUGGING CSV PARSING ===');
+            
+            // Step 1: Find Teacher Matrix section and extract teachers
+            let teacherMatrixStart = -1;
+            for (let i = 0; i < parsedData.length; i++) {
+                if (parsedData[i][0] && parsedData[i][0].includes('Teacher Matrix')) {
+                    teacherMatrixStart = i + 2; // Skip header row
+                    console.log('Found Teacher Matrix at row:', teacherMatrixStart);
+                    break;
+                }
+            }
+
+            if (teacherMatrixStart > -1) {
+                // Extract teachers
+                for (let i = teacherMatrixStart; i < parsedData.length; i++) {
+                    const teacherName = parsedData[i][0] ? parsedData[i][0].trim() : '';
+                    if (teacherName && teacherName !== '' && !teacherName.includes('Teacher')) {
+                        teachers.push(teacherName);
+                    }
+                }
+            }
+            
+            console.log('Teachers found:', teachers);
+
+            // Step 2: Extract subjects and their CORRECT LINE positions from Year sections
+            // Column mapping: G=6, H=7, I=8, J=9, K=10, L=11 → Lines 0,1,2,3,4,5
+            const lineColumnMapping = {6: 0, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5};
+            
+            // Process each year section to get subjects in their correct lines (UNALLOCATED)
+            for (let i = 0; i < parsedData.length; i++) {
+                const row = parsedData[i];
+                
+                // Look for year headers
+                if (row[5] && row[5].includes('Year')) {
+                    const year = row[5].trim();
+                    console.log('Processing year:', year, 'to place subjects in correct lines');
+                    
+                    // Process data rows for this year
+                    for (let j = i + 1; j < parsedData.length; j++) {
+                        const nextRow = parsedData[j];
+                        
+                        // Stop if we hit another year or Teacher Matrix
+                        if (nextRow[5] && (nextRow[5].includes('Year') || nextRow[5].includes('Teacher Matrix'))) {
+                            break;
+                        }
+                        
+                        // Skip empty rows
+                        if (!nextRow[5] || !nextRow[5].includes('Row')) {
+                            continue;
+                        }
+                        
+                        const rowLabel = nextRow[5].trim();
+                        console.log('Processing row:', rowLabel, 'at CSV row', j);
+                        
+                        // Check each line column (G-L) for subject codes
+                        for (let colIndex = 6; colIndex <= 11; colIndex++) {
+                            const cell = nextRow[colIndex] ? nextRow[colIndex].trim() : '';
+                            
+                            if (cell) {
+                                // Handle multi-line entries (like Year 8 semester data)
+                                const cellLines = cell.split('\n');
+                                
+                                cellLines.forEach(cellLine => {
+                                    const trimmedLine = cellLine.trim();
+                                    
+                                    // Extract ALL subject codes from this line (there might be multiple)
+                                    const subjectCodes = [];
+                                    
+                                    // Pattern 1: Semester format (S1: 8AGRE1, S2: 8AGRE4) - CHECK THIS FIRST for Year 8
+                                    let match;
+                                    const semesterRegex = /S\d:\s*(\d{1,2}[A-Z]{2,4}\d{0,2})/g;
+                                    while ((match = semesterRegex.exec(trimmedLine)) !== null) {
+                                        subjectCodes.push(match[1]);
+                                    }
+                                    
+                                    // Pattern 2: Standard format (12 DAT1, 11 COV, etc.)
+                                    const standardRegex = /(\d{1,2}\s+[A-Z]{2,4}\d{0,2})/g;
+                                    while ((match = standardRegex.exec(trimmedLine)) !== null) {
+                                        if (!subjectCodes.includes(match[1])) {
+                                            subjectCodes.push(match[1]);
+                                        }
+                                    }
+                                    
+                                    // Pattern 3: No space format (9AGRE1, etc.)
+                                    const noSpaceRegex = /(\d{1,2}[A-Z]{2,4}\d{0,2})/g;
+                                    while ((match = noSpaceRegex.exec(trimmedLine)) !== null) {
+                                        if (!subjectCodes.includes(match[1])) {
+                                            subjectCodes.push(match[1]);
+                                        }
+                                    }
+                                    
+                                    // Process all found subject codes
+                                    subjectCodes.forEach(subjectCode => {
+                                        const lineIndex = lineColumnMapping[colIndex];
+                                        const lineName = `Line ${lineIndex + 1}`;
+                                        
+                                        console.log(`Found subject: ${subjectCode} belongs in ${lineName} (column ${colIndex}) from "${trimmedLine}"`);
+                                        
+                                        // Add to subjects list
+                                        if (!subjects.includes(subjectCode)) {
+                                            subjects.push(subjectCode);
+                                        }
+                                        
+                                        // Store which line this subject belongs to
+                                        subjectLineMapping[subjectCode] = lineIndex;
+                                    });
+                                    
+                                    // Debug: show what we couldn't parse
+                                    if (subjectCodes.length === 0 && trimmedLine && trimmedLine.length > 0) {
+                                        console.log(`Could not parse any subject codes from: "${trimmedLine}"`);
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Step 3: Also collect any additional subjects from year sections for completeness
+
+            console.log('Final allocations:', allocations);
+            console.log('Total subjects found:', subjects.length);
+            console.log('Total allocations made:', Object.keys(allocations).length);
+            console.log('=== END DEBUGGING ===');
+            
+            csvData = parsedData;
+        }
+
+        // Autocomplete functions
+        function showAutocomplete(title, items, callback) {
+            const modal = document.getElementById('autocompleteModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const input = document.getElementById('autocompleteInput');
+            const list = document.getElementById('autocompleteList');
+
+            modalTitle.textContent = title;
+            input.value = '';
+            list.innerHTML = '';
+            list.style.display = 'none';
+            selectedIndex = -1;
+            currentAutocompleteCallback = callback;
+            filteredItems = items;
+
+            modal.style.display = 'block';
+            input.focus();
+            updateFilteredList('');
+        }
+
+        function updateFilteredList(query) {
+            const list = document.getElementById('autocompleteList');
+            
+            if (query.length === 0) {
+                list.style.display = 'none';
+                return;
+            }
+
+            // Filter the original items based on query
+            const filtered = filteredItems.filter(item => 
+                item.toLowerCase().includes(query.toLowerCase())
+            );
+
+            list.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="autocomplete-item">No matches found</div>';
+                list.style.display = 'block';
+            } else {
+                filtered.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.textContent = item;
+                    div.addEventListener('click', () => {
+                        const input = document.getElementById('autocompleteInput');
+                        input.value = item;
+                        list.style.display = 'none';
+                        selectedIndex = index;
+                        if (currentAutocompleteCallback) {
+                            currentAutocompleteCallback(item);
+                            closeModal();
+                        }
+                    });
+                    list.appendChild(div);
+                });
+                list.style.display = 'block';
+            }
+            
+            selectedIndex = -1;
+            updateSelection();
+        }
+
+        function selectItem(index) {
+            selectedIndex = index;
+            updateSelection();
+            
+            const input = document.getElementById('autocompleteInput');
+            input.value = filteredItems[index];
+            
+            const list = document.getElementById('autocompleteList');
+            list.style.display = 'none';
+        }
+
+        function updateSelection() {
+            const items = document.querySelectorAll('.autocomplete-item');
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function confirmSelection() {
+            const input = document.getElementById('autocompleteInput');
+            const items = document.querySelectorAll('.autocomplete-item');
+            
+            if (selectedIndex >= 0 && selectedIndex < items.length) {
+                const selectedItem = items[selectedIndex].textContent;
+                if (currentAutocompleteCallback) {
+                    currentAutocompleteCallback(selectedItem);
+                }
+                closeModal();
+            } else {
+                // Try to find exact match from the original list
+                const exactMatch = filteredItems.find(item => 
+                    item.toLowerCase() === input.value.toLowerCase()
+                );
+                if (exactMatch && currentAutocompleteCallback) {
+                    currentAutocompleteCallback(exactMatch);
+                    closeModal();
+                } else {
+                    alert('Please select a valid option from the list.');
+                }
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('autocompleteModal');
+            const input = document.getElementById('autocompleteInput');
+            const list = document.getElementById('autocompleteList');
+            
+            modal.style.display = 'none';
+            input.value = '';
+            list.innerHTML = '';
+            list.style.display = 'none';
+            currentAutocompleteCallback = null;
+            selectedIndex = -1;
+            filteredItems = [];
+            
+            // Small delay to ensure modal is fully closed before next operation
+        }
+
+        // Get available (unallocated) subjects
+        function getAvailableSubjects() {
+            const allocatedSubjects = Object.values(allocations);
+            return subjects.filter(subject => !allocatedSubjects.includes(subject));
+        }
+
+        // Get allocated subjects with their current teacher
+        function getAllocatedSubjects() {
+            const allocatedList = [];
+            Object.entries(allocations).forEach(([key, subject]) => {
+                const [lineIndex, teacherIndex] = key.split('-');
+                allocatedList.push({
+                    subject: subject,
+                    teacher: teachers[teacherIndex],
+                    teacherIndex: parseInt(teacherIndex),
+                    line: lines[lineIndex],
+                    lineIndex: parseInt(lineIndex)
+                });
+            });
+            return allocatedList;
+        }
+
+        // Allocate new subject code
+        function allocateNewSubject() {
+            if (subjects.length === 0) {
+                alert('Please import spreadsheet data first!');
+                return;
+            }
+
+            const availableSubjects = getAvailableSubjects();
+            if (availableSubjects.length === 0) {
+                alert('No available subject codes to allocate!');
+                return;
+            }
+
+            // Show subject code autocomplete
+            showAutocomplete('Select Subject Code', availableSubjects, function(selectedSubject) {
+                // Show teacher autocomplete with a small delay
+                setTimeout(() => {
+                    showAutocomplete('Select Teacher for ' + selectedSubject, teachers, function(selectedTeacher) {
+                    const teacherIndex = teachers.indexOf(selectedTeacher);
+                    if (allocateSubjectToTeacher(selectedSubject, teacherIndex)) {
+                        alert('Subject ' + selectedSubject + ' allocated to ' + selectedTeacher + ' successfully!');
+                updateStats();
+                    } else {
+                        alert('No available slots for this teacher!');
+                    }
+                    });
+                }, 200); // 200ms delay to ensure first modal is fully closed
+            });
+        }
+
+        // Move existing allocation between teachers
+        function moveExistingAllocation() {
+            const allocatedSubjects = getAllocatedSubjects();
+            if (allocatedSubjects.length === 0) {
+                alert('No allocated subjects to move!');
+                return;
+            }
+
+            const subjectList = allocatedSubjects.map(item => 
+                `${item.subject} (currently with ${item.teacher})`
+            );
+
+            // Show subject selection autocomplete
+            showAutocomplete('Select Subject to Move', subjectList, function(selectedSubjectText) {
+                // Find the allocation
+                const allocation = allocatedSubjects.find(item => selectedSubjectText.includes(item.subject));
+                if (!allocation) {
+                    alert('Subject allocation not found!');
+                    return;
+                }
+                // Show teacher selection autocomplete with a small delay
+                setTimeout(() => {
+                    showAutocomplete(`Move ${allocation.subject} to which teacher?`, teachers, function(selectedTeacher) {
+                    const newTeacherIndex = teachers.indexOf(selectedTeacher);
+                    
+                    // Remove old allocation
+                    const oldKey = `${allocation.lineIndex}-${allocation.teacherIndex}`;
+                    delete allocations[oldKey];
+                    
+                    // Remove old visual element
+                    const oldCell = document.querySelector(`[data-period="${allocation.lineIndex}"][data-teacher="${allocation.teacherIndex}"]`);
+                    const oldElement = oldCell.querySelector('.subject-slot');
+                    if (oldElement) oldElement.remove();
+
+                    // Create new allocation, preserving the original line
+                    if (allocateSubjectToTeacher(allocation.subject, newTeacherIndex, allocation.lineIndex)) {
+                        alert(`${allocation.subject} moved from ${allocation.teacher} to ${selectedTeacher} on Line ${allocation.lineIndex + 1} successfully!`);
+                        updateStats();
+                    } else {
+                        alert('No available slots for the new teacher! Reverting...');
+                        // Revert the allocation
+                        allocations[oldKey] = allocation.subject;
+                        const oldSubjectElement = document.createElement('div');
+                        oldSubjectElement.className = 'subject-slot allocated';
+                        oldSubjectElement.textContent = allocation.subject;
+                        oldSubjectElement.dataset.subject = allocation.subject;
+                        oldSubjectElement.dataset.teacher = allocation.teacherIndex;
+                        oldSubjectElement.dataset.line = allocation.lineIndex;
+
+                        oldSubjectElement.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            if (confirm('Remove ' + allocation.subject + ' from ' + allocation.teacher + '?')) {
+                                oldSubjectElement.remove();
+                                delete allocations[oldKey];
+                                updateStats();
+                            }
+                        });
+
+                        oldCell.appendChild(oldSubjectElement);
+                        updateStats();
+                    }
+                    });
+                }, 200); // 200ms delay to ensure first modal is fully closed
+            });
+        }
+
+        // Function to record actions for undo functionality
+        function recordAction(actionType, subjectCode, fromTeacher, toTeacher, lineIndex) {
+            actionHistory.push({
+                type: actionType,
+                subject: subjectCode,
+                fromTeacher: fromTeacher,
+                toTeacher: toTeacher,
+                lineIndex: lineIndex,
+                timestamp: Date.now()
+            });
+            
+            // Enable undo button
+            document.getElementById('undoBtn').disabled = false;
+            
+            // Limit history to last 10 actions
+            if (actionHistory.length > 10) {
+                actionHistory.shift();
+            }
+            
+            console.log('Action recorded:', actionHistory[actionHistory.length - 1]);
+        }
+
+        function allocateSubjectToTeacher(subjectCode, teacherIndex, preferredLine = null) {
+            // Get the correct line for this subject from the mapping
+            let targetLine = preferredLine;
+            
+            if (targetLine === null && subjectLineMapping[subjectCode] !== undefined) {
+                targetLine = subjectLineMapping[subjectCode];
+                console.log(`Subject ${subjectCode} must stay in Line ${targetLine + 1}`);
+            }
+            
+            // If still no line found, allow any available line
+            const cells = document.querySelectorAll(`[data-teacher="${teacherIndex}"]`);
+            const availableCells = Array.from(cells).filter(cell => !cell.querySelector('.subject-slot'));
+            
+            if (availableCells.length === 0) {
+                return false;
+            }
+            
+            // Prefer the target line if available, otherwise use first available
+            let targetCell = null;
+            if (targetLine !== null && availableCells.some(cell => parseInt(cell.dataset.period) === targetLine)) {
+                targetCell = availableCells.find(cell => parseInt(cell.dataset.period) === targetLine);
+            } else {
+                targetCell = availableCells[0];
+            }
+            
+            if (!targetCell) {
+                return false;
+            }
+            
+            const lineIndex = parseInt(targetCell.dataset.period);
+            
+            // Create subject element
+            const subjectElement = document.createElement('div');
+            subjectElement.className = 'subject-slot allocated';
+            subjectElement.textContent = subjectCode;
+            subjectElement.dataset.subject = subjectCode;
+            subjectElement.dataset.teacher = teacherIndex;
+            subjectElement.dataset.line = lineIndex;
+
+            // Add click to remove functionality
+            subjectElement.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (confirm('Remove ' + subjectCode + ' from ' + teachers[teacherIndex] + '?')) {
+                    subjectElement.remove();
+                    delete allocations[`${lineIndex}-${teacherIndex}`];
+                    updateStats();
+                }
+            });
+
+            targetCell.appendChild(subjectElement);
+
+            // Update allocations data
+            const key = `${lineIndex}-${teacherIndex}`;
+            
+            // Check if this is a new allocation or moving an existing one
+            let fromTeacher = null;
+            for (const [existingKey, existingSubject] of Object.entries(allocations)) {
+                if (existingSubject === subjectCode) {
+                    fromTeacher = parseInt(existingKey.split('-')[1]);
+                    delete allocations[existingKey];
+                    break;
+                }
+            }
+            
+            allocations[key] = subjectCode;
+            
+            // Record the action for undo
+            recordAction(
+                fromTeacher !== null ? 'move' : 'allocate',
+                subjectCode,
+                fromTeacher,
+                teacherIndex,
+                lineIndex
+            );
+
+            return true;
+        }
+
+        // Undo functionality
+        function undoLastAction() {
+            if (actionHistory.length === 0) {
+                alert('No actions to undo');
+                return;
+            }
+            
+            const lastAction = actionHistory.pop();
+            console.log('Undoing action:', lastAction);
+            
+            if (lastAction.type === 'allocate') {
+                // Remove the subject from the teacher
+                const allocationKey = `${lastAction.lineIndex}-${lastAction.toTeacher}`;
+                delete allocations[allocationKey];
+                
+                // Remove from UI
+                const cell = document.querySelector(`[data-teacher="${lastAction.toTeacher}"][data-period="${lastAction.lineIndex}"]`);
+                if (cell) {
+                    const subjectElement = cell.querySelector(`[data-subject="${lastAction.subject}"]`);
+                    if (subjectElement) {
+                        subjectElement.remove();
+                    }
+                }
+                
+            } else if (lastAction.type === 'move') {
+                // Move back to original teacher
+                const currentKey = `${lastAction.lineIndex}-${lastAction.toTeacher}`;
+                const originalKey = `${lastAction.lineIndex}-${lastAction.fromTeacher}`;
+                
+                delete allocations[currentKey];
+                allocations[originalKey] = lastAction.subject;
+                
+                // Remove from current teacher's UI
+                const currentCell = document.querySelector(`[data-teacher="${lastAction.toTeacher}"][data-period="${lastAction.lineIndex}"]`);
+                if (currentCell) {
+                    const subjectElement = currentCell.querySelector(`[data-subject="${lastAction.subject}"]`);
+                    if (subjectElement) {
+                        subjectElement.remove();
+                    }
+                }
+                
+                // Add back to original teacher's UI
+                const originalCell = document.querySelector(`[data-teacher="${lastAction.fromTeacher}"][data-period="${lastAction.lineIndex}"]`);
+                if (originalCell) {
+                    const subjectElement = document.createElement('div');
+                    subjectElement.className = 'subject-slot allocated';
+                    subjectElement.textContent = lastAction.subject;
+                    subjectElement.dataset.subject = lastAction.subject;
+                    subjectElement.dataset.teacher = lastAction.fromTeacher;
+                    subjectElement.dataset.line = lastAction.lineIndex;
+                    
+                    // Add click to remove functionality
+                    subjectElement.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        if (confirm('Remove ' + lastAction.subject + ' from ' + teachers[lastAction.fromTeacher] + '?')) {
+                            subjectElement.remove();
+                            delete allocations[originalKey];
+                            updateStats();
+                        }
+                    });
+                    
+                    originalCell.appendChild(subjectElement);
+                }
+            }
+            
+            updateStats();
+            
+            // Disable undo button if no more actions
+            if (actionHistory.length === 0) {
+                document.getElementById('undoBtn').disabled = true;
+            }
+        }
+
+        function showAllocationPopup(lineIndex, teacherIndex) {
+            if (subjects.length === 0) {
+                alert('Please import spreadsheet data first!');
+                return;
+            }
+
+            // Validate indices
+            if (teacherIndex < 0 || teacherIndex >= teachers.length) {
+                alert('Invalid teacher selection!');
+                return;
+            }
+            if (lineIndex < 0 || lineIndex >= lines.length) {
+                alert('Invalid line selection!');
+                return;
+            }
+
+            const teacherName = teachers[teacherIndex];
+            const lineName = lines[lineIndex];
+            const availableSubjects = getAvailableSubjects();
+            
+            if (availableSubjects.length === 0) {
+                alert('No available subject codes to allocate!');
+                return;
+            }
+
+            const cell = document.querySelector(`[data-period="${lineIndex}"][data-teacher="${teacherIndex}"]`);
+            if (cell.querySelector('.subject-slot')) {
+                alert('This slot is already occupied!');
+                return;
+            }
+            
+            // Show subject autocomplete
+            showAutocomplete(`Allocate subject to ${teacherName} on ${lineName}`, availableSubjects, function(selectedSubject) {
+                // Create subject element
+                const subjectElement = document.createElement('div');
+                subjectElement.className = 'subject-slot allocated';
+                subjectElement.textContent = selectedSubject;
+                subjectElement.dataset.subject = selectedSubject;
+                subjectElement.dataset.teacher = teacherIndex;
+                subjectElement.dataset.line = lineIndex;
+
+                // Add click to remove functionality
+                subjectElement.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (confirm('Remove ' + selectedSubject + ' from ' + teacherName + '?')) {
+                        subjectElement.remove();
+                        delete allocations[`${lineIndex}-${teacherIndex}`];
+                        updateStats();
+                    }
+                });
+
+                cell.appendChild(subjectElement);
+
+                // Update allocations data
+                const key = `${lineIndex}-${teacherIndex}`;
+                allocations[key] = selectedSubject;
+
+                updateStats();
+            });
+        }
+
+        function saveAllocations() {
+            const data = {
+                allocations: allocations,
+                timestamp: new Date().toISOString(),
+                subjects: subjects,
+                teachers: teachers,
+                lines: lines,
+                csvData: csvData
+            };
+
+            localStorage.setItem('facultyAllocations', JSON.stringify(data));
+            alert('Allocations saved successfully!');
+        }
+
+        function resetAllocations() {
+            if (confirm('Are you sure you want to reset all allocations? This action cannot be undone.')) {
+                allocations = {};
+                actionHistory = []; // Clear undo history
+                
+                // Clear all allocated subjects from timetable
+                document.querySelectorAll('.subject-slot.allocated').forEach(slot => {
+                    slot.remove();
+                });
+                
+                // Disable undo button
+                document.getElementById('undoBtn').disabled = true;
+
+                // Recreate subject pool
+                createSubjectPool();
+                updateStats();
+            }
+        }
+
+        function exportData() {
+            const data = {
+                allocations: allocations,
+                timestamp: new Date().toISOString(),
+                subjects: subjects,
+                teachers: teachers,
+                lines: lines,
+                csvData: csvData
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `faculty-allocations-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            loadAllocations(data);
+                        } catch (error) {
+                            alert('Error importing data: ' + error.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function loadAllocations(data) {
+            // Clear existing allocations
+            allocations = {};
+            document.querySelectorAll('.subject-slot.allocated').forEach(slot => {
+                slot.remove();
+            });
+
+            // Load data from saved file
+            if (data.subjects) subjects = data.subjects;
+            if (data.teachers) teachers = data.teachers;
+            if (data.lines) lines = data.lines;
+            if (data.csvData) csvData = data.csvData;
+
+            // Load new allocations
+            if (data.allocations) {
+                Object.entries(data.allocations).forEach(([key, subject]) => {
+                    const [line, teacher] = key.split('-');
+                    const cell = document.querySelector(`[data-period="${line}"][data-teacher="${teacher}"]`);
+                    if (cell) {
+                        const subjectElement = document.createElement('div');
+                        subjectElement.className = 'subject-slot allocated';
+                        subjectElement.textContent = subject;
+                        subjectElement.dataset.subject = subject;
+                        subjectElement.dataset.period = line;
+                        subjectElement.dataset.teacher = teacher;
+
+                        // Add click to remove functionality
+                        subjectElement.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            if (confirm('Remove ' + subject + ' from ' + teachers[teacher] + '?')) {
+                                subjectElement.remove();
+                                updateStats();
+                            }
+                        });
+
+                        cell.appendChild(subjectElement);
+                    }
+                });
+                allocations = data.allocations;
+            }
+
+            updateStats();
+        }
+
+        function updateStats() {
+            const totalSubjects = subjects.length;
+            const allocatedSubjects = Object.keys(allocations).length;
+            const availableSubjects = getAvailableSubjects().length;
+            const allocationPercentage = totalSubjects > 0 ? Math.round((allocatedSubjects / totalSubjects) * 100) : 0;
+
+            document.getElementById('totalSubjects').textContent = totalSubjects;
+            document.getElementById('allocatedSubjects').textContent = allocatedSubjects;
+            document.getElementById('remainingSubjects').textContent = availableSubjects;
+            document.getElementById('allocationPercentage').textContent = allocationPercentage + '%';
+        }
+
+        // Load saved data on page load
+        function loadSavedData() {
+            const savedData = localStorage.getItem('facultyAllocations');
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    loadAllocations(data);
+                } catch (error) {
+                    console.error('Error loading saved data:', error);
+                }
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+            initializeTimetable();
+            loadSavedData();
+                setupModalEventListeners();
+            } catch (error) {
+                console.error('Error during initialization:', error);
+                alert('Error initializing application: ' + error.message);
+            }
+        });
+
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript error:', e.error);
+            alert('JavaScript error: ' + e.message);
+        });
+
+
+        function setupModalEventListeners() {
+            const modal = document.getElementById('autocompleteModal');
+            const input = document.getElementById('autocompleteInput');
+            const confirmBtn = document.getElementById('confirmBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const closeBtn = document.querySelector('.close');
+
+            // Close modal events
+            closeBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+            window.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Confirm button
+            confirmBtn.addEventListener('click', confirmSelection);
+
+            // Input events
+            input.addEventListener('input', function() {
+                updateFilteredList(this.value);
+            });
+
+            // Keyboard navigation
+            input.addEventListener('keydown', function(e) {
+                const items = document.querySelectorAll('.autocomplete-item');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmSelection();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeModal();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
