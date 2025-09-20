@@ -2718,6 +2718,7 @@
                 return cells.map(cell => {
                     let value = cell === null || cell === undefined ? '' : String(cell);
                     value = value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                    value = value.replace(/[\u2013\u2014]/g, '-');
 
                     if (value.includes('"')) {
                         value = value.replace(/"/g, '""');
