@@ -377,29 +377,132 @@
             border: 1px solid #dbe2e8;
             border-radius: 6px;
             padding: 12px;
-            text-align: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .teacher-period-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
         }
 
         .teacher-period-name {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: #34495e;
-            margin-bottom: 8px;
         }
 
-        .teacher-period-count {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #2980b9;
-        }
-
-        .teacher-period-label {
-            margin-top: 4px;
+        .teacher-fte-control {
+            display: flex;
+            flex-direction: column;
             font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: #95a5a6;
+            color: #7f8c8d;
+            text-align: right;
+        }
+
+        .teacher-fte-control label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+
+        .teacher-fte-control select {
+            padding: 4px 8px;
+            border: 1px solid #dbe2e8;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            background: #ffffff;
+            color: #2c3e50;
+        }
+
+        .teacher-fte-control select:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+
+        .teacher-load-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .teacher-load-input {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.75rem;
+            color: #34495e;
+        }
+
+        .teacher-load-input label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .teacher-load-input input {
+            padding: 6px 8px;
+            border: 1px solid #dbe2e8;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #2c3e50;
+        }
+
+        .teacher-load-input input:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+
+        .teacher-load-input-note {
+            font-size: 0.7rem;
+            color: #7f8c8d;
+        }
+
+        .teacher-load-summary {
+            border-top: 1px solid #ecf0f1;
+            padding-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #34495e;
+        }
+
+        .teacher-load-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .teacher-load-row span:first-child {
+            color: #7f8c8d;
+        }
+
+        .teacher-load-row span:last-child {
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .teacher-load-balance span:last-child {
+            font-weight: 700;
+        }
+
+        .teacher-load-balance.positive span:last-child {
+            color: #27ae60;
+        }
+
+        .teacher-load-balance.negative span:last-child {
+            color: #c0392b;
+        }
+
+        .teacher-load-note {
+            font-size: 0.7rem;
+            color: #7f8c8d;
         }
 
         .teacher-period-empty {
@@ -666,7 +769,7 @@
                 </div>
                 <div class="legend-item">
                     <div class="legend-color clash"></div>
-                    <span>Allocation Clash (Blue)</span>
+                    <span>Allocation Clash</span>
                 </div>
             </div>
         </div>
@@ -739,6 +842,24 @@
         let draggedElement = null;
         let subjectSplits = {};
         let splitSubjectLookup = {};
+
+        const FTE_OPTIONS = ['1.0', '0.8', '0.6', '0.4', '0.2'];
+        const FTE_LOAD_MAPPING = {
+            '1.0': 37.95,
+            '0.8': 30.35,
+            '0.6': 22.77,
+            '0.4': 15.17,
+            '0.2': 11.8
+        };
+        const DEFAULT_FTE_VALUE = '1.0';
+        const PERIOD_MINUTES = 59;
+        const TLC_MINUTES = 19;
+        const ASSEMBLY_FULL_PERIOD_EQUIVALENT = 0.62;
+        const ASSEMBLY_FULL_MINUTES = PERIOD_MINUTES * ASSEMBLY_FULL_PERIOD_EQUIVALENT;
+        const ASSEMBLY_SHORT_MINUTES = TLC_MINUTES;
+        const ASSEMBLY_SHORT_PERIOD_EQUIVALENT = ASSEMBLY_SHORT_MINUTES / PERIOD_MINUTES;
+
+        let teacherLoadSettings = {};
 
         const YEAR_PERIOD_ALLOCATION = {
             12: 7,
@@ -1004,6 +1125,189 @@
             return totals;
         }
 
+        function createDefaultTeacherLoadSettings() {
+            return {
+                fte: DEFAULT_FTE_VALUE,
+                periodAllowance: 0,
+                assemblyFullCount: 0,
+                assemblyShortCount: 0,
+                additionalMinutes: 0
+            };
+        }
+
+        function normalizeFteValue(value) {
+            if (value === null || value === undefined) {
+                return DEFAULT_FTE_VALUE;
+            }
+
+            const stringValue = String(value).trim();
+            if (FTE_LOAD_MAPPING[stringValue] !== undefined) {
+                return stringValue;
+            }
+
+            const numeric = Number(stringValue);
+            if (Number.isFinite(numeric)) {
+                const fixed = numeric.toFixed(1);
+                if (FTE_LOAD_MAPPING[fixed] !== undefined) {
+                    return fixed;
+                }
+            }
+
+            return DEFAULT_FTE_VALUE;
+        }
+
+        function toNumberOrZero(value) {
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? numeric : 0;
+        }
+
+        function getFteHours(value) {
+            const normalized = normalizeFteValue(value);
+            return FTE_LOAD_MAPPING[normalized] !== undefined
+                ? FTE_LOAD_MAPPING[normalized]
+                : FTE_LOAD_MAPPING[DEFAULT_FTE_VALUE];
+        }
+
+        function getTeacherLoadSettings(teacherName) {
+            if (!teacherName) {
+                return createDefaultTeacherLoadSettings();
+            }
+
+            if (!teacherLoadSettings || typeof teacherLoadSettings !== 'object') {
+                teacherLoadSettings = {};
+            }
+
+            const key = String(teacherName);
+            const existing = teacherLoadSettings[key];
+
+            if (!existing) {
+                teacherLoadSettings[key] = createDefaultTeacherLoadSettings();
+            } else {
+                existing.fte = normalizeFteValue(existing.fte);
+                existing.periodAllowance = Math.max(0, toNumberOrZero(existing.periodAllowance));
+                existing.assemblyFullCount = Math.max(0, toNumberOrZero(existing.assemblyFullCount));
+                existing.assemblyShortCount = Math.max(0, toNumberOrZero(existing.assemblyShortCount));
+                existing.additionalMinutes = Math.max(0, toNumberOrZero(existing.additionalMinutes));
+            }
+
+            return teacherLoadSettings[key];
+        }
+
+        function calculateTeacherLoadMetrics(teacherName, teachingPeriods) {
+            const settings = getTeacherLoadSettings(teacherName);
+            const validTeachingPeriods = Number.isFinite(teachingPeriods) ? teachingPeriods : 0;
+
+            const teachingMinutes = validTeachingPeriods * PERIOD_MINUTES;
+            const periodAllowanceMinutes = settings.periodAllowance * PERIOD_MINUTES;
+            const assemblyFullMinutes = settings.assemblyFullCount * ASSEMBLY_FULL_MINUTES;
+            const assemblyShortMinutes = settings.assemblyShortCount * ASSEMBLY_SHORT_MINUTES;
+            const additionalMinutes = settings.additionalMinutes;
+
+            const allowanceMinutes = periodAllowanceMinutes + assemblyFullMinutes + assemblyShortMinutes + additionalMinutes;
+            const allowancePeriods = allowanceMinutes / PERIOD_MINUTES;
+
+            const fteHours = getFteHours(settings.fte);
+            const baseMinutes = fteHours * 60;
+            const basePeriods = baseMinutes / PERIOD_MINUTES;
+
+            const loadUsedMinutes = teachingMinutes + allowanceMinutes;
+            const loadUsedPeriods = loadUsedMinutes / PERIOD_MINUTES;
+
+            const balanceMinutes = baseMinutes - loadUsedMinutes;
+            const balancePeriods = balanceMinutes / PERIOD_MINUTES;
+
+            return {
+                settings,
+                teachingPeriods: validTeachingPeriods,
+                teachingMinutes,
+                allowanceMinutes,
+                allowancePeriods,
+                loadUsedMinutes,
+                loadUsedPeriods,
+                baseMinutes,
+                basePeriods,
+                fteHours,
+                balanceMinutes,
+                balancePeriods,
+                periodAllowanceMinutes,
+                assemblyFullMinutes,
+                assemblyShortMinutes
+            };
+        }
+
+        function formatPeriods(value) {
+            if (!Number.isFinite(value)) {
+                return '0.00';
+            }
+            return value.toFixed(2);
+        }
+
+        function formatMinutes(value) {
+            if (!Number.isFinite(value)) {
+                return '0 min';
+            }
+            const decimals = Math.abs(value % 1) < 0.05 ? 0 : 1;
+            return `${value.toFixed(decimals)} min`;
+        }
+
+        function formatHours(value) {
+            if (!Number.isFinite(value)) {
+                return '0 h';
+            }
+            return `${value.toFixed(2)} h`;
+        }
+
+        function formatBalanceText(minutes) {
+            if (!Number.isFinite(minutes)) {
+                return '0.00 periods (0 min) remaining';
+            }
+
+            const remaining = minutes >= 0;
+            const absoluteMinutes = Math.abs(minutes);
+            const absolutePeriods = absoluteMinutes / PERIOD_MINUTES;
+            const periodLabel = Math.abs(absolutePeriods - 1) < 0.005 ? 'period' : 'periods';
+
+            const minutesText = formatMinutes(absoluteMinutes);
+            const periodsText = formatPeriods(absolutePeriods);
+
+            return remaining
+                ? `${periodsText} ${periodLabel} (${minutesText}) remaining`
+                : `${periodsText} ${periodLabel} (${minutesText}) over`;
+        }
+
+        function formatAllowanceDetails(settings) {
+            if (!settings) {
+                return 'None';
+            }
+
+            const details = [];
+
+            if (settings.periodAllowance > 0) {
+                const value = parseFloat(settings.periodAllowance.toFixed(2));
+                const label = Math.abs(value - 1) < 0.005 ? 'period allowance' : 'period allowances';
+                details.push(`${value} ${label}`);
+            }
+
+            if (settings.assemblyFullCount > 0) {
+                const value = parseFloat(settings.assemblyFullCount.toFixed(2));
+                const label = Math.abs(value - 1) < 0.005 ? 'full assembly' : 'full assemblies';
+                details.push(`${value} ${label}`);
+            }
+
+            if (settings.assemblyShortCount > 0) {
+                const value = parseFloat(settings.assemblyShortCount.toFixed(2));
+                const label = Math.abs(value - 1) < 0.005 ? 'short/TLC assembly' : 'short/TLC assemblies';
+                details.push(`${value} ${label}`);
+            }
+
+            if (settings.additionalMinutes > 0) {
+                const value = parseFloat(settings.additionalMinutes.toFixed(1));
+                details.push(`${value} min other allowances`);
+            }
+
+            return details.length > 0 ? details.join(', ') : 'None';
+        }
+
         function ensureTeacherPeriodTotalsContainer() {
             const container = document.querySelector('.timetable-container');
             if (!container) {
@@ -1035,7 +1339,10 @@
                     '<span>Year 9 = 6</span>',
                     '<span>Year 8 Elective = 3</span>',
                     '<span>Year 8 Tech Mandatory = 5</span>',
-                    '<span>Year 7 Tech Mandatory = 5</span>'
+                    '<span>Year 7 Tech Mandatory = 5</span>',
+                    `<span>Each period = ${PERIOD_MINUTES} minutes</span>`,
+                    `<span>Full assembly = ${ASSEMBLY_FULL_PERIOD_EQUIVALENT.toFixed(2)} period (~${formatMinutes(ASSEMBLY_FULL_MINUTES)})</span>`,
+                    `<span>Short/TLC assembly = ${ASSEMBLY_SHORT_PERIOD_EQUIVALENT.toFixed(2)} period (${formatMinutes(ASSEMBLY_SHORT_MINUTES)})</span>`
                 ].join('');
                 summary.appendChild(legend);
 
@@ -1071,7 +1378,7 @@
                     }
                     const subtitle = existingSummary.querySelector('#teacherPeriodSubtitle');
                     if (subtitle) {
-                        subtitle.textContent = 'Import spreadsheet data to view teacher period totals.';
+                        subtitle.textContent = 'Import spreadsheet data to configure teacher load allocations.';
                     }
                     existingSummary.style.display = 'none';
                 }
@@ -1093,35 +1400,222 @@
             grid.innerHTML = '';
 
             const totals = calculateTeacherPeriodTotals();
-            const overallTotal = totals.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
             const subtitle = summary.querySelector('#teacherPeriodSubtitle');
-            if (subtitle) {
-                subtitle.textContent = `Calculated from subject allocations. Total allocated: ${overallTotal} period${overallTotal === 1 ? '' : 's'} per fortnight.`;
+
+            let totalTeachingMinutes = 0;
+            let totalAllowanceMinutes = 0;
+            let totalBaseMinutes = 0;
+
+            function createSummaryRow(labelText, valueText, extraClasses = []) {
+                const row = document.createElement('div');
+                row.className = 'teacher-load-row';
+                extraClasses.forEach(className => {
+                    if (className) {
+                        row.classList.add(className);
+                    }
+                });
+
+                const label = document.createElement('span');
+                label.textContent = labelText;
+                const value = document.createElement('span');
+                value.textContent = valueText;
+
+                row.appendChild(label);
+                row.appendChild(value);
+                return row;
             }
 
             teachers.forEach((teacher, index) => {
+                const metrics = calculateTeacherLoadMetrics(teacher, totals[index]);
+                const settings = metrics.settings;
+
+                totalTeachingMinutes += metrics.teachingMinutes;
+                totalAllowanceMinutes += metrics.allowanceMinutes;
+                totalBaseMinutes += metrics.baseMinutes;
+
                 const card = document.createElement('div');
                 card.className = 'teacher-period-card';
+
+                const header = document.createElement('div');
+                header.className = 'teacher-period-header';
 
                 const name = document.createElement('div');
                 name.className = 'teacher-period-name';
                 name.textContent = teacher;
+                header.appendChild(name);
 
-                const countValue = typeof totals[index] === 'number' ? totals[index] : 0;
-                const count = document.createElement('div');
-                count.className = 'teacher-period-count';
-                count.textContent = countValue;
+                const fteControl = document.createElement('div');
+                fteControl.className = 'teacher-fte-control';
 
-                const label = document.createElement('div');
-                label.className = 'teacher-period-label';
-                label.textContent = 'periods / fortnight';
+                const fteLabel = document.createElement('label');
+                fteLabel.textContent = 'FTE';
+                fteControl.appendChild(fteLabel);
 
-                card.appendChild(name);
-                card.appendChild(count);
-                card.appendChild(label);
+                const fteSelect = document.createElement('select');
+                const normalizedFte = normalizeFteValue(settings.fte);
+                FTE_OPTIONS.forEach(optionValue => {
+                    const option = document.createElement('option');
+                    option.value = optionValue;
+                    const hours = FTE_LOAD_MAPPING[optionValue];
+                    option.textContent = hours !== undefined
+                        ? `${optionValue} (${hours.toFixed(2)} h)`
+                        : optionValue;
+                    if (optionValue === normalizedFte) {
+                        option.selected = true;
+                    }
+                    fteSelect.appendChild(option);
+                });
 
+                fteSelect.addEventListener('change', function() {
+                    settings.fte = normalizeFteValue(this.value);
+                    teacherLoadSettings[teacher] = settings;
+                    updateTeacherPeriodTotals();
+                });
+
+                fteControl.appendChild(fteSelect);
+                header.appendChild(fteControl);
+
+                card.appendChild(header);
+
+                const inputsContainer = document.createElement('div');
+                inputsContainer.className = 'teacher-load-inputs';
+
+                function createAllowanceInput(labelText, currentValue, options) {
+                    const opts = options || {};
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'teacher-load-input';
+
+                    const label = document.createElement('label');
+                    label.textContent = labelText;
+                    wrapper.appendChild(label);
+
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.step = opts.step !== undefined ? opts.step : '0.01';
+                    if (opts.min !== undefined) {
+                        input.min = opts.min;
+                    }
+                    input.value = Number.isFinite(currentValue) ? currentValue : 0;
+
+                    input.addEventListener('change', function() {
+                        const numeric = Number(this.value);
+                        const sanitized = Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
+                        if (typeof opts.onChange === 'function') {
+                            opts.onChange(sanitized);
+                        }
+                    });
+
+                    wrapper.appendChild(input);
+
+                    if (opts.note) {
+                        const note = document.createElement('div');
+                        note.className = 'teacher-load-input-note';
+                        note.textContent = opts.note;
+                        wrapper.appendChild(note);
+                    }
+
+                    return wrapper;
+                }
+
+                inputsContainer.appendChild(createAllowanceInput('Period allowance', settings.periodAllowance, {
+                    step: '0.01',
+                    min: '0',
+                    note: '59 min each',
+                    onChange(value) {
+                        settings.periodAllowance = Math.round(value * 100) / 100;
+                        updateTeacherPeriodTotals();
+                    }
+                }));
+
+                inputsContainer.appendChild(createAllowanceInput('Full assemblies', settings.assemblyFullCount, {
+                    step: '0.01',
+                    min: '0',
+                    note: `${ASSEMBLY_FULL_PERIOD_EQUIVALENT.toFixed(2)} period (~${formatMinutes(ASSEMBLY_FULL_MINUTES)}) each`,
+                    onChange(value) {
+                        settings.assemblyFullCount = Math.round(value * 100) / 100;
+                        updateTeacherPeriodTotals();
+                    }
+                }));
+
+                inputsContainer.appendChild(createAllowanceInput('Short/TLC assemblies', settings.assemblyShortCount, {
+                    step: '0.01',
+                    min: '0',
+                    note: `${ASSEMBLY_SHORT_PERIOD_EQUIVALENT.toFixed(2)} period (${formatMinutes(ASSEMBLY_SHORT_MINUTES)}) each`,
+                    onChange(value) {
+                        settings.assemblyShortCount = Math.round(value * 100) / 100;
+                        updateTeacherPeriodTotals();
+                    }
+                }));
+
+                inputsContainer.appendChild(createAllowanceInput('Other allowance (minutes)', settings.additionalMinutes, {
+                    step: '1',
+                    min: '0',
+                    note: 'Custom minute-based allowance',
+                    onChange(value) {
+                        settings.additionalMinutes = Math.round(value * 100) / 100;
+                        updateTeacherPeriodTotals();
+                    }
+                }));
+
+                card.appendChild(inputsContainer);
+
+                const summaryContainer = document.createElement('div');
+                summaryContainer.className = 'teacher-load-summary';
+
+                summaryContainer.appendChild(createSummaryRow(
+                    'Teaching allocation',
+                    `${formatPeriods(metrics.teachingPeriods)} periods (${formatMinutes(metrics.teachingMinutes)})`
+                ));
+
+                summaryContainer.appendChild(createSummaryRow(
+                    'Allowances applied',
+                    `${formatPeriods(metrics.allowancePeriods)} periods (${formatMinutes(metrics.allowanceMinutes)})`
+                ));
+
+                summaryContainer.appendChild(createSummaryRow(
+                    'Combined load',
+                    `${formatPeriods(metrics.loadUsedPeriods)} periods (${formatMinutes(metrics.loadUsedMinutes)})`
+                ));
+
+                summaryContainer.appendChild(createSummaryRow(
+                    'FTE allocation',
+                    `${formatHours(metrics.fteHours)} (${formatMinutes(metrics.baseMinutes)} ≈ ${formatPeriods(metrics.basePeriods)} periods)`
+                ));
+
+                const balanceRow = createSummaryRow(
+                    'Balance',
+                    formatBalanceText(metrics.balanceMinutes),
+                    ['teacher-load-balance', metrics.balanceMinutes >= 0 ? 'positive' : 'negative']
+                );
+                summaryContainer.appendChild(balanceRow);
+
+                summaryContainer.appendChild(createSummaryRow(
+                    'Allowance detail',
+                    formatAllowanceDetails(settings),
+                    ['teacher-load-note']
+                ));
+
+                card.appendChild(summaryContainer);
                 grid.appendChild(card);
             });
+
+            if (subtitle) {
+                const teachingPeriods = totalTeachingMinutes / PERIOD_MINUTES;
+                const allowancePeriods = totalAllowanceMinutes / PERIOD_MINUTES;
+                const totalLoadMinutes = totalTeachingMinutes + totalAllowanceMinutes;
+                const totalLoadPeriods = totalLoadMinutes / PERIOD_MINUTES;
+                const totalBasePeriods = totalBaseMinutes / PERIOD_MINUTES;
+                const totalBaseHours = totalBaseMinutes / 60;
+                const balanceMinutes = totalBaseMinutes - totalLoadMinutes;
+
+                subtitle.textContent = [
+                    'Calculated from subject allocations and load allowances.',
+                    `Teaching: ${formatPeriods(teachingPeriods)} periods (${formatMinutes(totalTeachingMinutes)}).`,
+                    `Allowances: ${formatPeriods(allowancePeriods)} periods (${formatMinutes(totalAllowanceMinutes)}).`,
+                    `Combined load: ${formatPeriods(totalLoadPeriods)} periods vs capacity ${formatPeriods(totalBasePeriods)} periods (${formatHours(totalBaseHours)}).`,
+                    `Balance: ${formatBalanceText(balanceMinutes)}.`
+                ].join(' ');
+            }
         }
 
         function isYear8SemesterPair(subjects) {
@@ -2500,7 +2994,8 @@
                 lines: lines,
                 csvData: csvData,
                 subjectLineMapping: subjectLineMapping,
-                subjectSplits: subjectSplits
+                subjectSplits: subjectSplits,
+                teacherLoadSettings: teacherLoadSettings
             };
 
             localStorage.setItem('facultyAllocations', JSON.stringify(data));
@@ -2823,6 +3318,24 @@
             if (data.subjects) subjects = data.subjects;
             if (data.teachers) teachers = data.teachers;
             if (data.lines) lines = data.lines;
+
+            if (!Array.isArray(teachers)) {
+                teachers = [];
+            }
+
+            if (data.teacherLoadSettings && typeof data.teacherLoadSettings === 'object') {
+                try {
+                    teacherLoadSettings = JSON.parse(JSON.stringify(data.teacherLoadSettings));
+                } catch (error) {
+                    teacherLoadSettings = { ...data.teacherLoadSettings };
+                }
+            } else if (!teacherLoadSettings || typeof teacherLoadSettings !== 'object') {
+                teacherLoadSettings = {};
+            }
+
+            teachers.forEach(teacher => {
+                getTeacherLoadSettings(teacher);
+            });
 
             if (!Array.isArray(subjects)) {
                 subjects = [];
