@@ -824,6 +824,12 @@
             border-bottom: none;
         }
 
+        .autocomplete-item.empty-message {
+            color: #7f8c8d;
+            cursor: default;
+            font-style: italic;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -944,9 +950,7 @@
             <button class="btn btn-success" onclick="saveAllocations()">Save Allocations</button>
             <button class="btn btn-warning" onclick="resetAllocations()">Reset Allocations</button>
             <button class="btn btn-primary" onclick="exportData()">Export Data</button>
-            <button class="btn btn-primary" onclick="manageTeachers()">Manage Teachers</button>
-            <button class="btn btn-primary" onclick="manageSubjects()">Manage Subjects</button>
-            <button class="btn btn-primary" onclick="manageLines()">Manage Lines</button>
+            <button class="btn btn-primary" onclick="openManagementHub()">Management Hub</button>
             <button class="btn btn-primary" onclick="importSupplementalData()">Import Additional Info</button>
 
             <div class="legend">
@@ -1015,7 +1019,7 @@
                 <span class="close">&times;</span>
             </div>
             <div class="autocomplete-container">
-                <input type="text" id="autocompleteInput" class="autocomplete-input" placeholder="Start typing to search...">
+                <input type="text" id="autocompleteInput" class="autocomplete-input" placeholder="Type to filter options...">
                 <div id="autocompleteList" class="autocomplete-list" style="display: none;"></div>
             </div>
             <div class="modal-buttons">
@@ -1621,10 +1625,10 @@
             };
         }
 
-        function manageTeachers() {
+        function manageTeachers(actionOverride = null) {
             const actions = ['Add Teacher', 'Remove Teacher'];
 
-            showAutocomplete('Select teacher management action', actions, function(selectedAction) {
+            function handleTeacherAction(selectedAction) {
                 if (selectedAction === 'Add Teacher') {
                     setTimeout(() => {
                         const name = prompt('Enter the name of the new teacher:');
@@ -1658,13 +1662,20 @@
                         });
                     }, 200);
                 }
-            });
+            }
+
+            if (actionOverride && actions.includes(actionOverride)) {
+                handleTeacherAction(actionOverride);
+                return;
+            }
+
+            showAutocomplete('Select teacher management action', actions, handleTeacherAction);
         }
 
-        function manageSubjects() {
+        function manageSubjects(actionOverride = null) {
             const actions = ['Add Subject', 'Remove Subject'];
 
-            showAutocomplete('Select subject management action', actions, function(selectedAction) {
+            function handleSubjectAction(selectedAction) {
                 if (selectedAction === 'Add Subject') {
                     setTimeout(() => {
                         const codeInput = prompt('Enter the new subject code:');
@@ -1730,13 +1741,20 @@
                         });
                     }, 200);
                 }
-            });
+            }
+
+            if (actionOverride && actions.includes(actionOverride)) {
+                handleSubjectAction(actionOverride);
+                return;
+            }
+
+            showAutocomplete('Select subject management action', actions, handleSubjectAction);
         }
 
-        function manageLines() {
+        function manageLines(actionOverride = null) {
             const actions = ['Add Line', 'Remove Line'];
 
-            showAutocomplete('Select line management action', actions, function(selectedAction) {
+            function handleLineAction(selectedAction) {
                 if (selectedAction === 'Add Line') {
                     setTimeout(() => {
                         const label = prompt('Enter a name for the new line:');
@@ -1776,6 +1794,33 @@
                             }
                         });
                     }, 200);
+                }
+            }
+
+            if (actionOverride && actions.includes(actionOverride)) {
+                handleLineAction(actionOverride);
+                return;
+            }
+
+            showAutocomplete('Select line management action', actions, handleLineAction);
+        }
+
+        function openManagementHub() {
+            const managementActions = [
+                { label: 'Add Teacher', handler: () => manageTeachers('Add Teacher') },
+                { label: 'Remove Teacher', handler: () => manageTeachers('Remove Teacher') },
+                { label: 'Add Subject', handler: () => manageSubjects('Add Subject') },
+                { label: 'Remove Subject', handler: () => manageSubjects('Remove Subject') },
+                { label: 'Add Line', handler: () => manageLines('Add Line') },
+                { label: 'Remove Line', handler: () => manageLines('Remove Line') }
+            ];
+
+            const labels = managementActions.map(action => action.label);
+
+            showAutocomplete('Select management action', labels, function(selectedLabel) {
+                const chosenAction = managementActions.find(action => action.label === selectedLabel);
+                if (chosenAction && typeof chosenAction.handler === 'function') {
+                    chosenAction.handler();
                 }
             });
         }
@@ -3136,6 +3181,7 @@
         let currentAutocompleteCallback = null;
         let selectedIndex = -1;
         let filteredItems = [];
+        let allAutocompleteItems = [];
 
         function normalizeSubjectCode(rawCode) {
             if (!rawCode) {
@@ -3599,98 +3645,122 @@
             modalTitle.textContent = title;
             input.value = '';
             list.innerHTML = '';
-            list.style.display = 'none';
             selectedIndex = -1;
             currentAutocompleteCallback = callback;
-            filteredItems = items;
+            allAutocompleteItems = Array.isArray(items) ? items.slice() : [];
+            filteredItems = [...allAutocompleteItems];
 
             modal.style.display = 'block';
             input.focus();
             updateFilteredList('');
         }
 
-        function updateFilteredList(query) {
+        function updateFilteredList(query = '') {
             const list = document.getElementById('autocompleteList');
-            
-            if (query.length === 0) {
-                list.style.display = 'none';
+            if (!list) {
                 return;
             }
 
-            // Filter the original items based on query
-            const filtered = filteredItems.filter(item => 
-                item.toLowerCase().includes(query.toLowerCase())
-            );
+            const normalizedQuery = typeof query === 'string' ? query.trim().toLowerCase() : '';
+            if (!Array.isArray(allAutocompleteItems)) {
+                allAutocompleteItems = [];
+            }
+
+            if (normalizedQuery.length === 0) {
+                filteredItems = [...allAutocompleteItems];
+            } else {
+                filteredItems = allAutocompleteItems.filter(item =>
+                    item.toLowerCase().includes(normalizedQuery)
+                );
+            }
 
             list.innerHTML = '';
-            
-            if (filtered.length === 0) {
-                list.innerHTML = '<div class="autocomplete-item">No matches found</div>';
-                list.style.display = 'block';
+
+            if (filteredItems.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'autocomplete-item empty-message';
+                emptyMessage.textContent = 'No matches found';
+                list.appendChild(emptyMessage);
             } else {
-                filtered.forEach((item, index) => {
+                filteredItems.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'autocomplete-item';
                     div.textContent = item;
                     div.addEventListener('click', () => {
-                        const input = document.getElementById('autocompleteInput');
-                        input.value = item;
-                        list.style.display = 'none';
-                        selectedIndex = index;
-                        if (currentAutocompleteCallback) {
-                            currentAutocompleteCallback(item);
-                            closeModal();
-                        }
+                        invokeAutocompleteCallback(item);
                     });
                     list.appendChild(div);
                 });
-                list.style.display = 'block';
             }
-            
+
+            list.style.display = 'block';
             selectedIndex = -1;
+            list.scrollTop = 0;
             updateSelection();
+        }
+
+        function invokeAutocompleteCallback(selectedItem) {
+            const callback = currentAutocompleteCallback;
+            closeModal();
+            if (typeof callback === 'function') {
+                callback(selectedItem);
+            }
         }
 
         function selectItem(index) {
             selectedIndex = index;
             updateSelection();
-            
+
             const input = document.getElementById('autocompleteInput');
-            input.value = filteredItems[index];
-            
+            if (filteredItems[index]) {
+                input.value = filteredItems[index];
+            }
+
             const list = document.getElementById('autocompleteList');
             list.style.display = 'none';
         }
 
         function updateSelection() {
-            const items = document.querySelectorAll('.autocomplete-item');
-            items.forEach((item, index) => {
-                if (index === selectedIndex) {
-                    item.classList.add('selected');
-                } else {
-                    item.classList.remove('selected');
-                }
-            });
+            const allItems = document.querySelectorAll('.autocomplete-item');
+            allItems.forEach(item => item.classList.remove('selected'));
+
+            if (selectedIndex < 0) {
+                return;
+            }
+
+            const selectableItems = document.querySelectorAll('.autocomplete-item:not(.empty-message)');
+            if (selectableItems.length === 0) {
+                selectedIndex = -1;
+                return;
+            }
+
+            if (selectedIndex >= selectableItems.length) {
+                selectedIndex = selectableItems.length - 1;
+            }
+
+            if (selectedIndex >= 0 && selectableItems[selectedIndex]) {
+                const selectedItem = selectableItems[selectedIndex];
+                selectedItem.classList.add('selected');
+                selectedItem.scrollIntoView({ block: 'nearest' });
+            }
         }
 
         function confirmSelection() {
             const input = document.getElementById('autocompleteInput');
-            const items = document.querySelectorAll('.autocomplete-item');
-            
+            const items = document.querySelectorAll('.autocomplete-item:not(.empty-message)');
+
             if (selectedIndex >= 0 && selectedIndex < items.length) {
-                const selectedItem = items[selectedIndex].textContent;
-                if (currentAutocompleteCallback) {
-                    currentAutocompleteCallback(selectedItem);
+                const selectedItem = filteredItems[selectedIndex];
+                if (selectedItem !== undefined) {
+                    invokeAutocompleteCallback(selectedItem);
                 }
-                closeModal();
             } else {
                 // Try to find exact match from the original list
-                const exactMatch = filteredItems.find(item => 
+                const exactMatch = allAutocompleteItems.find(item =>
                     item.toLowerCase() === input.value.toLowerCase()
                 );
-                if (exactMatch && currentAutocompleteCallback) {
-                    currentAutocompleteCallback(exactMatch);
-                    closeModal();
+                if (exactMatch) {
+                    invokeAutocompleteCallback(exactMatch);
                 } else {
                     alert('Please select a valid option from the list.');
                 }
@@ -3709,7 +3779,8 @@
             currentAutocompleteCallback = null;
             selectedIndex = -1;
             filteredItems = [];
-            
+            allAutocompleteItems = [];
+
             // Small delay to ensure modal is fully closed before next operation
         }
 
@@ -4691,13 +4762,22 @@
 
             // Keyboard navigation
             input.addEventListener('keydown', function(e) {
-                const items = document.querySelectorAll('.autocomplete-item');
-                
+                const selectableItems = document.querySelectorAll('.autocomplete-item:not(.empty-message)');
+
                 if (e.key === 'ArrowDown') {
+                    if (selectableItems.length === 0) {
+                        return;
+                    }
                     e.preventDefault();
-                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    selectedIndex = Math.min(selectedIndex + 1, selectableItems.length - 1);
+                    if (selectedIndex < 0) {
+                        selectedIndex = 0;
+                    }
                     updateSelection();
                 } else if (e.key === 'ArrowUp') {
+                    if (selectableItems.length === 0) {
+                        return;
+                    }
                     e.preventDefault();
                     selectedIndex = Math.max(selectedIndex - 1, -1);
                     updateSelection();
