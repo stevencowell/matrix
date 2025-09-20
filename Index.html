@@ -161,6 +161,50 @@
             background: #ffcdd2;
         }
 
+        .drop-zone.clash-cell {
+            background: #fdecea;
+            border-color: #e74c3c;
+        }
+
+        .drop-zone.semester-pair-cell {
+            background: #f5f9eb;
+            border-color: #27ae60;
+        }
+
+        .subject-slot.clash {
+            background: #fdecea;
+            border: 2px solid #e74c3c;
+            color: #c0392b;
+        }
+
+        .subject-slot.semester-pair {
+            background: #f5f9eb;
+            border: 2px solid #27ae60;
+            color: #1e8449;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: stretch;
+        }
+
+        .subject-slot.semester-pair .semester-pair-item {
+            background: rgba(39, 174, 96, 0.1);
+            border-radius: 4px;
+            padding: 2px 4px;
+            font-size: 11px;
+        }
+
+        .subject-slot.semester-pair .semester-pair-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #1e8449;
+            text-align: center;
+            border-top: 1px dashed rgba(39, 174, 96, 0.4);
+            padding-top: 4px;
+            margin-top: 4px;
+        }
+
         .subject-slot.dragging {
             opacity: 0.5;
             transform: rotate(5deg);
@@ -235,6 +279,16 @@
 
         .legend-color.allocated {
             background: #ffebee;
+            border: 2px solid #e74c3c;
+        }
+
+        .legend-color.semester-pair {
+            background: #f5f9eb;
+            border: 2px solid #27ae60;
+        }
+
+        .legend-color.clash {
+            background: #fdecea;
             border: 2px solid #e74c3c;
         }
 
@@ -390,6 +444,14 @@
                     <div class="legend-color allocated"></div>
                     <span>Allocated Subject</span>
                 </div>
+                <div class="legend-item">
+                    <div class="legend-color semester-pair"></div>
+                    <span>Year 8 S1/S2 Pair</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color clash"></div>
+                    <span>Allocation Clash</span>
+                </div>
             </div>
         </div>
 
@@ -458,6 +520,242 @@
 
         let allocations = {};
         let draggedElement = null;
+
+        function getAllocationKey(lineIndex, teacherIndex) {
+            return `${lineIndex}-${teacherIndex}`;
+        }
+
+        function getAllocationSubjects(key) {
+            const value = allocations[key];
+            if (!value) {
+                return [];
+            }
+            return Array.isArray(value) ? [...value] : [value];
+        }
+
+        function setAllocationSubjects(key, subjects) {
+            if (!subjects || subjects.length === 0) {
+                delete allocations[key];
+            } else {
+                allocations[key] = [...subjects];
+            }
+        }
+
+        function flattenAllocatedSubjects() {
+            const list = [];
+            Object.values(allocations).forEach(value => {
+                if (Array.isArray(value)) {
+                    list.push(...value);
+                } else if (value) {
+                    list.push(value);
+                }
+            });
+            return list;
+        }
+
+        function findSubjectLocation(subjectCode) {
+            for (const [key, value] of Object.entries(allocations)) {
+                const subjects = Array.isArray(value) ? value : [value];
+                const index = subjects.indexOf(subjectCode);
+                if (index !== -1) {
+                    const [lineIndex, teacherIndex] = key.split('-').map(Number);
+                    return {
+                        key,
+                        lineIndex,
+                        teacherIndex,
+                        index
+                    };
+                }
+            }
+            return null;
+        }
+
+        function getYear8Semester(subjectCode) {
+            if (!subjectCode) {
+                return null;
+            }
+            const normalized = subjectCode.toUpperCase().replace(/\s+/g, ' ');
+            const match = normalized.match(/^S\s*([12])\s*8/);
+            return match ? match[1] : null;
+        }
+
+        function isYear8SemesterPair(subjects) {
+            if (!subjects || subjects.length !== 2) {
+                return false;
+            }
+            const semesters = subjects.map(getYear8Semester);
+            return semesters[0] && semesters[1] && semesters[0] !== semesters[1];
+        }
+
+        function determineCellStatus(subjects) {
+            if (!subjects || subjects.length === 0) {
+                return 'empty';
+            }
+            if (subjects.length === 1) {
+                return 'single';
+            }
+            if (isYear8SemesterPair(subjects)) {
+                return 'semesterPair';
+            }
+            return 'clash';
+        }
+
+        function removeSubjectFromPool(subjectCode) {
+            const container = document.getElementById('subjectPoolItems');
+            if (!container) {
+                return;
+            }
+            const items = Array.from(container.querySelectorAll('.subject-slot'));
+            const target = items.find(element => element.dataset.subject === subjectCode);
+            if (target) {
+                target.remove();
+            }
+        }
+
+        function addSubjectToPool(subjectCode) {
+            const container = document.getElementById('subjectPoolItems');
+            if (!container) {
+                return;
+            }
+
+            const exists = Array.from(container.querySelectorAll('.subject-slot'))
+                .some(element => element.dataset.subject === subjectCode);
+
+            if (exists) {
+                return;
+            }
+
+            const subjectElement = document.createElement('div');
+            subjectElement.className = 'subject-slot';
+            subjectElement.textContent = subjectCode;
+            subjectElement.draggable = true;
+            subjectElement.dataset.subject = subjectCode;
+
+            subjectElement.addEventListener('dragstart', handleDragStart);
+            subjectElement.addEventListener('dragend', handleDragEnd);
+
+            container.appendChild(subjectElement);
+        }
+
+        function removeSubjectFromCell(lineIndex, teacherIndex, subjectCode, addBackToPool = false) {
+            const key = getAllocationKey(lineIndex, teacherIndex);
+            const subjects = getAllocationSubjects(key);
+            const subjectPosition = subjects.indexOf(subjectCode);
+
+            if (subjectPosition === -1) {
+                return;
+            }
+
+            subjects.splice(subjectPosition, 1);
+            setAllocationSubjects(key, subjects);
+
+            if (addBackToPool) {
+                addSubjectToPool(subjectCode);
+            }
+        }
+
+        function handleSubjectRemoval(lineIndex, teacherIndex, subjectCode) {
+            if (confirm('Remove ' + subjectCode + ' from ' + teachers[teacherIndex] + '?')) {
+                removeSubjectFromCell(lineIndex, teacherIndex, subjectCode, true);
+                renderCell(lineIndex, teacherIndex);
+                updateStats();
+            }
+        }
+
+        function renderCell(lineIndex, teacherIndex) {
+            const cell = document.querySelector(`[data-period="${lineIndex}"][data-teacher="${teacherIndex}"]`);
+            if (!cell) {
+                return;
+            }
+
+            cell.classList.remove('clash-cell', 'semester-pair-cell');
+            cell.querySelectorAll('.subject-slot').forEach(slot => slot.remove());
+
+            const key = getAllocationKey(lineIndex, teacherIndex);
+            const subjects = getAllocationSubjects(key);
+            const status = determineCellStatus(subjects);
+
+            if (status === 'empty') {
+                return;
+            }
+
+            if (status === 'semesterPair') {
+                cell.classList.add('semester-pair-cell');
+                const wrapper = document.createElement('div');
+                wrapper.className = 'subject-slot allocated semester-pair';
+                wrapper.dataset.teacher = teacherIndex;
+                wrapper.dataset.line = lineIndex;
+
+                subjects.forEach(subject => {
+                    const subjectRow = document.createElement('div');
+                    subjectRow.className = 'semester-pair-item';
+                    subjectRow.textContent = subject;
+                    subjectRow.dataset.subject = subject;
+                    subjectRow.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        handleSubjectRemoval(lineIndex, teacherIndex, subject);
+                    });
+                    wrapper.appendChild(subjectRow);
+                });
+
+                const label = document.createElement('div');
+                label.className = 'semester-pair-label';
+                label.textContent = 'S1/S2 Pair';
+                wrapper.appendChild(label);
+
+                cell.appendChild(wrapper);
+                return;
+            }
+
+            if (status === 'clash') {
+                cell.classList.add('clash-cell');
+            }
+
+            subjects.forEach(subject => {
+                const subjectElement = document.createElement('div');
+                subjectElement.className = 'subject-slot allocated';
+                if (status === 'clash') {
+                    subjectElement.classList.add('clash');
+                }
+                subjectElement.textContent = subject;
+                subjectElement.dataset.subject = subject;
+                subjectElement.dataset.teacher = teacherIndex;
+                subjectElement.dataset.line = lineIndex;
+                subjectElement.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    handleSubjectRemoval(lineIndex, teacherIndex, subject);
+                });
+                cell.appendChild(subjectElement);
+            });
+        }
+
+        function renderAllAllocations() {
+            document.querySelectorAll('.drop-zone').forEach(cell => {
+                cell.classList.remove('clash-cell', 'semester-pair-cell');
+                cell.querySelectorAll('.subject-slot').forEach(slot => slot.remove());
+            });
+
+            Object.keys(allocations).forEach(key => {
+                const [lineIndex, teacherIndex] = key.split('-').map(Number);
+                renderCell(lineIndex, teacherIndex);
+            });
+
+            syncSubjectPool();
+        }
+
+        function syncSubjectPool() {
+            const container = document.getElementById('subjectPoolItems');
+            if (!container) {
+                return;
+            }
+
+            const allocatedSubjects = new Set(flattenAllocatedSubjects());
+            Array.from(container.querySelectorAll('.subject-slot')).forEach(item => {
+                if (allocatedSubjects.has(item.dataset.subject)) {
+                    item.remove();
+                }
+            });
+        }
 
         // Autocomplete functionality
         let currentAutocompleteCallback = null;
@@ -569,12 +867,17 @@
                     cell.className = 'drop-zone';
                     cell.dataset.period = lineIndex;
                     cell.dataset.teacher = teacherIndex;
-                    
+
                     // Add click event for popup allocation
                     cell.addEventListener('click', function() {
                         showAllocationPopup(lineIndex, teacherIndex);
                     });
-                    
+
+                    cell.addEventListener('dragover', handleDragOver);
+                    cell.addEventListener('dragenter', handleDragEnter);
+                    cell.addEventListener('dragleave', handleDragLeave);
+                    cell.addEventListener('drop', handleDrop);
+
                     row.appendChild(cell);
                 });
 
@@ -588,37 +891,7 @@
         }
 
         function createAllocationVisuals() {
-            // Clear any existing allocations first
-            document.querySelectorAll('.subject-slot.allocated').forEach(slot => {
-                slot.remove();
-            });
-
-            // Create visual elements for each allocation
-            Object.entries(allocations).forEach(([key, subjectCode]) => {
-                const [lineIndex, teacherIndex] = key.split('-');
-                const cell = document.querySelector(`[data-period="${lineIndex}"][data-teacher="${teacherIndex}"]`);
-                
-                if (cell && !cell.querySelector('.subject-slot')) {
-                    const subjectElement = document.createElement('div');
-                    subjectElement.className = 'subject-slot allocated';
-                    subjectElement.textContent = subjectCode;
-                    subjectElement.dataset.subject = subjectCode;
-                    subjectElement.dataset.teacher = teacherIndex;
-                    subjectElement.dataset.line = lineIndex;
-
-                    // Add click to remove functionality
-                    subjectElement.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        if (confirm('Remove ' + subjectCode + ' from ' + teachers[teacherIndex] + '?')) {
-                            subjectElement.remove();
-                            delete allocations[key];
-                            updateStats();
-                        }
-                    });
-
-                    cell.appendChild(subjectElement);
-                }
-            });
+            renderAllAllocations();
         }
 
         // Create the subject pool
@@ -653,6 +926,7 @@
                 flex-wrap: wrap;
                 gap: 10px;
             `;
+            subjectsContainer.id = 'subjectPoolItems';
 
             subjects.forEach((subject, index) => {
                 const subjectElement = document.createElement('div');
@@ -670,6 +944,8 @@
 
             subjectPool.appendChild(subjectsContainer);
             container.appendChild(subjectPool);
+
+            syncSubjectPool();
         }
 
         // Drag and drop event handlers
@@ -692,68 +968,31 @@
 
         function handleDragEnter(e) {
             e.preventDefault();
-            e.target.classList.add('drag-over');
+            e.currentTarget.classList.add('drag-over');
         }
 
         function handleDragLeave(e) {
-            e.target.classList.remove('drag-over');
+            e.currentTarget.classList.remove('drag-over');
         }
 
         function handleDrop(e) {
             e.preventDefault();
-            e.target.classList.remove('drag-over');
+            const cell = e.currentTarget;
+            cell.classList.remove('drag-over');
 
-            if (draggedElement) {
-                const subject = draggedElement.dataset.subject;
-                const period = e.target.dataset.period;
-                const teacher = e.target.dataset.teacher;
-
-                // Check if this slot is already occupied
-                const existingSubject = e.target.querySelector('.subject-slot');
-                if (existingSubject) {
-                    // Move existing subject back to pool
-                    moveSubjectToPool(existingSubject);
-                }
-
-                // Create new subject element in the slot
-                const newSubjectElement = document.createElement('div');
-                newSubjectElement.className = 'subject-slot allocated';
-                newSubjectElement.textContent = subject;
-                newSubjectElement.draggable = true;
-                newSubjectElement.dataset.subject = subject;
-                newSubjectElement.dataset.period = period;
-                newSubjectElement.dataset.teacher = teacher;
-
-                newSubjectElement.addEventListener('dragstart', handleDragStart);
-                newSubjectElement.addEventListener('dragend', handleDragEnd);
-
-                e.target.appendChild(newSubjectElement);
-
-                // Update allocations data
-                const key = `${period}-${teacher}`;
-                allocations[key] = subject;
-
-                // Remove from subject pool
-                draggedElement.remove();
-
-                updateStats();
+            if (!draggedElement) {
+                return;
             }
-        }
 
-        function moveSubjectToPool(subjectElement) {
-            const subjectPool = document.getElementById('subjectPool');
-            const subjectsContainer = subjectPool.querySelector('div:last-child');
-            
-            const newSubjectElement = document.createElement('div');
-            newSubjectElement.className = 'subject-slot';
-            newSubjectElement.textContent = subjectElement.textContent;
-            newSubjectElement.draggable = true;
-            newSubjectElement.dataset.subject = subjectElement.dataset.subject;
+            const subject = draggedElement.dataset.subject;
+            const period = parseInt(cell.dataset.period);
+            const teacher = parseInt(cell.dataset.teacher);
 
-            newSubjectElement.addEventListener('dragstart', handleDragStart);
-            newSubjectElement.addEventListener('dragend', handleDragEnd);
-
-            subjectsContainer.appendChild(newSubjectElement);
+            if (allocateSubjectToTeacher(subject, teacher, period)) {
+                if (!draggedElement.classList.contains('allocated')) {
+                    draggedElement.remove();
+                }
+            }
         }
 
         // CSV Import functionality
@@ -1052,21 +1291,25 @@
 
         // Get available (unallocated) subjects
         function getAvailableSubjects() {
-            const allocatedSubjects = Object.values(allocations);
-            return subjects.filter(subject => !allocatedSubjects.includes(subject));
+            const allocatedSubjects = new Set(flattenAllocatedSubjects());
+            return subjects.filter(subject => !allocatedSubjects.has(subject));
         }
 
         // Get allocated subjects with their current teacher
         function getAllocatedSubjects() {
             const allocatedList = [];
-            Object.entries(allocations).forEach(([key, subject]) => {
-                const [lineIndex, teacherIndex] = key.split('-');
-                allocatedList.push({
-                    subject: subject,
-                    teacher: teachers[teacherIndex],
-                    teacherIndex: parseInt(teacherIndex),
-                    line: lines[lineIndex],
-                    lineIndex: parseInt(lineIndex)
+            Object.entries(allocations).forEach(([key, value]) => {
+                const [lineIndex, teacherIndex] = key.split('-').map(Number);
+                const subjectList = Array.isArray(value) ? value : [value];
+
+                subjectList.forEach(subject => {
+                    allocatedList.push({
+                        subject: subject,
+                        teacher: teachers[teacherIndex],
+                        teacherIndex: teacherIndex,
+                        line: lines[lineIndex],
+                        lineIndex: lineIndex
+                    });
                 });
             });
             return allocatedList;
@@ -1093,14 +1336,8 @@
                         const teacherIndex = teachers.indexOf(selectedTeacher);
                         if (allocateSubjectToTeacher(selectedSubject, teacherIndex)) {
                             alert('Subject ' + selectedSubject + ' allocated to ' + selectedTeacher + ' successfully!');
-                            updateStats();
                         } else {
-                            const requiredLine = subjectLineMapping[selectedSubject];
-                            if (requiredLine !== undefined) {
-                                alert(`No available slots for this teacher on Line ${requiredLine + 1}.`);
-                            } else {
-                                alert('No available slots for this teacher!');
-                            }
+                            alert('Unable to allocate this subject to the selected teacher.');
                         }
                     });
                 }, 200); // 200ms delay to ensure first modal is fully closed
@@ -1132,42 +1369,10 @@
                     showAutocomplete(`Move ${allocation.subject} to which teacher?`, teachers, function(selectedTeacher) {
                         const newTeacherIndex = teachers.indexOf(selectedTeacher);
 
-                        // Remove old allocation
-                        const oldKey = `${allocation.lineIndex}-${allocation.teacherIndex}`;
-                        delete allocations[oldKey];
-
-                        // Remove old visual element
-                        const oldCell = document.querySelector(`[data-period="${allocation.lineIndex}"][data-teacher="${allocation.teacherIndex}"]`);
-                        const oldElement = oldCell.querySelector('.subject-slot');
-                        if (oldElement) oldElement.remove();
-
-                        // Create new allocation, preserving the original line
                         if (allocateSubjectToTeacher(allocation.subject, newTeacherIndex, allocation.lineIndex)) {
                             alert(`${allocation.subject} moved from ${allocation.teacher} to ${selectedTeacher} on Line ${allocation.lineIndex + 1} successfully!`);
-                            updateStats();
                         } else {
-                            const requiredLine = subjectLineMapping[allocation.subject] !== undefined ? subjectLineMapping[allocation.subject] : allocation.lineIndex;
-                            alert(`No available slots for the new teacher on Line ${requiredLine + 1}! Reverting...`);
-                            // Revert the allocation
-                            allocations[oldKey] = allocation.subject;
-                            const oldSubjectElement = document.createElement('div');
-                            oldSubjectElement.className = 'subject-slot allocated';
-                            oldSubjectElement.textContent = allocation.subject;
-                            oldSubjectElement.dataset.subject = allocation.subject;
-                            oldSubjectElement.dataset.teacher = allocation.teacherIndex;
-                            oldSubjectElement.dataset.line = allocation.lineIndex;
-
-                            oldSubjectElement.addEventListener('click', function(e) {
-                                e.stopPropagation();
-                                if (confirm('Remove ' + allocation.subject + ' from ' + allocation.teacher + '?')) {
-                                    oldSubjectElement.remove();
-                                    delete allocations[oldKey];
-                                    updateStats();
-                                }
-                            });
-
-                            oldCell.appendChild(oldSubjectElement);
-                            updateStats();
+                            alert(`${allocation.subject} is already allocated to ${selectedTeacher} on Line ${allocation.lineIndex + 1}.`);
                         }
                     });
                 }, 200); // 200ms delay to ensure first modal is fully closed
@@ -1175,29 +1380,31 @@
         }
 
         // Function to record actions for undo functionality
-        function recordAction(actionType, subjectCode, fromTeacher, toTeacher, lineIndex) {
+        function recordAction(actionType, subjectCode, fromTeacher, toTeacher, lineIndex, fromLineIndex = null) {
             actionHistory.push({
                 type: actionType,
                 subject: subjectCode,
                 fromTeacher: fromTeacher,
                 toTeacher: toTeacher,
                 lineIndex: lineIndex,
+                fromLineIndex: fromLineIndex,
                 timestamp: Date.now()
             });
-            
-            // Enable undo button
+
             document.getElementById('undoBtn').disabled = false;
-            
-            // Limit history to last 10 actions
+
             if (actionHistory.length > 10) {
                 actionHistory.shift();
             }
-            
+
             console.log('Action recorded:', actionHistory[actionHistory.length - 1]);
         }
 
-        function allocateSubjectToTeacher(subjectCode, teacherIndex, preferredLine = null) {
-            // Get the correct line for this subject from the mapping
+        function allocateSubjectToTeacher(subjectCode, teacherIndex, preferredLine = null, options = {}) {
+            if (teacherIndex < 0 || teacherIndex >= teachers.length) {
+                return false;
+            }
+
             let targetLine = preferredLine;
 
             if (targetLine === null && subjectLineMapping[subjectCode] !== undefined) {
@@ -1205,73 +1412,57 @@
                 console.log(`Subject ${subjectCode} must stay in Line ${targetLine + 1}`);
             }
 
-            const cells = document.querySelectorAll(`[data-teacher="${teacherIndex}"]`);
-            const cellArray = Array.from(cells);
-
-            let targetCell = null;
-
-            if (targetLine !== null) {
-                targetCell = cellArray.find(cell => parseInt(cell.dataset.period) === targetLine);
-
-                if (!targetCell || targetCell.querySelector('.subject-slot')) {
+            if (targetLine === null) {
+                const teacherCells = document.querySelectorAll(`[data-teacher="${teacherIndex}"]`);
+                if (teacherCells.length === 0) {
                     return false;
                 }
-            } else {
-                targetCell = cellArray.find(cell => !cell.querySelector('.subject-slot'));
-
-                if (!targetCell) {
-                    return false;
-                }
-
-                targetLine = parseInt(targetCell.dataset.period);
+                targetLine = parseInt(teacherCells[0].dataset.period);
             }
 
-            const lineIndex = parseInt(targetCell.dataset.period);
-            
-            // Create subject element
-            const subjectElement = document.createElement('div');
-            subjectElement.className = 'subject-slot allocated';
-            subjectElement.textContent = subjectCode;
-            subjectElement.dataset.subject = subjectCode;
-            subjectElement.dataset.teacher = teacherIndex;
-            subjectElement.dataset.line = lineIndex;
+            const cell = document.querySelector(`[data-period="${targetLine}"][data-teacher="${teacherIndex}"]`);
+            if (!cell) {
+                return false;
+            }
 
-            // Add click to remove functionality
-            subjectElement.addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (confirm('Remove ' + subjectCode + ' from ' + teachers[teacherIndex] + '?')) {
-                    subjectElement.remove();
-                    delete allocations[`${lineIndex}-${teacherIndex}`];
-                    updateStats();
-                }
-            });
+            const key = getAllocationKey(targetLine, teacherIndex);
+            const currentSubjects = getAllocationSubjects(key);
+            if (currentSubjects.includes(subjectCode)) {
+                return false;
+            }
 
-            targetCell.appendChild(subjectElement);
-
-            // Update allocations data
-            const key = `${lineIndex}-${teacherIndex}`;
-            
-            // Check if this is a new allocation or moving an existing one
+            const existingLocation = findSubjectLocation(subjectCode);
             let fromTeacher = null;
-            for (const [existingKey, existingSubject] of Object.entries(allocations)) {
-                if (existingSubject === subjectCode) {
-                    fromTeacher = parseInt(existingKey.split('-')[1]);
-                    delete allocations[existingKey];
-                    break;
-                }
-            }
-            
-            allocations[key] = subjectCode;
-            
-            // Record the action for undo
-            recordAction(
-                fromTeacher !== null ? 'move' : 'allocate',
-                subjectCode,
-                fromTeacher,
-                teacherIndex,
-                lineIndex
-            );
+            let fromLineIndex = null;
 
+            if (existingLocation) {
+                fromTeacher = existingLocation.teacherIndex;
+                fromLineIndex = existingLocation.lineIndex;
+
+                const previousSubjects = getAllocationSubjects(existingLocation.key)
+                    .filter(subject => subject !== subjectCode);
+                setAllocationSubjects(existingLocation.key, previousSubjects);
+                renderCell(existingLocation.lineIndex, existingLocation.teacherIndex);
+            }
+
+            currentSubjects.push(subjectCode);
+            setAllocationSubjects(key, currentSubjects);
+            renderCell(targetLine, teacherIndex);
+
+            removeSubjectFromPool(subjectCode);
+
+            if (options.recordAction !== false) {
+                recordAction(
+                    fromTeacher !== null ? 'move' : 'allocate',
+                    subjectCode,
+                    fromTeacher,
+                    teacherIndex,
+                    targetLine,
+                    fromLineIndex
+                );
+            }
+
+            updateStats();
             return true;
         }
 
@@ -1281,68 +1472,40 @@
                 alert('No actions to undo');
                 return;
             }
-            
+
             const lastAction = actionHistory.pop();
             console.log('Undoing action:', lastAction);
-            
+
             if (lastAction.type === 'allocate') {
-                // Remove the subject from the teacher
-                const allocationKey = `${lastAction.lineIndex}-${lastAction.toTeacher}`;
-                delete allocations[allocationKey];
-                
-                // Remove from UI
-                const cell = document.querySelector(`[data-teacher="${lastAction.toTeacher}"][data-period="${lastAction.lineIndex}"]`);
-                if (cell) {
-                    const subjectElement = cell.querySelector(`[data-subject="${lastAction.subject}"]`);
-                    if (subjectElement) {
-                        subjectElement.remove();
-                    }
-                }
-                
+                const allocationKey = getAllocationKey(lastAction.lineIndex, lastAction.toTeacher);
+                const remainingSubjects = getAllocationSubjects(allocationKey)
+                    .filter(subject => subject !== lastAction.subject);
+                setAllocationSubjects(allocationKey, remainingSubjects);
+                renderCell(lastAction.lineIndex, lastAction.toTeacher);
+                addSubjectToPool(lastAction.subject);
             } else if (lastAction.type === 'move') {
-                // Move back to original teacher
-                const currentKey = `${lastAction.lineIndex}-${lastAction.toTeacher}`;
-                const originalKey = `${lastAction.lineIndex}-${lastAction.fromTeacher}`;
-                
-                delete allocations[currentKey];
-                allocations[originalKey] = lastAction.subject;
-                
-                // Remove from current teacher's UI
-                const currentCell = document.querySelector(`[data-teacher="${lastAction.toTeacher}"][data-period="${lastAction.lineIndex}"]`);
-                if (currentCell) {
-                    const subjectElement = currentCell.querySelector(`[data-subject="${lastAction.subject}"]`);
-                    if (subjectElement) {
-                        subjectElement.remove();
+                const currentKey = getAllocationKey(lastAction.lineIndex, lastAction.toTeacher);
+                const remainingSubjects = getAllocationSubjects(currentKey)
+                    .filter(subject => subject !== lastAction.subject);
+                setAllocationSubjects(currentKey, remainingSubjects);
+                renderCell(lastAction.lineIndex, lastAction.toTeacher);
+
+                if (lastAction.fromTeacher !== null) {
+                    const originalLine = lastAction.fromLineIndex !== null ? lastAction.fromLineIndex : lastAction.lineIndex;
+                    const originalKey = getAllocationKey(originalLine, lastAction.fromTeacher);
+                    const originalSubjects = getAllocationSubjects(originalKey);
+
+                    if (!originalSubjects.includes(lastAction.subject)) {
+                        originalSubjects.push(lastAction.subject);
+                        setAllocationSubjects(originalKey, originalSubjects);
                     }
-                }
-                
-                // Add back to original teacher's UI
-                const originalCell = document.querySelector(`[data-teacher="${lastAction.fromTeacher}"][data-period="${lastAction.lineIndex}"]`);
-                if (originalCell) {
-                    const subjectElement = document.createElement('div');
-                    subjectElement.className = 'subject-slot allocated';
-                    subjectElement.textContent = lastAction.subject;
-                    subjectElement.dataset.subject = lastAction.subject;
-                    subjectElement.dataset.teacher = lastAction.fromTeacher;
-                    subjectElement.dataset.line = lastAction.lineIndex;
-                    
-                    // Add click to remove functionality
-                    subjectElement.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        if (confirm('Remove ' + lastAction.subject + ' from ' + teachers[lastAction.fromTeacher] + '?')) {
-                            subjectElement.remove();
-                            delete allocations[originalKey];
-                            updateStats();
-                        }
-                    });
-                    
-                    originalCell.appendChild(subjectElement);
+
+                    renderCell(originalLine, lastAction.fromTeacher);
                 }
             }
-            
+
             updateStats();
-            
-            // Disable undo button if no more actions
+
             if (actionHistory.length === 0) {
                 document.getElementById('undoBtn').disabled = true;
             }
@@ -1373,39 +1536,11 @@
                 return;
             }
 
-            const cell = document.querySelector(`[data-period="${lineIndex}"][data-teacher="${teacherIndex}"]`);
-            if (cell.querySelector('.subject-slot')) {
-                alert('This slot is already occupied!');
-                return;
-            }
-            
             // Show subject autocomplete
             showAutocomplete(`Allocate subject to ${teacherName} on ${lineName}`, availableSubjects, function(selectedSubject) {
-                // Create subject element
-                const subjectElement = document.createElement('div');
-                subjectElement.className = 'subject-slot allocated';
-                subjectElement.textContent = selectedSubject;
-                subjectElement.dataset.subject = selectedSubject;
-                subjectElement.dataset.teacher = teacherIndex;
-                subjectElement.dataset.line = lineIndex;
-
-                // Add click to remove functionality
-                subjectElement.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    if (confirm('Remove ' + selectedSubject + ' from ' + teacherName + '?')) {
-                        subjectElement.remove();
-                        delete allocations[`${lineIndex}-${teacherIndex}`];
-                        updateStats();
-                    }
-                });
-
-                cell.appendChild(subjectElement);
-
-                // Update allocations data
-                const key = `${lineIndex}-${teacherIndex}`;
-                allocations[key] = selectedSubject;
-
-                updateStats();
+                if (!allocateSubjectToTeacher(selectedSubject, teacherIndex, lineIndex)) {
+                    alert('Unable to allocate ' + selectedSubject + ' to ' + teacherName + ' on ' + lineName + '.');
+                }
             });
         }
 
@@ -1427,12 +1562,9 @@
             if (confirm('Are you sure you want to reset all allocations? This action cannot be undone.')) {
                 allocations = {};
                 actionHistory = []; // Clear undo history
-                
-                // Clear all allocated subjects from timetable
-                document.querySelectorAll('.subject-slot.allocated').forEach(slot => {
-                    slot.remove();
-                });
-                
+
+                renderAllAllocations();
+
                 // Disable undo button
                 document.getElementById('undoBtn').disabled = true;
 
@@ -1486,52 +1618,30 @@
         }
 
         function loadAllocations(data) {
-            // Clear existing allocations
             allocations = {};
-            document.querySelectorAll('.subject-slot.allocated').forEach(slot => {
-                slot.remove();
-            });
+            actionHistory = [];
+            document.getElementById('undoBtn').disabled = true;
 
-            // Load data from saved file
             if (data.subjects) subjects = data.subjects;
             if (data.teachers) teachers = data.teachers;
             if (data.lines) lines = data.lines;
             if (data.csvData) csvData = data.csvData;
 
-            // Load new allocations
             if (data.allocations) {
-                Object.entries(data.allocations).forEach(([key, subject]) => {
-                    const [line, teacher] = key.split('-');
-                    const cell = document.querySelector(`[data-period="${line}"][data-teacher="${teacher}"]`);
-                    if (cell) {
-                        const subjectElement = document.createElement('div');
-                        subjectElement.className = 'subject-slot allocated';
-                        subjectElement.textContent = subject;
-                        subjectElement.dataset.subject = subject;
-                        subjectElement.dataset.period = line;
-                        subjectElement.dataset.teacher = teacher;
-
-                        // Add click to remove functionality
-                        subjectElement.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            if (confirm('Remove ' + subject + ' from ' + teachers[teacher] + '?')) {
-                                subjectElement.remove();
-                                updateStats();
-                            }
-                        });
-
-                        cell.appendChild(subjectElement);
-                    }
+                Object.entries(data.allocations).forEach(([key, value]) => {
+                    const subjectsList = Array.isArray(value) ? value : [value];
+                    setAllocationSubjects(key, subjectsList);
                 });
-                allocations = data.allocations;
             }
 
+            initializeTimetable();
+            createSubjectPool();
             updateStats();
         }
 
         function updateStats() {
             const totalSubjects = subjects.length;
-            const allocatedSubjects = Object.keys(allocations).length;
+            const allocatedSubjects = flattenAllocatedSubjects().length;
             const availableSubjects = getAvailableSubjects().length;
             const allocationPercentage = totalSubjects > 0 ? Math.round((allocatedSubjects / totalSubjects) * 100) : 0;
 
