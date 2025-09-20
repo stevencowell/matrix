@@ -944,6 +944,10 @@
             <button class="btn btn-success" onclick="saveAllocations()">Save Allocations</button>
             <button class="btn btn-warning" onclick="resetAllocations()">Reset Allocations</button>
             <button class="btn btn-primary" onclick="exportData()">Export Data</button>
+            <button class="btn btn-primary" onclick="manageTeachers()">Manage Teachers</button>
+            <button class="btn btn-primary" onclick="manageSubjects()">Manage Subjects</button>
+            <button class="btn btn-primary" onclick="manageLines()">Manage Lines</button>
+            <button class="btn btn-primary" onclick="importSupplementalData()">Import Additional Info</button>
 
             <div class="legend">
                 <div class="legend-item">
@@ -1216,6 +1220,817 @@
                 }
             }
             return null;
+        }
+
+        function clearActionHistory() {
+            actionHistory = [];
+            redoStack = [];
+
+            const undoBtn = document.getElementById('undoBtn');
+            if (undoBtn) {
+                undoBtn.disabled = true;
+            }
+
+            const redoBtn = document.getElementById('redoBtn');
+            if (redoBtn) {
+                redoBtn.disabled = true;
+            }
+        }
+
+        function resolveLineReference(reference) {
+            if (reference === null || reference === undefined) {
+                return null;
+            }
+
+            if (Number.isInteger(reference)) {
+                return reference >= 0 && reference < lines.length ? reference : null;
+            }
+
+            if (typeof reference === 'string') {
+                const trimmed = reference.trim();
+                if (trimmed.length === 0) {
+                    return null;
+                }
+
+                const labelIndex = lines.indexOf(trimmed);
+                if (labelIndex !== -1) {
+                    return labelIndex;
+                }
+
+                const numeric = parseInt(trimmed, 10);
+                if (!Number.isNaN(numeric) && numeric >= 0 && numeric < lines.length) {
+                    return numeric;
+                }
+            }
+
+            const numericValue = Number(reference);
+            if (Number.isInteger(numericValue) && numericValue >= 0 && numericValue < lines.length) {
+                return numericValue;
+            }
+
+            return null;
+        }
+
+        function addTeacher(teacherName, options = {}) {
+            const { skipRefresh = false, silent = false } = options;
+
+            if (!teacherName || typeof teacherName !== 'string') {
+                if (!silent) {
+                    alert('Teacher name cannot be empty.');
+                }
+                return false;
+            }
+
+            const trimmedName = teacherName.trim();
+            if (trimmedName.length === 0) {
+                if (!silent) {
+                    alert('Teacher name cannot be empty.');
+                }
+                return false;
+            }
+
+            if (teachers.includes(trimmedName)) {
+                if (!silent) {
+                    alert('This teacher already exists.');
+                }
+                return false;
+            }
+
+            teachers.push(trimmedName);
+            getTeacherLoadSettings(trimmedName);
+
+            if (!skipRefresh) {
+                initializeTimetable();
+                createSubjectPool();
+                updateStats();
+            }
+
+            return true;
+        }
+
+        function removeTeacher(teacherName, options = {}) {
+            const { skipRefresh = false, silent = false } = options;
+            const index = teachers.indexOf(teacherName);
+
+            if (index === -1) {
+                if (!silent) {
+                    alert('Teacher not found.');
+                }
+                return null;
+            }
+
+            const removedSubjects = [];
+            const updatedAllocations = {};
+
+            Object.entries(allocations).forEach(([key, value]) => {
+                const [lineIndex, teacherIndex] = key.split('-').map(Number);
+
+                if (teacherIndex === index) {
+                    const subjectList = Array.isArray(value) ? value : [value];
+                    subjectList.forEach(subject => {
+                        if (subject) {
+                            removedSubjects.push(subject);
+                        }
+                    });
+                    return;
+                }
+
+                const newTeacherIndex = teacherIndex > index ? teacherIndex - 1 : teacherIndex;
+                const subjectList = Array.isArray(value) ? [...value] : [value];
+
+                if (subjectList.length > 0) {
+                    updatedAllocations[`${lineIndex}-${newTeacherIndex}`] = subjectList;
+                }
+            });
+
+            teachers.splice(index, 1);
+            delete teacherLoadSettings[teacherName];
+            if (teacherAllocations && typeof teacherAllocations === 'object') {
+                delete teacherAllocations[teacherName];
+            }
+
+            allocations = {};
+            Object.entries(updatedAllocations).forEach(([key, value]) => {
+                setAllocationSubjects(key, Array.isArray(value) ? value : [value]);
+            });
+
+            clearActionHistory();
+
+            if (!skipRefresh) {
+                initializeTimetable();
+                createSubjectPool();
+                updateStats();
+            }
+
+            return {
+                removedSubjects: removedSubjects,
+                removedCount: removedSubjects.length
+            };
+        }
+
+        function addLine(lineLabel, options = {}) {
+            const { skipRefresh = false, silent = false } = options;
+
+            if (!lineLabel || typeof lineLabel !== 'string') {
+                if (!silent) {
+                    alert('Line name cannot be empty.');
+                }
+                return false;
+            }
+
+            const trimmedLabel = lineLabel.trim();
+            if (trimmedLabel.length === 0) {
+                if (!silent) {
+                    alert('Line name cannot be empty.');
+                }
+                return false;
+            }
+
+            if (lines.includes(trimmedLabel)) {
+                if (!silent) {
+                    alert('This line already exists.');
+                }
+                return false;
+            }
+
+            lines.push(trimmedLabel);
+
+            if (!skipRefresh) {
+                initializeTimetable();
+                createSubjectPool();
+                updateStats();
+            }
+
+            return true;
+        }
+
+        function removeLine(lineLabel, options = {}) {
+            const { skipRefresh = false, silent = false } = options;
+            const index = lines.indexOf(lineLabel);
+
+            if (index === -1) {
+                if (!silent) {
+                    alert('Line not found.');
+                }
+                return null;
+            }
+
+            const removedSubjects = [];
+            const updatedAllocations = {};
+
+            Object.entries(allocations).forEach(([key, value]) => {
+                const [lineIndex, teacherIndex] = key.split('-').map(Number);
+
+                if (lineIndex === index) {
+                    const subjectList = Array.isArray(value) ? value : [value];
+                    subjectList.forEach(subject => {
+                        if (subject) {
+                            removedSubjects.push(subject);
+                        }
+                    });
+                    return;
+                }
+
+                const newLineIndex = lineIndex > index ? lineIndex - 1 : lineIndex;
+                const subjectList = Array.isArray(value) ? [...value] : [value];
+
+                if (subjectList.length > 0) {
+                    updatedAllocations[`${newLineIndex}-${teacherIndex}`] = subjectList;
+                }
+            });
+
+            lines.splice(index, 1);
+
+            Object.keys(subjectLineMapping).forEach(subject => {
+                const mappedLine = subjectLineMapping[subject];
+                if (mappedLine === index) {
+                    delete subjectLineMapping[subject];
+                } else if (Number.isInteger(mappedLine) && mappedLine > index) {
+                    subjectLineMapping[subject] = mappedLine - 1;
+                }
+            });
+
+            allocations = {};
+            Object.entries(updatedAllocations).forEach(([key, value]) => {
+                setAllocationSubjects(key, Array.isArray(value) ? value : [value]);
+            });
+
+            clearActionHistory();
+
+            if (!skipRefresh) {
+                initializeTimetable();
+                createSubjectPool();
+                updateStats();
+            }
+
+            return {
+                removedSubjects: removedSubjects,
+                removedCount: removedSubjects.length
+            };
+        }
+
+        function addSubjectCode(subjectCode, options = {}) {
+            const { lineIndex = null, skipRefresh = false, silent = false } = options;
+
+            if (subjectCode === null || subjectCode === undefined) {
+                if (!silent) {
+                    alert('Subject code cannot be empty.');
+                }
+                return false;
+            }
+
+            const normalizedCode = normalizeSubjectCode(subjectCode);
+            if (!normalizedCode) {
+                if (!silent) {
+                    alert('Subject code cannot be empty.');
+                }
+                return false;
+            }
+
+            if (subjects.includes(normalizedCode)) {
+                if (!silent) {
+                    alert('This subject already exists.');
+                }
+                return false;
+            }
+
+            subjects.push(normalizedCode);
+
+            if (Number.isInteger(lineIndex) && lineIndex >= 0 && lineIndex < lines.length) {
+                subjectLineMapping[normalizedCode] = lineIndex;
+            } else {
+                delete subjectLineMapping[normalizedCode];
+            }
+
+            if (!skipRefresh) {
+                createSubjectPool();
+                updateStats();
+            }
+
+            return true;
+        }
+
+        function removeSubjectCode(subjectCode, options = {}) {
+            const { skipRefresh = false, silent = false } = options;
+
+            if (!subjectCode) {
+                if (!silent) {
+                    alert('Subject code cannot be empty.');
+                }
+                return null;
+            }
+
+            const normalizedCode = normalizeSubjectCode(subjectCode);
+            const isBaseSubject = Boolean(subjectSplits[normalizedCode]);
+            const splitMetadata = getSplitMetadata(normalizedCode);
+            const exists = subjects.includes(normalizedCode) || isBaseSubject || Boolean(splitMetadata);
+
+            if (!exists) {
+                if (!silent) {
+                    alert('Subject not found.');
+                }
+                return null;
+            }
+
+            const removedCodes = new Set();
+            let removedFromAllocations = 0;
+
+            function removeAllocationsForSubject(code) {
+                if (!code) {
+                    return;
+                }
+
+                let location = findSubjectLocation(code);
+                while (location) {
+                    const key = getAllocationKey(location.lineIndex, location.teacherIndex);
+                    const subjectsInCell = getAllocationSubjects(key).filter(subject => subject !== code);
+                    setAllocationSubjects(key, subjectsInCell);
+                    removedFromAllocations++;
+                    location = findSubjectLocation(code);
+                }
+            }
+
+            function removeCodeFromLists(code) {
+                if (!code) {
+                    return;
+                }
+
+                subjects = subjects.filter(subject => subject !== code);
+                delete subjectLineMapping[code];
+                removeSubjectFromPool(code);
+                removedCodes.add(code);
+            }
+
+            if (isBaseSubject) {
+                const splits = Array.isArray(subjectSplits[normalizedCode]) ? subjectSplits[normalizedCode] : [];
+                splits.forEach(split => {
+                    if (split && typeof split.code === 'string') {
+                        removeAllocationsForSubject(split.code);
+                        removeCodeFromLists(split.code);
+                    }
+                });
+
+                removeAllocationsForSubject(normalizedCode);
+                removeCodeFromLists(normalizedCode);
+
+                delete subjectSplits[normalizedCode];
+                rebuildSplitLookup();
+            } else if (splitMetadata) {
+                const baseSubject = splitMetadata.baseSubject;
+                removeAllocationsForSubject(normalizedCode);
+                removeCodeFromLists(normalizedCode);
+
+                if (baseSubject && Array.isArray(subjectSplits[baseSubject])) {
+                    const remainingSplits = subjectSplits[baseSubject]
+                        .filter(split => split && split.code !== normalizedCode);
+
+                    if (remainingSplits.length === 0) {
+                        delete subjectSplits[baseSubject];
+                        rebuildSplitLookup();
+                        if (!subjects.includes(baseSubject)) {
+                            subjects.push(baseSubject);
+                        }
+                    } else {
+                        subjectSplits[baseSubject] = remainingSplits.map((split, index) => ({
+                            ...split,
+                            index: index,
+                            totalSplits: remainingSplits.length
+                        }));
+                        rebuildSplitLookup();
+                    }
+                } else {
+                    rebuildSplitLookup();
+                }
+            } else {
+                removeAllocationsForSubject(normalizedCode);
+                removeCodeFromLists(normalizedCode);
+            }
+
+            clearActionHistory();
+
+            if (!skipRefresh) {
+                renderAllAllocations();
+                createSubjectPool();
+                updateStats();
+            }
+
+            return {
+                removedSubjects: Array.from(removedCodes),
+                removedCount: removedCodes.size,
+                removedFromAllocations: removedFromAllocations
+            };
+        }
+
+        function manageTeachers() {
+            const actions = ['Add Teacher', 'Remove Teacher'];
+
+            showAutocomplete('Select teacher management action', actions, function(selectedAction) {
+                if (selectedAction === 'Add Teacher') {
+                    setTimeout(() => {
+                        const name = prompt('Enter the name of the new teacher:');
+                        if (name === null) {
+                            return;
+                        }
+
+                        if (addTeacher(name)) {
+                            alert(`Added ${name.trim()}.`);
+                        }
+                    }, 200);
+                } else if (selectedAction === 'Remove Teacher') {
+                    if (!Array.isArray(teachers) || teachers.length === 0) {
+                        alert('There are no teachers to remove.');
+                        return;
+                    }
+
+                    setTimeout(() => {
+                        showAutocomplete('Select teacher to remove', teachers, function(selectedTeacher) {
+                            if (!confirm(`Remove ${selectedTeacher} and return their allocations to the pool?`)) {
+                                return;
+                            }
+
+                            const result = removeTeacher(selectedTeacher);
+                            if (result) {
+                                const removalMessage = result.removedCount > 0
+                                    ? `${result.removedCount} subject${result.removedCount === 1 ? '' : 's'} returned to the pool.`
+                                    : 'No subjects were allocated to this teacher.';
+                                alert(`Removed ${selectedTeacher}. ${removalMessage}`);
+                            }
+                        });
+                    }, 200);
+                }
+            });
+        }
+
+        function manageSubjects() {
+            const actions = ['Add Subject', 'Remove Subject'];
+
+            showAutocomplete('Select subject management action', actions, function(selectedAction) {
+                if (selectedAction === 'Add Subject') {
+                    setTimeout(() => {
+                        const codeInput = prompt('Enter the new subject code:');
+                        if (codeInput === null) {
+                            return;
+                        }
+
+                        const normalized = normalizeSubjectCode(codeInput);
+                        if (!normalized) {
+                            alert('Subject code cannot be empty.');
+                            return;
+                        }
+
+                        const lineOptions = Array.isArray(lines) && lines.length > 0 ? [...lines] : [];
+                        lineOptions.push('Unassigned');
+
+                        setTimeout(() => {
+                            showAutocomplete(`Select default line for ${normalized}`, lineOptions, function(selectedLine) {
+                                let lineIndex = null;
+                                if (selectedLine && selectedLine !== 'Unassigned') {
+                                    const index = lines.indexOf(selectedLine);
+                                    if (index === -1) {
+                                        alert('Invalid line selection.');
+                                        return;
+                                    }
+                                    lineIndex = index;
+                                }
+
+                                if (addSubjectCode(normalized, { lineIndex: lineIndex })) {
+                                    if (lineIndex !== null && lines[lineIndex]) {
+                                        alert(`Added subject ${normalized} to ${lines[lineIndex]}.`);
+                                    } else {
+                                        alert(`Added subject ${normalized} (unassigned).`);
+                                    }
+                                }
+                            });
+                        }, 200);
+                    }, 200);
+                } else if (selectedAction === 'Remove Subject') {
+                    const removalOptions = new Set(subjects);
+                    Object.keys(subjectSplits).forEach(baseSubject => removalOptions.add(baseSubject));
+
+                    if (removalOptions.size === 0) {
+                        alert('There are no subjects to remove.');
+                        return;
+                    }
+
+                    const options = Array.from(removalOptions);
+
+                    setTimeout(() => {
+                        showAutocomplete('Select subject to remove', options, function(selectedSubject) {
+                            if (!confirm(`Remove ${selectedSubject} from the subject pool? Allocations will be cleared.`)) {
+                                return;
+                            }
+
+                            const result = removeSubjectCode(selectedSubject);
+                            if (result) {
+                                const removalSummary = result.removedFromAllocations > 0
+                                    ? `${result.removedFromAllocations} allocation${result.removedFromAllocations === 1 ? '' : 's'} cleared.`
+                                    : 'No allocations needed to be cleared.';
+                                alert(`Removed ${selectedSubject}. ${removalSummary}`);
+                            }
+                        });
+                    }, 200);
+                }
+            });
+        }
+
+        function manageLines() {
+            const actions = ['Add Line', 'Remove Line'];
+
+            showAutocomplete('Select line management action', actions, function(selectedAction) {
+                if (selectedAction === 'Add Line') {
+                    setTimeout(() => {
+                        const label = prompt('Enter a name for the new line:');
+                        if (label === null) {
+                            return;
+                        }
+
+                        if (addLine(label)) {
+                            alert(`Added ${label.trim()}.`);
+                        }
+                    }, 200);
+                } else if (selectedAction === 'Remove Line') {
+                    if (!Array.isArray(lines) || lines.length === 0) {
+                        alert('There are no lines to remove.');
+                        return;
+                    }
+
+                    if (lines.length === 1) {
+                        alert('At least one line must remain.');
+                        return;
+                    }
+
+                    const options = [...lines];
+
+                    setTimeout(() => {
+                        showAutocomplete('Select line to remove', options, function(selectedLine) {
+                            if (!confirm(`Remove ${selectedLine}? Subjects allocated on this line will return to the pool.`)) {
+                                return;
+                            }
+
+                            const result = removeLine(selectedLine);
+                            if (result) {
+                                const summary = result.removedCount > 0
+                                    ? `${result.removedCount} subject${result.removedCount === 1 ? '' : 's'} returned to the pool.`
+                                    : 'No allocations were tied to this line.';
+                                alert(`Removed ${selectedLine}. ${summary}`);
+                            }
+                        });
+                    }, 200);
+                }
+            });
+        }
+
+        function importSupplementalData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+
+            input.onchange = function(event) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(loadEvent) {
+                    try {
+                        const data = JSON.parse(loadEvent.target.result);
+                        mergeSupplementalData(data);
+                    } catch (error) {
+                        alert('Error importing supplemental data: ' + error.message);
+                        console.error('Supplemental import error:', error);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        function mergeSupplementalData(data) {
+            if (!data || typeof data !== 'object') {
+                alert('Unsupported supplemental data format.');
+                return;
+            }
+
+            let teachersAdded = 0;
+            let linesAdded = 0;
+            let subjectsAdded = 0;
+            let mappingUpdated = 0;
+            let splitsUpdated = 0;
+            let loadUpdated = 0;
+            const updatedMappingSubjects = new Set();
+
+            if (Array.isArray(data.lines)) {
+                data.lines.forEach(lineLabel => {
+                    if (addLine(lineLabel, { skipRefresh: true, silent: true })) {
+                        linesAdded++;
+                    }
+                });
+            }
+
+            if (Array.isArray(data.teachers)) {
+                data.teachers.forEach(teacherName => {
+                    if (addTeacher(teacherName, { skipRefresh: true, silent: true })) {
+                        teachersAdded++;
+                    }
+                });
+            }
+
+            const mappingSource = data.subjectLineMapping && typeof data.subjectLineMapping === 'object'
+                ? data.subjectLineMapping
+                : {};
+
+            if (Array.isArray(data.subjects)) {
+                data.subjects.forEach(subjectCode => {
+                    const normalized = normalizeSubjectCode(subjectCode);
+                    if (!normalized) {
+                        return;
+                    }
+
+                    let mappedLine = null;
+                    if (mappingSource[subjectCode] !== undefined) {
+                        mappedLine = resolveLineReference(mappingSource[subjectCode]);
+                    } else if (mappingSource[normalized] !== undefined) {
+                        mappedLine = resolveLineReference(mappingSource[normalized]);
+                    }
+
+                    const added = addSubjectCode(normalized, {
+                        lineIndex: mappedLine,
+                        skipRefresh: true,
+                        silent: true
+                    });
+
+                    if (added) {
+                        subjectsAdded++;
+                    } else if (Number.isInteger(mappedLine) && mappedLine >= 0) {
+                        if (subjectLineMapping[normalized] !== mappedLine) {
+                            subjectLineMapping[normalized] = mappedLine;
+                            if (!updatedMappingSubjects.has(normalized)) {
+                                mappingUpdated++;
+                                updatedMappingSubjects.add(normalized);
+                            }
+                        }
+                    }
+                });
+            }
+
+            Object.entries(mappingSource).forEach(([subjectCode, reference]) => {
+                const normalized = normalizeSubjectCode(subjectCode);
+                if (!normalized) {
+                    return;
+                }
+
+                const resolvedLine = resolveLineReference(reference);
+                if (resolvedLine === null) {
+                    return;
+                }
+
+                if (subjectLineMapping[normalized] !== resolvedLine) {
+                    subjectLineMapping[normalized] = resolvedLine;
+                    if (!updatedMappingSubjects.has(normalized)) {
+                        mappingUpdated++;
+                        updatedMappingSubjects.add(normalized);
+                    }
+                }
+            });
+
+            if (data.subjectSplits && typeof data.subjectSplits === 'object') {
+                Object.entries(data.subjectSplits).forEach(([baseSubject, splits]) => {
+                    if (!Array.isArray(splits)) {
+                        return;
+                    }
+
+                    const normalizedBase = normalizeSubjectCode(baseSubject);
+                    const sanitizedSplits = splits
+                        .map((split, index) => {
+                            if (!split || typeof split !== 'object') {
+                                return null;
+                            }
+                            const code = typeof split.code === 'string' ? split.code.trim() : '';
+                            if (!code) {
+                                return null;
+                            }
+                            const periodsValue = Number(split.periods);
+                            const periods = Number.isFinite(periodsValue) ? periodsValue : parseInt(split.periods, 10);
+                            const numericPeriods = Number.isFinite(periods) ? periods : 0;
+
+                            return {
+                                code: code,
+                                periods: numericPeriods,
+                                index: Number.isInteger(split.index) ? split.index : index,
+                                totalSplits: Number.isInteger(split.totalSplits) ? split.totalSplits : splits.length
+                            };
+                        })
+                        .filter(split => split && split.code);
+
+                    if (sanitizedSplits.length > 0) {
+                        subjectSplits[normalizedBase] = sanitizedSplits.map((split, index) => ({
+                            code: split.code,
+                            periods: split.periods,
+                            index: index,
+                            totalSplits: sanitizedSplits.length
+                        }));
+                        splitsUpdated++;
+                    } else {
+                        delete subjectSplits[normalizedBase];
+                    }
+                });
+
+                rebuildSplitLookup();
+
+                if (Object.keys(subjectSplits).length > 0) {
+                    const baseSubjects = new Set(Object.keys(subjectSplits));
+                    const existingSubjects = new Set(subjects);
+
+                    subjects = subjects.filter(subject => !baseSubjects.has(subject));
+
+                    Object.entries(subjectSplits).forEach(([baseSubject, splits]) => {
+                        const baseLine = subjectLineMapping[baseSubject];
+                        splits.forEach(split => {
+                            if (!existingSubjects.has(split.code)) {
+                                subjects.push(split.code);
+                                existingSubjects.add(split.code);
+                            }
+
+                            if (baseLine !== undefined && subjectLineMapping[split.code] === undefined) {
+                                subjectLineMapping[split.code] = baseLine;
+                            }
+                        });
+                    });
+                }
+            }
+
+            if (data.teacherLoadSettings && typeof data.teacherLoadSettings === 'object') {
+                Object.entries(data.teacherLoadSettings).forEach(([teacherName, settings]) => {
+                    if (!teacherName || typeof settings !== 'object') {
+                        return;
+                    }
+
+                    if (!teachers.includes(teacherName)) {
+                        if (addTeacher(teacherName, { skipRefresh: true, silent: true })) {
+                            teachersAdded++;
+                        }
+                    }
+
+                    const existingSettings = getTeacherLoadSettings(teacherName);
+                    teacherLoadSettings[teacherName] = {
+                        ...existingSettings,
+                        ...settings
+                    };
+                    getTeacherLoadSettings(teacherName);
+                    loadUpdated++;
+                });
+            }
+
+            const structureChanged = teachersAdded > 0 || linesAdded > 0;
+            const subjectDataChanged = subjectsAdded > 0 || mappingUpdated > 0 || splitsUpdated > 0;
+
+            if (structureChanged) {
+                initializeTimetable();
+            } else if (subjectDataChanged) {
+                renderAllAllocations();
+                updateStats();
+            }
+
+            createSubjectPool();
+            updateStats();
+
+            if (structureChanged || subjectDataChanged) {
+                clearActionHistory();
+            }
+
+            const summaryParts = [];
+
+            if (teachersAdded > 0) {
+                summaryParts.push(`${teachersAdded} teacher${teachersAdded === 1 ? '' : 's'} added`);
+            }
+
+            if (linesAdded > 0) {
+                summaryParts.push(`${linesAdded} line${linesAdded === 1 ? '' : 's'} added`);
+            }
+
+            if (subjectsAdded > 0) {
+                summaryParts.push(`${subjectsAdded} subject${subjectsAdded === 1 ? '' : 's'} added`);
+            }
+
+            if (mappingUpdated > 0) {
+                summaryParts.push(`line mapping updated for ${mappingUpdated} subject${mappingUpdated === 1 ? '' : 's'}`);
+            }
+
+            if (splitsUpdated > 0) {
+                summaryParts.push(`${splitsUpdated} split definition${splitsUpdated === 1 ? '' : 's'} updated`);
+            }
+
+            if (loadUpdated > 0) {
+                summaryParts.push(`load settings updated for ${loadUpdated} teacher${loadUpdated === 1 ? '' : 's'}`);
+            }
+
+            if (summaryParts.length === 0) {
+                alert('No new supplemental data detected.');
+            } else {
+                alert('Supplemental data imported: ' + summaryParts.join(', ') + '.');
+            }
         }
 
         function getYear8Semester(subjectCode) {
