@@ -1211,6 +1211,7 @@
                     <div class="control-group-label">Data &amp; Progress</div>
                     <div class="control-group-buttons">
                         <button class="btn btn-primary" onclick="importSpreadsheet()" title="Import your master spreadsheet to populate data">Import Spreadsheet</button>
+                        <button class="btn btn-secondary" onclick="downloadImportTemplate()" title="Download a blank CSV with the required columns and rows for new data entry">Download CSV Template</button>
                         <button class="btn btn-success" onclick="saveAllocations()" title="Save your current allocations for later">Save Allocations</button>
                         <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
                         <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
@@ -5173,6 +5174,116 @@
             });
 
             return csvLines.join('\r\n');
+        }
+
+        function buildImportTemplateRows() {
+            const columnCount = 12;
+            const rows = [];
+            const createEmptyRow = () => new Array(columnCount).fill('');
+
+            const addSingleValueRow = (columnIndex, text) => {
+                const row = createEmptyRow();
+                if (Number.isInteger(columnIndex) && columnIndex >= 0 && columnIndex < columnCount) {
+                    row[columnIndex] = text;
+                }
+                rows.push(row);
+            };
+
+            addSingleValueRow(0, 'Faculty Data Import Template');
+
+            const overviewRow = createEmptyRow();
+            overviewRow[0] = 'Instructions';
+            overviewRow[1] = 'Enter subject codes in columns G–L for the relevant year and row. Use line breaks within a cell to list multiple classes for the same line.';
+            rows.push(overviewRow);
+
+            const teacherNoteRow = createEmptyRow();
+            teacherNoteRow[1] = 'Complete the Teacher Matrix section so the system knows which teachers to include when importing.';
+            rows.push(teacherNoteRow);
+
+            rows.push(createEmptyRow());
+
+            const lineHeaders = ['Line 1', 'Line 2', 'Line 3', 'Line 4', 'Line 5', 'Line 6'];
+            const yearGroups = [
+                { label: 'Year 12' },
+                { label: 'Year 11' },
+                { label: 'Year 10' },
+                { label: 'Year 9' },
+                { label: 'Year 8', extra: 'Include S1 or S2 in subject codes where applicable (e.g. "S1 8 MDT1").' }
+            ];
+
+            yearGroups.forEach(group => {
+                addSingleValueRow(5, group.label);
+
+                const lineHeaderRow = createEmptyRow();
+                lineHeaders.forEach((header, index) => {
+                    lineHeaderRow[6 + index] = header;
+                });
+                rows.push(lineHeaderRow);
+
+                const guidanceRow = createEmptyRow();
+                guidanceRow[5] = 'Guidance';
+                guidanceRow[6] = 'List subject codes such as "12 MAV1".';
+                guidanceRow[7] = 'Use Alt+Enter to add multiple codes within a single cell.';
+                if (group.extra) {
+                    guidanceRow[8] = group.extra;
+                }
+                rows.push(guidanceRow);
+
+                for (let rowNumber = 1; rowNumber <= 6; rowNumber++) {
+                    const entryRow = createEmptyRow();
+                    entryRow[5] = `Row ${rowNumber}`;
+                    rows.push(entryRow);
+                }
+
+                rows.push(createEmptyRow());
+            });
+
+            rows.push(createEmptyRow());
+
+            addSingleValueRow(0, 'Teacher Matrix (Lines aligned G–L)');
+
+            const matrixHeaderRow = createEmptyRow();
+            matrixHeaderRow[0] = 'Teacher';
+            matrixHeaderRow[1] = 'Loads';
+            matrixHeaderRow[2] = 'Allowance';
+            matrixHeaderRow[3] = 'Plus/minus';
+            matrixHeaderRow[4] = 'Current';
+            lineHeaders.forEach((header, index) => {
+                matrixHeaderRow[6 + index] = header;
+            });
+            rows.push(matrixHeaderRow);
+
+            const matrixGuidanceRow = createEmptyRow();
+            matrixGuidanceRow[1] = 'Enter each teacher name in column A below (one per row).';
+            matrixGuidanceRow[2] = 'Optional: record load or allowance details in columns B–E.';
+            matrixGuidanceRow[6] = 'Document existing allocations for each line (if any).';
+            rows.push(matrixGuidanceRow);
+
+            for (let i = 0; i < 15; i++) {
+                rows.push(createEmptyRow());
+            }
+
+            return rows;
+        }
+
+        function downloadImportTemplate() {
+            const rows = buildImportTemplateRows();
+            const csvContent = convertRowsToCSV(rows);
+            if (!csvContent) {
+                alert('Unable to generate template content.');
+                return;
+            }
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const today = new Date().toISOString().split('T')[0];
+            a.href = url;
+            a.download = `faculty-allocation-template-${today}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function downloadAllocationSpreadsheet() {
