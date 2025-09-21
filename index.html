@@ -1213,6 +1213,7 @@
                         <button class="btn btn-primary" onclick="importSpreadsheet()" title="Import your master spreadsheet to populate data">Import Spreadsheet</button>
                         <button class="btn btn-secondary" onclick="downloadImportTemplate()" title="Download a blank CSV with the required columns and rows for new data entry">Download CSV Template</button>
                         <button class="btn btn-success" onclick="saveAllocations()" title="Save your current allocations for later">Save Allocations</button>
+                        <button class="btn btn-secondary" onclick="importData()" title="Reload a previously exported allocation file">Import Saved Data</button>
                         <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
                         <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
                     </div>
@@ -1318,6 +1319,7 @@
         let lines = ['Line 1', 'Line 2', 'Line 3', 'Line 4', 'Line 5', 'Line 6'];
         let teacherAllocations = {}; // Stores which teachers can teach which lines
         let subjectLineMapping = {}; // Maps subject codes to their correct line index
+        let subjectYearMapping = {}; // Tracks the owning year level for each subject code
         let actionHistory = []; // Stores undo history
         let redoStack = []; // Stores redo history
         let csvData = [];
@@ -1355,6 +1357,29 @@
         const YEAR8_ELECTIVE_PERIODS = 3;
         const YEAR8_TECH_MANDATORY_PERIODS = 5;
         const YEAR7_TECH_MANDATORY_PERIODS = 5;
+
+        function normalizeYearLabel(rawYear) {
+            if (rawYear === null || rawYear === undefined) {
+                return null;
+            }
+
+            const text = String(rawYear).trim();
+            if (text.length === 0) {
+                return null;
+            }
+
+            const match = text.match(/(\d{1,2})/);
+            if (!match) {
+                return null;
+            }
+
+            const yearNumber = parseInt(match[1], 10);
+            if (!Number.isInteger(yearNumber) || yearNumber <= 0) {
+                return null;
+            }
+
+            return `Year ${yearNumber}`;
+        }
 
         function resetSplitData() {
             subjectSplits = {};
@@ -1401,6 +1426,105 @@
 
         function getSplitMetadata(subjectCode) {
             return splitSubjectLookup[subjectCode] || null;
+        }
+
+        function applyLineMappingToSubject(subjectCode, lineIndex) {
+            if (!Number.isFinite(lineIndex)) {
+                return false;
+            }
+
+            let changed = false;
+
+            const updateMapping = code => {
+                if (!code) {
+                    return;
+                }
+                const previous = Object.prototype.hasOwnProperty.call(subjectLineMapping, code)
+                    ? subjectLineMapping[code]
+                    : undefined;
+                if (previous !== lineIndex) {
+                    subjectLineMapping[code] = lineIndex;
+                    changed = true;
+                }
+            };
+
+            updateMapping(subjectCode);
+
+            const metadata = getSplitMetadata(subjectCode);
+            if (metadata && metadata.baseSubject && metadata.baseSubject !== subjectCode) {
+                updateMapping(metadata.baseSubject);
+                const baseSplits = subjectSplits[metadata.baseSubject];
+                if (Array.isArray(baseSplits)) {
+                    baseSplits.forEach(split => updateMapping(split && split.code));
+                }
+            } else if (subjectSplits[subjectCode]) {
+                subjectSplits[subjectCode].forEach(split => updateMapping(split && split.code));
+            }
+
+            return changed;
+        }
+
+        function applyYearMappingToSubject(subjectCode, yearLabel) {
+            const normalizedLabel = normalizeYearLabel(yearLabel);
+            if (!normalizedLabel) {
+                return false;
+            }
+
+            let changed = false;
+
+            const updateYear = code => {
+                if (!code) {
+                    return;
+                }
+                if (subjectYearMapping[code] !== normalizedLabel) {
+                    subjectYearMapping[code] = normalizedLabel;
+                    changed = true;
+                }
+            };
+
+            updateYear(subjectCode);
+
+            const metadata = getSplitMetadata(subjectCode);
+            if (metadata && metadata.baseSubject && metadata.baseSubject !== subjectCode) {
+                updateYear(metadata.baseSubject);
+                const baseSplits = subjectSplits[metadata.baseSubject];
+                if (Array.isArray(baseSplits)) {
+                    baseSplits.forEach(split => updateYear(split && split.code));
+                }
+            } else if (subjectSplits[subjectCode]) {
+                subjectSplits[subjectCode].forEach(split => updateYear(split && split.code));
+            }
+
+            return changed;
+        }
+
+        function populateYearMappingFromSubjects() {
+            if (!Array.isArray(subjects)) {
+                return;
+            }
+
+            subjects.forEach(subject => {
+                if (typeof subject !== 'string') {
+                    return;
+                }
+
+                const trimmed = subject.trim();
+                if (trimmed.length === 0) {
+                    return;
+                }
+
+                const splitInfo = getSplitMetadata(trimmed);
+                const baseSubject = splitInfo ? splitInfo.baseSubject : trimmed;
+
+                let yearLabel = subjectYearMapping[trimmed] || subjectYearMapping[baseSubject];
+                if (!yearLabel) {
+                    yearLabel = deriveYearLabelFromCode(baseSubject);
+                }
+
+                if (yearLabel) {
+                    applyYearMappingToSubject(baseSubject, yearLabel);
+                }
+            });
         }
 
         function applySubjectDisplay(element, subjectCode, options = {}) {
@@ -2598,6 +2722,15 @@
             normalized = normalized.replace(/^S[12]\s*:?\s*/, '');
             normalized = normalized.replace(/^(?:YEAR|YR)\s*/, '');
             return normalized;
+        }
+
+        function deriveYearLabelFromCode(subjectCode) {
+            if (!subjectCode) {
+                return null;
+            }
+
+            const normalized = normalizeSubjectCodeForPeriods(subjectCode);
+            return normalizeYearLabel(normalized);
         }
 
         function getSubjectPeriodValue(subjectCode) {
@@ -3957,27 +4090,305 @@
         }
 
         // CSV Import functionality
+        function hasExistingData() {
+            const hasTeachers = Array.isArray(teachers) && teachers.length > 0;
+            const hasSubjects = Array.isArray(subjects) && subjects.length > 0;
+            const hasAllocations = allocations && Object.keys(allocations).length > 0;
+            return hasTeachers || hasSubjects || hasAllocations;
+        }
+
+        function parseYearSelectionInput(input) {
+            if (typeof input !== 'string') {
+                return [];
+            }
+
+            const tokens = input
+                .split(/[,;/]+/)
+                .map(token => token.trim())
+                .filter(token => token.length > 0);
+
+            const years = [];
+
+            tokens.forEach(token => {
+                const normalized = normalizeYearLabel(token);
+                if (normalized && !years.includes(normalized)) {
+                    years.push(normalized);
+                }
+            });
+
+            return years;
+        }
+
+        function buildImportSummaryMessage(summary) {
+            if (!summary || typeof summary !== 'object') {
+                return '';
+            }
+
+            const lines = [];
+
+            if (Array.isArray(summary.yearFilter) && summary.yearFilter.length > 0) {
+                lines.push(`Year filter: ${summary.yearFilter.join(', ')}`);
+            }
+
+            if (typeof summary.addedTeachers === 'number') {
+                lines.push(`New teachers added: ${summary.addedTeachers}`);
+            }
+
+            if (typeof summary.processedSubjects === 'number') {
+                lines.push(`Subjects processed: ${summary.processedSubjects}`);
+            }
+
+            if (typeof summary.addedSubjects === 'number') {
+                lines.push(`Subjects added: ${summary.addedSubjects}`);
+            }
+
+            if (typeof summary.updatedSubjects === 'number') {
+                lines.push(`Existing subjects refreshed: ${summary.updatedSubjects}`);
+            }
+
+            if (typeof summary.mappingUpdates === 'number') {
+                lines.push(`Line mappings updated: ${summary.mappingUpdates}`);
+            }
+
+            if (typeof summary.skippedSubjects === 'number' && summary.skippedSubjects > 0) {
+                lines.push(`Subjects skipped: ${summary.skippedSubjects}`);
+            }
+
+            return lines.join('\n');
+        }
+
+        function replaceWithParsedSpreadsheet(parsed) {
+            const parsedTeachers = Array.isArray(parsed.teachers) ? parsed.teachers : [];
+            const parsedSubjects = Array.isArray(parsed.subjects) ? parsed.subjects : [];
+            const parsedMapping = parsed.subjectLineMapping && typeof parsed.subjectLineMapping === 'object'
+                ? { ...parsed.subjectLineMapping }
+                : {};
+            const parsedYearMapping = parsed.subjectYearMapping && typeof parsed.subjectYearMapping === 'object'
+                ? { ...parsed.subjectYearMapping }
+                : {};
+
+            teachers = parsedTeachers
+                .map(teacher => (typeof teacher === 'string' ? teacher.trim() : ''))
+                .filter(teacher => teacher.length > 0);
+            teachers = Array.from(new Set(teachers));
+
+            subjects = parsedSubjects
+                .map(subject => (typeof subject === 'string' ? subject.trim() : ''))
+                .filter(subject => subject.length > 0);
+
+            subjectLineMapping = parsedMapping;
+            subjectYearMapping = parsedYearMapping;
+
+            csvData = Array.isArray(parsed.parsedData) ? parsed.parsedData : [];
+
+            allocations = {};
+            clearActionHistory();
+            resetSplitData();
+
+            teacherLoadSettings = {};
+            teachers.forEach(teacher => {
+                getTeacherLoadSettings(teacher);
+            });
+
+            populateYearMappingFromSubjects();
+
+            initializeTimetable();
+            createSubjectPool();
+            updateStats();
+
+            return {
+                addedTeachers: teachers.length,
+                processedSubjects: subjects.length,
+                addedSubjects: subjects.length,
+                updatedSubjects: 0,
+                mappingUpdates: Object.keys(subjectLineMapping).length,
+                yearFilter: null,
+                skippedSubjects: 0
+            };
+        }
+
+        function mergeParsedSpreadsheet(parsed, options = {}) {
+            const allowedYears = Array.isArray(options.allowedYears) && options.allowedYears.length > 0
+                ? Array.from(new Set(options.allowedYears.map(label => normalizeYearLabel(label)).filter(Boolean)))
+                : null;
+            const allowedYearSet = allowedYears ? new Set(allowedYears.map(label => label.toLowerCase())) : null;
+
+            const summary = {
+                addedTeachers: 0,
+                processedSubjects: 0,
+                addedSubjects: 0,
+                updatedSubjects: 0,
+                mappingUpdates: 0,
+                skippedSubjects: 0,
+                yearFilter: allowedYears
+            };
+
+            const parsedTeachers = Array.isArray(parsed.teachers) ? parsed.teachers : [];
+            const existingTeachers = new Set(Array.isArray(teachers) ? teachers : []);
+
+            parsedTeachers.forEach(name => {
+                if (typeof name !== 'string') {
+                    return;
+                }
+                const trimmed = name.trim();
+                if (trimmed.length === 0 || existingTeachers.has(trimmed)) {
+                    return;
+                }
+                teachers.push(trimmed);
+                existingTeachers.add(trimmed);
+                getTeacherLoadSettings(trimmed);
+                summary.addedTeachers += 1;
+            });
+
+            const parsedSubjects = Array.isArray(parsed.subjects) ? parsed.subjects : [];
+            const mapping = parsed.subjectLineMapping && typeof parsed.subjectLineMapping === 'object'
+                ? parsed.subjectLineMapping
+                : {};
+            const yearMapping = parsed.subjectYearMapping && typeof parsed.subjectYearMapping === 'object'
+                ? parsed.subjectYearMapping
+                : {};
+
+            parsedSubjects.forEach(subject => {
+                if (typeof subject !== 'string') {
+                    summary.skippedSubjects += 1;
+                    return;
+                }
+
+                const trimmed = subject.trim();
+                if (trimmed.length === 0) {
+                    summary.skippedSubjects += 1;
+                    return;
+                }
+
+                const subjectYear = yearMapping[trimmed] || normalizeYearLabel(trimmed);
+
+                if (allowedYearSet && allowedYearSet.size > 0) {
+                    if (!subjectYear || !allowedYearSet.has(subjectYear.toLowerCase())) {
+                        summary.skippedSubjects += 1;
+                        return;
+                    }
+                }
+
+                summary.processedSubjects += 1;
+
+                if (!subjects.includes(trimmed)) {
+                    subjects.push(trimmed);
+                    summary.addedSubjects += 1;
+                } else {
+                    summary.updatedSubjects += 1;
+                }
+
+                if (Object.prototype.hasOwnProperty.call(mapping, trimmed) && Number.isFinite(mapping[trimmed])) {
+                    if (applyLineMappingToSubject(trimmed, mapping[trimmed])) {
+                        summary.mappingUpdates += 1;
+                    }
+                }
+
+                if (subjectYear) {
+                    applyYearMappingToSubject(trimmed, subjectYear);
+                }
+            });
+
+            const hasChanges = summary.processedSubjects > 0 || summary.addedTeachers > 0;
+            if (hasChanges && Array.isArray(parsed.parsedData)) {
+                csvData = parsed.parsedData;
+            }
+
+            populateYearMappingFromSubjects();
+
+            initializeTimetable();
+            createSubjectPool();
+            updateStats();
+
+            return summary;
+        }
+
+        function handleParsedImportResult(parsed) {
+            if (!parsed || !Array.isArray(parsed.subjects) || parsed.subjects.length === 0) {
+                throw new Error('No subjects were detected in the file.');
+            }
+
+            const hasData = hasExistingData();
+
+            if (!hasData) {
+                const summary = replaceWithParsedSpreadsheet(parsed);
+                const message = buildImportSummaryMessage(summary);
+                alert(message ? `Spreadsheet imported successfully!\n${message}` : 'Spreadsheet imported successfully!');
+                return;
+            }
+
+            const promptMessage = [
+                'Existing data detected.',
+                'Type REPLACE to overwrite all current teachers, subjects and allocations.',
+                'Type MERGE to add/update data without removing existing entries.',
+                'Or enter specific year groups (e.g. "Year 7" or "7,8") to merge only those lines.',
+                'Click Cancel to abort.'
+            ].join('\n');
+
+            const response = prompt(promptMessage);
+            if (response === null) {
+                alert('Import cancelled.');
+                return;
+            }
+
+            const trimmed = response.trim();
+            if (trimmed.length === 0) {
+                alert('Import cancelled.');
+                return;
+            }
+
+            const normalized = trimmed.toUpperCase();
+
+            if (normalized === 'REPLACE') {
+                const summary = replaceWithParsedSpreadsheet(parsed);
+                const message = buildImportSummaryMessage(summary);
+                alert(message ? `Spreadsheet imported successfully (existing data replaced).\n${message}` : 'Spreadsheet imported successfully (existing data replaced).');
+                return;
+            }
+
+            if (normalized === 'MERGE') {
+                const summary = mergeParsedSpreadsheet(parsed);
+                const message = buildImportSummaryMessage(summary);
+                alert(message ? `Spreadsheet merged successfully!\n${message}` : 'Spreadsheet merged successfully!');
+                return;
+            }
+
+            const selectedYears = parseYearSelectionInput(trimmed);
+            if (selectedYears.length > 0) {
+                const summary = mergeParsedSpreadsheet(parsed, { allowedYears: selectedYears });
+                if (summary.processedSubjects === 0 && summary.addedTeachers === 0) {
+                    alert('No subjects matched the selected year groups. No changes were made.');
+                    return;
+                }
+                const message = buildImportSummaryMessage(summary);
+                alert(message ? `Spreadsheet merged successfully for ${selectedYears.join(', ')}.\n${message}` : `Spreadsheet merged successfully for ${selectedYears.join(', ')}.`);
+                return;
+            }
+
+            alert('Import cancelled. No valid import option detected.');
+        }
+
         function importSpreadsheet() {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.csv';
             input.onchange = function(e) {
                 const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        try {
-                            parseCSVData(e.target.result);
-                            initializeTimetable();
-                            createSubjectPool();
-                            alert(`Spreadsheet imported successfully!\nTeachers: ${teachers.length}\nSubjects: ${subjects.length}`);
-                        } catch (error) {
-                            alert('Error importing CSV: ' + error.message);
-                            console.error('CSV Import Error:', error);
-                        }
-                    };
-                    reader.readAsText(file);
+                if (!file) {
+                    return;
                 }
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const parsed = parseCSVData(event.target.result, { debug: true });
+                        handleParsedImportResult(parsed);
+                    } catch (error) {
+                        alert('Error importing CSV: ' + error.message);
+                        console.error('CSV Import Error:', error);
+                    }
+                };
+                reader.readAsText(file);
             };
             input.click();
         }
@@ -3986,26 +4397,30 @@
             const { debug = false } = options;
             const subjectSet = new Set();
             const mapping = {};
+            const yearMapping = {};
 
             if (!Array.isArray(parsedData)) {
-                return { subjects: [], subjectLineMapping: {} };
+                return { subjects: [], subjectLineMapping: {}, subjectYearMapping: {} };
             }
 
-            // Column mapping: G=6, H=7, I=8, J=9, K=10, L=11 → Lines 0-5
             const lineColumnMapping = {6: 0, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5};
 
             for (let i = 0; i < parsedData.length; i++) {
                 const row = parsedData[i];
 
-                if (!row || !row[5] || !row[5].includes('Year')) {
+                if (!row || !row[5]) {
                     continue;
                 }
 
-                const year = row[5].trim();
-                const isYear8 = /year\s*8/i.test(year);
+                const yearLabel = normalizeYearLabel(row[5]);
+                if (!yearLabel) {
+                    continue;
+                }
+
+                const isYear8 = yearLabel === 'Year 8';
 
                 if (debug) {
-                    console.log('Processing year:', year, 'to place subjects in correct lines');
+                    console.log('Processing year:', yearLabel, 'to place subjects in correct lines');
                 }
 
                 for (let j = i + 1; j < parsedData.length; j++) {
@@ -4070,6 +4485,7 @@
 
                                 mapping[subjectCode] = lineIndex;
                                 subjectSet.add(subjectCode);
+                                yearMapping[subjectCode] = yearLabel;
 
                                 if (debug) {
                                     const lineName = `Line ${lineIndex + 1}`;
@@ -4087,58 +4503,57 @@
 
             return {
                 subjects: Array.from(subjectSet),
-                subjectLineMapping: mapping
+                subjectLineMapping: mapping,
+                subjectYearMapping: yearMapping
             };
         }
 
-        function parseCSVData(csvText) {
+        function parseCSVData(csvText, options = {}) {
             if (!csvText || csvText.trim().length === 0) {
                 throw new Error('Empty CSV file');
             }
 
+            const { debug = false } = options;
             const parsedData = convertCSVToArray(csvText);
 
-            // Reset data
-            teachers = [];
-            subjects = [];
-            allocations = {};
-            subjectLineMapping = {};
-            resetSplitData();
-
-            console.log('=== DEBUGGING CSV PARSING ===');
-
-            // Step 1: Find Teacher Matrix section and extract teachers
+            const parsedTeachers = [];
             let teacherMatrixStart = -1;
+
             for (let i = 0; i < parsedData.length; i++) {
                 if (parsedData[i][0] && parsedData[i][0].includes('Teacher Matrix')) {
-                    teacherMatrixStart = i + 2; // Skip header row
-                    console.log('Found Teacher Matrix at row:', teacherMatrixStart);
+                    teacherMatrixStart = i + 2;
+                    if (debug) {
+                        console.log('Found Teacher Matrix at row:', teacherMatrixStart);
+                    }
                     break;
                 }
             }
 
             if (teacherMatrixStart > -1) {
-                // Extract teachers
                 for (let i = teacherMatrixStart; i < parsedData.length; i++) {
                     const teacherName = parsedData[i][0] ? parsedData[i][0].trim() : '';
                     if (teacherName && teacherName !== '' && !teacherName.includes('Teacher')) {
-                        teachers.push(teacherName);
+                        parsedTeachers.push(teacherName);
                     }
                 }
             }
 
-            console.log('Teachers found:', teachers);
+            const uniqueTeachers = Array.from(new Set(parsedTeachers));
 
-            const extracted = extractSubjectsFromParsedData(parsedData, { debug: true });
-            subjects = extracted.subjects;
-            subjectLineMapping = extracted.subjectLineMapping;
+            const extracted = extractSubjectsFromParsedData(parsedData, { debug });
 
-            console.log('Final allocations:', allocations);
-            console.log('Total subjects found:', subjects.length);
-            console.log('Total allocations made:', Object.keys(allocations).length);
-            console.log('=== END DEBUGGING ===');
+            if (debug) {
+                console.log('Teachers found:', uniqueTeachers);
+                console.log('Total subjects found:', extracted.subjects.length);
+            }
 
-            csvData = parsedData;
+            return {
+                parsedData: parsedData,
+                teachers: uniqueTeachers,
+                subjects: extracted.subjects,
+                subjectLineMapping: extracted.subjectLineMapping,
+                subjectYearMapping: extracted.subjectYearMapping
+            };
         }
 
         // Autocomplete functions
@@ -4609,7 +5024,10 @@
                     subjects = subjects.filter(subject => !removalSet.has(subject));
 
                     existingSplits.forEach(split => {
-                        delete subjectLineMapping[split.code];
+                        if (split && typeof split.code === 'string') {
+                            delete subjectLineMapping[split.code];
+                            delete subjectYearMapping[split.code];
+                        }
                     });
 
                     if (splitValues.length === 1 && splitValues[0] === totalPeriods) {
@@ -4618,10 +5036,19 @@
 
                         subjects.splice(insertIndex, 0, baseSubject);
 
+                        if (mappedLine !== undefined) {
+                            applyLineMappingToSubject(baseSubject, mappedLine);
+                        }
+
                         removalSet.forEach(subject => removeSubjectFromPool(subject));
 
                         createSubjectPool();
                         updateStats();
+
+                        const restoredYear = subjectYearMapping[baseSubject] || deriveYearLabelFromCode(baseSubject);
+                        if (restoredYear) {
+                            applyYearMappingToSubject(baseSubject, restoredYear);
+                        }
 
                         alert(`${baseSubject} has been restored to a single ${totalPeriods}-period allocation.`);
                         return;
@@ -4645,11 +5072,14 @@
                     const newCodes = newSplits.map(split => split.code);
                     subjects.splice(insertIndex, 0, ...newCodes);
 
-                    newCodes.forEach(code => {
-                        if (mappedLine !== undefined) {
-                            subjectLineMapping[code] = mappedLine;
-                        }
-                    });
+                    if (mappedLine !== undefined) {
+                        applyLineMappingToSubject(baseSubject, mappedLine);
+                    }
+
+                    const baseYearLabel = subjectYearMapping[baseSubject] || deriveYearLabelFromCode(baseSubject);
+                    if (baseYearLabel) {
+                        applyYearMappingToSubject(baseSubject, baseYearLabel);
+                    }
 
                     removalSet.forEach(subject => removeSubjectFromPool(subject));
 
@@ -4942,6 +5372,7 @@
                 csvData: csvData,
                 subjectLineMapping: subjectLineMapping,
                 subjectSplits: subjectSplits,
+                subjectYearMapping: subjectYearMapping,
                 teacherLoadSettings: teacherLoadSettings
             };
 
@@ -4979,29 +5410,29 @@
                 return null;
             }
 
+            if (subjectYearMapping && subjectYearMapping[subjectCode]) {
+                return subjectYearMapping[subjectCode];
+            }
+
             const splitInfo = getSplitMetadata(subjectCode);
             const baseSubject = splitInfo ? splitInfo.baseSubject : subjectCode;
+
+            if (baseSubject && subjectYearMapping && subjectYearMapping[baseSubject]) {
+                applyYearMappingToSubject(baseSubject, subjectYearMapping[baseSubject]);
+                return subjectYearMapping[subjectCode] || subjectYearMapping[baseSubject] || null;
+            }
 
             if (!baseSubject) {
                 return null;
             }
 
-            const normalized = normalizeSubjectCodeForPeriods(baseSubject);
-            if (!normalized) {
+            const derivedLabel = deriveYearLabelFromCode(baseSubject);
+            if (!derivedLabel) {
                 return null;
             }
 
-            const match = normalized.match(/^(\d{1,2})/);
-            if (!match) {
-                return null;
-            }
-
-            const yearValue = parseInt(match[1], 10);
-            if (!Number.isInteger(yearValue)) {
-                return null;
-            }
-
-            return `Year ${yearValue}`;
+            applyYearMappingToSubject(baseSubject, derivedLabel);
+            return subjectYearMapping[subjectCode] || derivedLabel;
         }
 
         function formatSubjectForExport(subject) {
@@ -5318,18 +5749,26 @@
                 return;
             }
 
-            const rows = buildAllocationSpreadsheetRows();
-            if (!rows || rows.length === 0) {
-                alert('No allocation data available to export.');
-                return;
-            }
+            const payload = {
+                allocations: allocations,
+                timestamp: new Date().toISOString(),
+                subjects: subjects,
+                teachers: teachers,
+                lines: lines,
+                csvData: csvData,
+                subjectLineMapping: subjectLineMapping,
+                subjectSplits: subjectSplits,
+                subjectYearMapping: subjectYearMapping,
+                teacherLoadSettings: teacherLoadSettings
+            };
 
-            const csvContent = convertRowsToCSV(rows);
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const jsonContent = JSON.stringify(payload, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
+            const today = new Date().toISOString().split('T')[0];
             a.href = url;
-            a.download = 'export.csv';
+            a.download = `faculty-allocations-${today}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -5337,6 +5776,13 @@
         }
 
         function importData() {
+            if (hasExistingData()) {
+                const confirmImport = confirm('Importing saved data will replace your current teachers, subjects and allocations. Continue?');
+                if (!confirmImport) {
+                    return;
+                }
+            }
+
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.json';
@@ -5444,16 +5890,32 @@
 
             csvData = parsedCSV || [];
 
+            let extracted = null;
+            if (parsedCSV) {
+                extracted = extractSubjectsFromParsedData(parsedCSV);
+            }
+
             if (data.subjectLineMapping) {
                 subjectLineMapping = { ...data.subjectLineMapping };
-            } else if (parsedCSV) {
-                const extracted = extractSubjectsFromParsedData(parsedCSV);
+            } else if (extracted) {
                 subjectLineMapping = extracted.subjectLineMapping;
                 if (!data.subjects || data.subjects.length === 0) {
                     subjects = extracted.subjects;
                 }
             } else {
                 subjectLineMapping = {};
+            }
+
+            if (data.subjectYearMapping && typeof data.subjectYearMapping === 'object') {
+                try {
+                    subjectYearMapping = JSON.parse(JSON.stringify(data.subjectYearMapping));
+                } catch (error) {
+                    subjectYearMapping = { ...data.subjectYearMapping };
+                }
+            } else if (extracted && extracted.subjectYearMapping) {
+                subjectYearMapping = { ...extracted.subjectYearMapping };
+            } else {
+                subjectYearMapping = {};
             }
 
             if (!Array.isArray(subjects)) {
@@ -5466,6 +5928,8 @@
                     setAllocationSubjects(key, subjectsList);
                 });
             }
+
+            populateYearMappingFromSubjects();
 
             initializeTimetable();
             createSubjectPool();
