@@ -6408,23 +6408,60 @@
 
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.json';
-            input.onchange = function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        try {
-                            const data = JSON.parse(e.target.result);
-                            loadAllocations(data);
-                        } catch (error) {
-                            alert('Error importing data: ' + error.message);
-                        }
-                    };
-                    reader.readAsText(file);
+            input.accept = '.json,application/json';
+            input.style.display = 'none';
+            input.value = '';
+
+            const handleCleanup = () => {
+                input.value = '';
+                input.removeEventListener('change', handleFileSelection);
+                if (input.parentNode) {
+                    input.parentNode.removeChild(input);
                 }
             };
-            input.click();
+
+            const handleFileSelection = function(event) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) {
+                    handleCleanup();
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(loadEvent) {
+                    const content = loadEvent && loadEvent.target ? loadEvent.target.result : null;
+                    if (typeof content !== 'string') {
+                        alert('Error importing data: unable to read file contents.');
+                        handleCleanup();
+                        return;
+                    }
+
+                    try {
+                        const data = JSON.parse(content);
+                        loadAllocations(data);
+                    } catch (error) {
+                        alert('Error importing data: ' + error.message);
+                    }
+                    handleCleanup();
+                };
+
+                reader.onerror = function(errorEvent) {
+                    const errorMessage = errorEvent && errorEvent.target && errorEvent.target.error
+                        ? errorEvent.target.error.message
+                        : 'Unknown file read error.';
+                    alert('Error reading file: ' + errorMessage);
+                    handleCleanup();
+                };
+
+                reader.readAsText(file);
+            };
+
+            input.addEventListener('change', handleFileSelection);
+            document.body.appendChild(input);
+
+            setTimeout(() => {
+                input.click();
+            }, 0);
         }
 
         function loadAllocations(data) {
