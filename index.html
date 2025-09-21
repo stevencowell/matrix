@@ -4569,6 +4569,29 @@
                 return acc;
             }, {});
 
+            const inferColumnsFromRow = (row, skipIndex = null) => {
+                if (!Array.isArray(row)) {
+                    return [];
+                }
+
+                const inferred = [];
+                row.forEach((cell, index) => {
+                    if (skipIndex !== null && index === skipIndex) {
+                        return;
+                    }
+
+                    if (containsSubjectCode(cell)) {
+                        inferred.push(index);
+                    }
+                });
+
+                if (inferred.length > 1) {
+                    inferred.sort((a, b) => a - b);
+                }
+
+                return inferred;
+            };
+
             for (let i = 0; i < parsedData.length; i++) {
                 const row = parsedData[i];
                 const yearInfo = findYearRowInfo(row);
@@ -4586,6 +4609,7 @@
 
                 let lineColumns = null;
                 let lineColumnMapping = null;
+                let fallbackRowCounter = 0;
 
                 for (let j = i + 1; j < parsedData.length; j++) {
                     const nextRow = parsedData[j];
@@ -4611,29 +4635,26 @@
                         }
                     }
 
-                    const rowInfo = findRowLabelInfo(nextRow);
-                    if (!rowInfo) {
-                        continue;
+                    let rowInfo = findRowLabelInfo(nextRow);
+                    const inferredColumns = inferColumnsFromRow(nextRow, rowInfo ? rowInfo.columnIndex : null);
+
+                    if ((!lineColumns || lineColumns.length === 0) && inferredColumns.length > 0) {
+                        lineColumns = inferredColumns;
+                        lineColumnMapping = buildLineMapping(lineColumns);
+
+                        if (debug) {
+                            console.log('Inferred line columns from data for', yearLabel, ':', lineColumns.join(', '));
+                        }
                     }
 
                     if (!lineColumns || lineColumns.length === 0) {
-                        const inferredColumns = [];
-                        nextRow.forEach((cell, index) => {
-                            if (index === rowInfo.columnIndex) {
-                                return;
-                            }
-                            if (containsSubjectCode(cell)) {
-                                inferredColumns.push(index);
-                            }
-                        });
-
-                        if (inferredColumns.length > 0) {
-                            inferredColumns.sort((a, b) => a - b);
-                            lineColumns = inferredColumns;
+                        const fallbackColumns = inferColumnsFromRow(nextRow, null);
+                        if (fallbackColumns.length > 0) {
+                            lineColumns = fallbackColumns;
                             lineColumnMapping = buildLineMapping(lineColumns);
 
                             if (debug) {
-                                console.log('Inferred line columns from data for', yearLabel, ':', lineColumns.join(', '));
+                                console.log('Detected potential line columns from unlabeled row for', yearLabel, ':', lineColumns.join(', '));
                             }
                         }
                     }
@@ -4644,6 +4665,24 @@
 
                         if (debug) {
                             console.log('Falling back to default line columns for', yearLabel, ':', lineColumns.join(', '));
+                        }
+                    }
+
+                    const rowContainsSubjects = Array.isArray(lineColumns) && lineColumns.some(columnIndex => {
+                        const cell = columnIndex < nextRow.length ? nextRow[columnIndex] : '';
+                        return containsSubjectCode(cell);
+                    });
+
+                    if (!rowContainsSubjects) {
+                        continue;
+                    }
+
+                    if (!rowInfo) {
+                        fallbackRowCounter += 1;
+                        rowInfo = { label: `Row ${fallbackRowCounter}`, columnIndex: -1 };
+
+                        if (debug) {
+                            console.log('Treating unlabeled row as', rowInfo.label, 'for', yearLabel);
                         }
                     }
 
