@@ -12,232 +12,500 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            padding: 20px;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at 0% 0%, rgba(79, 70, 229, 0.35), rgba(79, 70, 229, 0)) no-repeat,
+                        radial-gradient(circle at 100% 0%, rgba(14, 165, 233, 0.32), rgba(14, 165, 233, 0)) no-repeat,
+                        #0f172a;
+            color: #0f172a;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .app-shell {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-hero {
+            position: relative;
+            color: #f8fafc;
+            padding: 56px 6vw 96px;
+            overflow: hidden;
+        }
+
+        .app-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.4), transparent 60%),
+                        radial-gradient(circle at top right, rgba(56, 189, 248, 0.45), transparent 55%),
+                        linear-gradient(135deg, rgba(15, 118, 110, 0.25), transparent 60%);
+            opacity: 0.9;
+        }
+
+        .app-hero__content {
+            position: relative;
+            z-index: 1;
+            max-width: 640px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .app-hero__tag {
+            align-self: flex-start;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.35);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            font-size: 0.78rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(226, 232, 240, 0.95);
+        }
+
+        .app-hero__title {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+        }
+
+        .app-hero__subtitle {
+            font-size: 1.05rem;
+            color: rgba(226, 232, 240, 0.85);
+            max-width: 540px;
+        }
+
+        .app-hero__metrics {
+            position: relative;
+            z-index: 1;
+            margin-top: 36px;
+            display: grid;
+            gap: 18px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        .hero-metric {
+            background: rgba(15, 23, 42, 0.45);
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.35);
+            backdrop-filter: blur(18px);
+        }
+
+        .hero-metric__label {
+            font-size: 0.78rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(226, 232, 240, 0.72);
+        }
+
+        .hero-metric__value {
+            font-size: 2.3rem;
+            font-weight: 700;
+            color: #ffffff;
         }
 
         .container {
             max-width: 1400px;
+            width: 100%;
             margin: 0 auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: hidden;
         }
 
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 20px;
-            text-align: center;
+        .app-layout {
+            display: grid;
+            grid-template-columns: minmax(260px, 340px) 1fr;
+            gap: 28px;
+            padding: 0 6vw 64px;
+            margin-top: -72px;
+            position: relative;
+            z-index: 2;
         }
 
-        .header h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
+        .app-sidebar {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 24px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 30px 70px rgba(15, 23, 42, 0.18);
+            padding: 32px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            backdrop-filter: blur(18px);
         }
 
-        .header p {
-            opacity: 0.9;
+        .sidebar-intro {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        .controls {
-            padding: 20px;
-            background: #ecf0f1;
-            border-bottom: 1px solid #bdc3c7;
+        .sidebar-intro h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .sidebar-intro p {
+            font-size: 0.9rem;
+            color: #475569;
+        }
+
+        .control-groups {
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
 
-        .control-groups {
-            display: grid;
-            gap: 16px;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            width: 100%;
-        }
-
         .control-group {
-            background: #ffffff;
-            border: 1px solid #dce4ec;
-            border-radius: 12px;
-            padding: 16px;
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.04), rgba(15, 23, 42, 0));
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 20px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            box-shadow: 0 2px 6px rgba(44, 62, 80, 0.08);
+            gap: 16px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 12px 28px rgba(15, 23, 42, 0.12);
         }
 
-        .control-group-label {
-            font-size: 0.8rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: #2c3e50;
-            font-weight: 700;
+        .control-group--workflow {
+            border-left: 4px solid #6366f1;
+            background: linear-gradient(145deg, rgba(99, 102, 241, 0.16), rgba(99, 102, 241, 0.04));
         }
 
-        .control-group-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+        .control-group--data {
+            border-left: 4px solid #0ea5e9;
+            background: linear-gradient(145deg, rgba(14, 165, 233, 0.16), rgba(14, 165, 233, 0.04));
+        }
+
+        .control-group--history {
+            border-left: 4px solid #f59e0b;
+            background: linear-gradient(145deg, rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0.04));
         }
 
         .control-group--management {
-            background: linear-gradient(135deg, rgba(52, 152, 219, 0.08), rgba(52, 152, 219, 0.02));
-            border-color: rgba(52, 152, 219, 0.3);
+            border-left: 4px solid #22c55e;
+            background: linear-gradient(145deg, rgba(34, 197, 94, 0.16), rgba(34, 197, 94, 0.04));
         }
 
-        .control-group--management .control-group-label {
-            color: #1f3d63;
+        .control-group-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group-label {
+            font-size: 0.85rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        .control-group-description {
+            font-size: 0.86rem;
+            color: #475569;
+            line-height: 1.4;
+        }
+
+        .control-group-buttons {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         }
 
         .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 18px;
+            border: 1px solid transparent;
+            border-radius: 14px;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
+            font-size: 0.92rem;
+            font-weight: 600;
+            line-height: 1.2;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            color: #0f172a;
+            background: rgba(148, 163, 184, 0.16);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }
 
         .btn-primary {
-            background: #3498db;
-            color: white;
+            background: linear-gradient(135deg, #4f46e5, #2563eb);
+            color: #ffffff;
+            box-shadow: 0 14px 30px rgba(79, 70, 229, 0.35);
         }
 
         .btn-primary:hover {
-            background: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 18px 36px rgba(79, 70, 229, 0.45);
         }
 
         .btn-secondary {
-            background: #95a5a6;
-            color: white;
+            background: linear-gradient(135deg, #64748b, #475569);
+            color: #f8fafc;
+            box-shadow: 0 14px 28px rgba(71, 85, 105, 0.3);
         }
 
         .btn-secondary:hover {
-            background: #7f8c8d;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+            transform: translateY(-1px);
+            box-shadow: 0 18px 32px rgba(71, 85, 105, 0.4);
         }
 
         .btn-success {
-            background: #27ae60;
-            color: white;
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: #f8fafc;
+            box-shadow: 0 14px 28px rgba(16, 185, 129, 0.35);
         }
 
         .btn-success:hover {
-            background: #229954;
+            transform: translateY(-1px);
+            box-shadow: 0 18px 34px rgba(16, 185, 129, 0.45);
         }
 
         .btn-warning {
-            background: #f39c12;
-            color: white;
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            color: #ffffff;
+            box-shadow: 0 14px 28px rgba(249, 115, 22, 0.35);
         }
 
         .btn-warning:hover {
-            background: #e67e22;
+            transform: translateY(-1px);
+            box-shadow: 0 18px 34px rgba(249, 115, 22, 0.45);
         }
 
         .btn-danger {
-            background: #e74c3c;
-            color: white;
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: #ffffff;
+            box-shadow: 0 14px 28px rgba(239, 68, 68, 0.32);
         }
 
         .btn-danger:hover {
-            background: #c0392b;
+            transform: translateY(-1px);
+            box-shadow: 0 18px 34px rgba(239, 68, 68, 0.42);
+        }
+
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-compact {
+            padding: 8px 14px;
+            font-size: 0.8rem;
+        }
+
+        .app-workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .workspace-panel {
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 28px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 30px 70px rgba(15, 23, 42, 0.15);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .workspace-panel--legend .workspace-panel__body {
+            padding-top: 16px;
+        }
+
+        .workspace-panel__header {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 28px 32px 0;
+        }
+
+        .workspace-panel__title {
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .workspace-panel__subtitle {
+            font-size: 0.95rem;
+            color: #475569;
+        }
+
+        .workspace-panel__body {
+            padding: 24px 32px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .workspace-panel__body--flush {
+            padding: 0;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(241, 245, 249, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            color: #0f172a;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+        }
+
+        .legend-color.available {
+            background: rgba(99, 102, 241, 0.7);
+            border-color: rgba(99, 102, 241, 0.9);
+        }
+
+        .legend-color.allocated {
+            background: rgba(248, 113, 113, 0.75);
+            border-color: rgba(239, 68, 68, 0.9);
+        }
+
+        .legend-color.semester-pair {
+            background: rgba(16, 185, 129, 0.75);
+            border-color: rgba(5, 150, 105, 0.9);
+        }
+
+        .legend-color.clash {
+            background: rgba(59, 130, 246, 0.75);
+            border-color: rgba(37, 99, 235, 0.9);
+        }
+
+        .legend-color.split {
+            background: rgba(251, 191, 36, 0.75);
+            border-color: rgba(217, 119, 6, 0.9);
         }
 
         .timetable-container {
-            padding: 20px;
+            padding: 0;
+            background: rgba(248, 250, 255, 0.98);
+            border-radius: 0 0 28px 28px;
             overflow-x: auto;
+            border-top: 1px solid rgba(15, 23, 42, 0.08);
         }
 
         .timetable {
-            min-width: 1200px;
-            border-collapse: collapse;
+            min-width: 1100px;
             width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .timetable thead th:first-child {
+            border-top-left-radius: 28px;
+        }
+
+        .timetable thead th:last-child {
+            border-top-right-radius: 28px;
         }
 
         .timetable th {
-            background: #34495e;
-            color: white;
-            padding: 15px 10px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+            color: #f8fafc;
+            padding: 16px 12px;
             text-align: center;
             font-weight: 600;
-            border: 1px solid #2c3e50;
+            border: none;
         }
 
         .timetable td {
-            padding: 8px;
-            border: 1px solid #bdc3c7;
+            padding: 12px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
             vertical-align: top;
-            min-height: 60px;
+            min-height: 72px;
+            background: rgba(248, 250, 255, 0.96);
             position: relative;
         }
 
         .teacher-column {
-            background: #ecf0f1;
+            background: rgba(15, 23, 42, 0.08);
             font-weight: 600;
             text-align: center;
-            width: 150px;
         }
 
         .period-row {
-            background: #f8f9fa;
+            background: rgba(226, 232, 240, 0.6);
             font-weight: 600;
             text-align: center;
-            width: 100px;
+            color: #0f172a;
         }
 
         .tlc-period-label {
-            background: #f0f6ff;
+            background: rgba(224, 231, 255, 0.85);
             font-weight: 600;
             text-align: center;
+            color: #3730a3;
         }
 
         .tlc-period-cell {
-            background: #eef6ff;
-            color: #1f4e79;
+            background: rgba(224, 231, 255, 0.6);
+            color: #312e81;
             font-weight: 600;
             text-align: center;
         }
 
         .subject-slot {
-            background: #e8f4f8;
-            border: 2px dashed #3498db;
-            border-radius: 4px;
-            padding: 8px;
-            margin: 2px 0;
+            background: rgba(99, 102, 241, 0.16);
+            border: 1.5px dashed rgba(99, 102, 241, 0.45);
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin: 4px 0;
             cursor: move;
-            transition: all 0.3s ease;
-            min-height: 40px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+            min-height: 46px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
+            color: #312e81;
         }
 
         .subject-slot:hover {
-            background: #d5e8f0;
-            border-color: #2980b9;
-        }
-
-        .subject-slot.split-subject:hover,
-        .subject-slot.split-segment:hover {
-            background: #ffe9cc;
-            border-color: #f39c12;
+            background: rgba(79, 70, 229, 0.24);
+            border-color: rgba(79, 70, 229, 0.65);
+            box-shadow: 0 10px 24px rgba(79, 70, 229, 0.22);
+            transform: translateY(-1px);
         }
 
         .subject-slot.split-subject,
         .subject-slot.split-segment {
-            background: #fff7e6;
-            border-color: #f39c12;
-            color: #8a6d3b;
+            background: rgba(251, 191, 36, 0.2);
+            border-color: rgba(245, 158, 11, 0.7);
+            color: #8a4f0f;
+        }
+
+        .subject-slot.split-subject:hover,
+        .subject-slot.split-segment:hover {
+            background: rgba(251, 191, 36, 0.28);
+            border-color: rgba(217, 119, 6, 0.8);
         }
 
         .subject-slot.split-subject {
@@ -272,8 +540,8 @@
         }
 
         .split-period-badge {
-            background: #f39c12;
-            color: #fff;
+            background: rgba(217, 119, 6, 0.9);
+            color: #ffffff;
             border-radius: 12px;
             padding: 2px 8px;
             font-size: 11px;
@@ -281,14 +549,14 @@
         }
 
         .split-part-label {
-            color: #b9770e;
+            color: #92400e;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             font-size: 10px;
         }
 
         .split-allocation-cell {
-            background: #fffaf0;
+            background: rgba(254, 243, 199, 0.4);
         }
 
         .split-allocation-header {
@@ -296,40 +564,41 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #b9770e;
+            color: #92400e;
             margin-bottom: 4px;
         }
 
         .subject-slot.allocated {
-            background: #ffebee;
-            border: 2px solid #e74c3c;
-            color: #c0392b;
+            background: rgba(248, 113, 113, 0.24);
+            border: 1.5px solid rgba(239, 68, 68, 0.65);
+            color: #b91c1c;
         }
 
         .subject-slot.allocated:hover {
-            background: #ffcdd2;
+            background: rgba(248, 113, 113, 0.32);
+            border-color: rgba(239, 68, 68, 0.8);
         }
 
         .drop-zone.clash-cell {
-            background: #e6f0ff;
-            border-color: #2980b9;
+            background: rgba(59, 130, 246, 0.18);
+            border-color: rgba(37, 99, 235, 0.75);
         }
 
         .drop-zone.semester-pair-cell {
-            background: #d4edda;
-            border-color: #27ae60;
+            background: rgba(16, 185, 129, 0.18);
+            border-color: rgba(5, 150, 105, 0.75);
         }
 
         .subject-slot.clash {
-            background: #e6f0ff;
-            border: 2px solid #2980b9;
-            color: #1f4e79;
+            background: rgba(59, 130, 246, 0.18);
+            border: 1.5px solid rgba(37, 99, 235, 0.65);
+            color: #1d4ed8;
         }
 
         .subject-slot.semester-pair {
-            background: #d4edda;
-            border: 2px solid #27ae60;
-            color: #1e8449;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1.5px solid rgba(5, 150, 105, 0.7);
+            color: #065f46;
             display: flex;
             flex-direction: column;
             gap: 4px;
@@ -337,8 +606,8 @@
         }
 
         .subject-slot.semester-pair .semester-pair-item {
-            background: rgba(39, 174, 96, 0.1);
-            border-radius: 4px;
+            background: rgba(5, 150, 105, 0.12);
+            border-radius: 6px;
             padding: 2px 4px;
             font-size: 11px;
             cursor: move;
@@ -348,41 +617,44 @@
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #1e8449;
+            color: #047857;
             text-align: center;
-            border-top: 1px dashed rgba(39, 174, 96, 0.4);
+            border-top: 1px dashed rgba(5, 150, 105, 0.4);
             padding-top: 4px;
             margin-top: 4px;
         }
 
         .subject-pool-grid {
             display: grid;
-            gap: 15px;
-            margin-top: 10px;
+            gap: 18px;
+            margin-top: 18px;
             align-items: flex-start;
         }
 
         .subject-pool-column {
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 10px;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 18px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
         }
 
         .subject-pool-column h4 {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 6px;
             text-align: center;
+            letter-spacing: 0.02em;
         }
 
         .subject-pool-column-body {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
 
         .subject-pool-column-body .subject-slot {
@@ -391,47 +663,48 @@
 
         .subject-pool-column--unassigned {
             grid-column: 1 / -1;
-            margin-top: 10px;
+            margin-top: 18px;
+            border-style: dashed;
         }
 
         .teacher-period-summary {
-            margin-top: 20px;
-            padding: 24px;
-            background: linear-gradient(135deg, #f4f8ff 0%, #eef2ff 100%);
-            border-radius: 16px;
-            border: 1px solid #d7e3f5;
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.12);
+            margin-top: 28px;
+            padding: 28px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(56, 189, 248, 0.1));
+            border-radius: 24px;
+            border: 1px solid rgba(99, 102, 241, 0.28);
+            box-shadow: 0 26px 52px rgba(15, 23, 42, 0.18);
         }
 
         .teacher-period-summary h3 {
-            font-size: 1.2rem;
-            color: #1f3d63;
+            font-size: 1.25rem;
+            color: #1e1b4b;
             margin-bottom: 8px;
         }
 
         .teacher-period-subtitle {
-            font-size: 0.85rem;
-            color: #58708c;
-            margin-bottom: 14px;
-            line-height: 1.45;
+            font-size: 0.9rem;
+            color: #475569;
+            margin-bottom: 16px;
+            line-height: 1.5;
         }
 
         .teacher-period-legend {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 18px;
-            font-size: 0.75rem;
-            color: #58708c;
+            gap: 12px;
+            margin-bottom: 20px;
+            font-size: 0.78rem;
+            color: #475569;
         }
 
         .teacher-period-legend span {
             background: rgba(255, 255, 255, 0.65);
             border-radius: 999px;
-            padding: 6px 12px;
-            border: 1px solid rgba(52, 152, 219, 0.15);
-            color: #425d78;
-            box-shadow: 0 1px 2px rgba(44, 62, 80, 0.08);
+            padding: 8px 14px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: #1e293b;
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.18);
         }
 
         .teacher-card-toggle-controls {
@@ -449,33 +722,33 @@
 
         .teacher-period-grid {
             display: grid;
-            gap: 16px;
+            gap: 18px;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         }
 
         .teacher-period-card {
             position: relative;
-            background: #ffffff;
-            border: 1px solid #dbe2e8;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(44, 62, 80, 0.08);
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 16px;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
             transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
             overflow: hidden;
             border-left: 6px solid transparent;
         }
 
         .teacher-period-card.balance-positive {
-            border-left-color: #27ae60;
+            border-left-color: #22c55e;
         }
 
         .teacher-period-card.balance-negative {
-            border-left-color: #e74c3c;
+            border-left-color: #ef4444;
         }
 
         .teacher-period-card[open] {
-            box-shadow: 0 8px 18px rgba(52, 152, 219, 0.18);
+            box-shadow: 0 26px 54px rgba(79, 70, 229, 0.22);
             transform: translateY(-1px);
-            border-color: rgba(52, 152, 219, 0.35);
+            border-color: rgba(79, 70, 229, 0.25);
         }
 
         .teacher-card-summary {
@@ -484,17 +757,17 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 14px 16px;
-            background: linear-gradient(135deg, rgba(52, 152, 219, 0.12), rgba(52, 152, 219, 0.04));
+            padding: 16px 20px;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.16), rgba(14, 165, 233, 0.08));
             cursor: pointer;
             user-select: none;
             font-size: 0.95rem;
             font-weight: 600;
-            color: #2c3e50;
+            color: #1e1b4b;
         }
 
         .teacher-period-card.balance-negative > .teacher-card-summary {
-            background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(231, 76, 60, 0.04));
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(248, 113, 113, 0.12));
         }
 
         .teacher-card-summary::-webkit-details-marker {
@@ -535,36 +808,36 @@
             gap: 4px;
             padding: 4px 10px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.75);
-            border: 1px solid rgba(52, 152, 219, 0.2);
+            background: rgba(248, 250, 255, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.35);
             font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #2c3e50;
+            color: #1e293b;
         }
 
         .teacher-card-chip.fte-chip {
-            background: rgba(155, 89, 182, 0.18);
-            border-color: rgba(155, 89, 182, 0.3);
-            color: #7d3c98;
+            background: rgba(139, 92, 246, 0.18);
+            border-color: rgba(139, 92, 246, 0.35);
+            color: #5b21b6;
         }
 
         .teacher-card-chip.load-chip {
-            background: rgba(52, 152, 219, 0.18);
-            border-color: rgba(52, 152, 219, 0.3);
-            color: #1f618d;
+            background: rgba(56, 189, 248, 0.18);
+            border-color: rgba(56, 189, 248, 0.35);
+            color: #0f4c75;
         }
 
         .teacher-card-chip.balance-chip.positive {
-            background: rgba(39, 174, 96, 0.18);
-            border-color: rgba(39, 174, 96, 0.3);
-            color: #1e8449;
+            background: rgba(34, 197, 94, 0.18);
+            border-color: rgba(34, 197, 94, 0.35);
+            color: #047857;
         }
 
         .teacher-card-chip.balance-chip.negative {
-            background: rgba(231, 76, 60, 0.18);
-            border-color: rgba(231, 76, 60, 0.3);
-            color: #c0392b;
+            background: rgba(248, 113, 113, 0.18);
+            border-color: rgba(248, 113, 113, 0.35);
+            color: #b91c1c;
         }
 
         .teacher-card-body {
@@ -616,9 +889,9 @@
         }
 
         .teacher-fte-control select:focus {
-            border-color: #3498db;
+            border-color: #4f46e5;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.18);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
         }
 
         .teacher-card-section-title {
@@ -640,33 +913,33 @@
             flex-direction: column;
             gap: 6px;
             font-size: 0.75rem;
-            color: #34495e;
-            background: #f8fbff;
-            border: 1px solid #d8e3f1;
-            border-radius: 10px;
+            color: #1e293b;
+            background: rgba(248, 250, 255, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 12px;
             padding: 10px;
-            box-shadow: inset 0 1px 2px rgba(44, 62, 80, 0.05);
+            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
         }
 
         .teacher-load-input label {
             font-weight: 700;
-            color: #2c3e50;
+            color: #0f172a;
         }
 
         .teacher-load-input input {
             padding: 6px 8px;
-            border: 1px solid #cbd7e3;
+            border: 1px solid rgba(148, 163, 184, 0.35);
             border-radius: 6px;
             font-size: 0.8rem;
-            color: #2c3e50;
+            color: #0f172a;
             background: #ffffff;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .teacher-load-input input:focus {
-            border-color: #3498db;
+            border-color: #4f46e5;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.18);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
         }
 
         .teacher-load-input-note {
@@ -675,15 +948,15 @@
         }
 
         .teacher-load-summary {
-            background: linear-gradient(135deg, #f8fbff, #eef4ff);
-            border: 1px dashed #c9dbf3;
-            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(14, 165, 233, 0.08));
+            border: 1px dashed rgba(79, 70, 229, 0.28);
+            border-radius: 14px;
             padding: 14px;
             display: flex;
             flex-direction: column;
             gap: 8px;
             font-size: 0.75rem;
-            color: #34495e;
+            color: #1e293b;
         }
 
         .teacher-load-row {
@@ -735,93 +1008,19 @@
         }
 
         .drop-zone {
-            background: #f0f8ff;
-            border: 2px dashed #3498db;
-            border-radius: 4px;
-            min-height: 60px;
-            transition: all 0.3s ease;
+            background: rgba(79, 70, 229, 0.06);
+            border: 1.5px dashed rgba(99, 102, 241, 0.3);
+            border-radius: 14px;
+            min-height: 84px;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
         }
 
         .drop-zone.drag-over {
-            background: #e3f2fd;
-            border-color: #2196f3;
-            transform: scale(1.02);
+            background: rgba(79, 70, 229, 0.16);
+            border-color: rgba(79, 70, 229, 0.6);
+            transform: scale(1.01);
         }
 
-        .stats {
-            padding: 20px;
-            background: #f8f9fa;
-            border-top: 1px solid #dee2e6;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        .stat-label {
-            color: #7f8c8d;
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
-
-        .legend {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-        }
-
-        .legend-color.available {
-            background: #e8f4f8;
-            border: 2px dashed #3498db;
-        }
-
-        .legend-color.allocated {
-            background: #ffebee;
-            border: 2px solid #e74c3c;
-        }
-
-        .legend-color.semester-pair {
-            background: #d4edda;
-            border: 2px solid #27ae60;
-        }
-
-        .legend-color.clash {
-            background: #e6f0ff;
-            border: 2px solid #2980b9;
-        }
-
-        .legend-color.split {
-            background: #fff7e6;
-            border: 2px solid #f39c12;
-        }
 
         /* Autocomplete styles */
         .autocomplete-container {
@@ -840,8 +1039,9 @@
         }
 
         .autocomplete-input:focus {
-            border-color: #3498db;
+            border-color: #4f46e5;
             outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
         }
 
         .autocomplete-list {
@@ -888,15 +1088,15 @@
 
         .autocomplete-list.autocomplete-list--grid .autocomplete-item:hover,
         .autocomplete-list.autocomplete-list--grid .autocomplete-item.selected {
-            border-left-color: #3498db;
-            background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.05));
+            border-left-color: #4f46e5;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.18), rgba(14, 165, 233, 0.08));
         }
 
         .autocomplete-item:hover,
         .autocomplete-item.selected {
-            background-color: #f0f8ff;
-            color: #2c3e50;
-            border-left-color: #3498db;
+            background-color: rgba(79, 70, 229, 0.12);
+            color: #1e1b4b;
+            border-left-color: #4f46e5;
         }
 
         .autocomplete-item:last-child {
@@ -948,17 +1148,19 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
         }
 
         .modal-content {
-            background-color: white;
-            margin: 10% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 400px;
-            max-width: 90%;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            background-color: #ffffff;
+            margin: 8% auto;
+            padding: 28px;
+            border-radius: 20px;
+            width: 420px;
+            max-width: 92%;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            box-shadow: 0 40px 70px rgba(15, 23, 42, 0.2);
         }
 
         .modal-header {
@@ -967,24 +1169,25 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.3);
         }
 
         .modal-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #2c3e50;
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: #1e1b4b;
         }
 
         .close {
-            color: #aaa;
-            font-size: 28px;
+            color: #475569;
+            font-size: 26px;
             font-weight: bold;
             cursor: pointer;
+            transition: color 0.2s ease;
         }
 
         .close:hover {
-            color: #000;
+            color: #0f172a;
         }
 
         .modal-buttons {
@@ -1126,15 +1329,15 @@
         }
 
         .management-actions__button--add {
-            border-left-color: #27ae60;
+            border-left-color: #22c55e;
         }
 
         .management-actions__button--remove {
-            border-left-color: #e74c3c;
+            border-left-color: #ef4444;
         }
 
         .management-actions__button--utility {
-            border-left-color: #3498db;
+            border-left-color: #4f46e5;
         }
 
         .download-toast-container {
@@ -1149,14 +1352,15 @@
         }
 
         .download-toast {
-            background: rgba(44, 62, 80, 0.95);
-            color: #ffffff;
-            padding: 12px 16px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(44, 62, 80, 0.25);
+            background: rgba(15, 23, 42, 0.92);
+            color: #f8fafc;
+            padding: 12px 18px;
+            border-radius: 16px;
+            box-shadow: 0 22px 45px rgba(15, 23, 42, 0.25);
+            border: 1px solid rgba(148, 163, 184, 0.25);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-size: 0.95rem;
             transform: translateY(12px);
             opacity: 0;
@@ -1177,21 +1381,65 @@
             flex: 1;
         }
 
-        @media (max-width: 768px) {
-            .control-groups {
+        @media (max-width: 1200px) {
+            .app-hero {
+                padding: 48px 5vw 88px;
+            }
+
+            .app-layout {
                 grid-template-columns: 1fr;
+                padding: 0 5vw 56px;
+                gap: 24px;
+            }
+
+            .app-sidebar {
+                order: 2;
+            }
+
+            .app-workspace {
+                order: 1;
             }
 
             .control-group-buttons {
-                flex-direction: column;
-                align-items: stretch;
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-hero {
+                padding: 40px 5vw 72px;
+            }
+
+            .app-hero__title {
+                font-size: 2.2rem;
+            }
+
+            .app-hero__metrics {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            .app-sidebar {
+                padding: 24px 20px;
+            }
+
+            .control-group-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .workspace-panel__header {
+                padding: 24px 20px 0;
+            }
+
+            .workspace-panel__body {
+                padding: 20px;
             }
 
             .timetable-container {
-                padding: 10px;
+                border-radius: 0 0 20px 20px;
             }
 
             .timetable {
+                min-width: 720px;
                 font-size: 12px;
             }
 
@@ -1226,6 +1474,7 @@
             .modal-content {
                 margin: 5% auto;
                 width: 95%;
+                border-radius: 18px;
             }
 
             .download-toast-container {
@@ -1242,103 +1491,144 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Faculty Staff Allocation Interface</h1>
-            <p>Import your spreadsheet data and allocate subject codes to teachers by line</p>
-        </div>
+    <div class="app-shell">
+        <header class="app-hero">
+            <div class="app-hero__content">
+                <span class="app-hero__tag">Matrix Control Center</span>
+                <h1 class="app-hero__title">Faculty Staff Allocation Matrix</h1>
+                <p class="app-hero__subtitle">Import your spreadsheet, map teachers to lines, and balance every subject with a drag-and-drop workspace tailored for timetable planning.</p>
+            </div>
+            <div class="app-hero__metrics">
+                <div class="hero-metric">
+                    <span class="hero-metric__label">Total Subjects</span>
+                    <span class="hero-metric__value" id="totalSubjects">0</span>
+                </div>
+                <div class="hero-metric">
+                    <span class="hero-metric__label">Allocated Subjects</span>
+                    <span class="hero-metric__value" id="allocatedSubjects">0</span>
+                </div>
+                <div class="hero-metric">
+                    <span class="hero-metric__label">Available Subjects</span>
+                    <span class="hero-metric__value" id="remainingSubjects">0</span>
+                </div>
+                <div class="hero-metric">
+                    <span class="hero-metric__label">Allocation Progress</span>
+                    <span class="hero-metric__value" id="allocationPercentage">0%</span>
+                </div>
+            </div>
+        </header>
 
-        <div class="controls">
-            <div class="control-groups">
-                <div class="control-group">
-                    <div class="control-group-label">Allocation Workflow</div>
-                    <div class="control-group-buttons">
-                        <button class="btn btn-primary" onclick="allocateNewSubject()" title="Allocate an available subject to a teacher">Allocate New Subject</button>
-                        <button class="btn btn-primary" onclick="splitSubject()" title="Divide a subject into multiple allocations">Split Subject</button>
-                        <button class="btn btn-primary" onclick="moveExistingAllocation()" title="Reassign a subject that is already allocated">Move Existing Allocation</button>
-                    </div>
+        <div class="container app-layout">
+            <aside class="app-sidebar">
+                <div class="sidebar-intro">
+                    <h2>Control Hub</h2>
+                    <p>Choose an action to allocate subjects, manage data or adjust supporting resources.</p>
                 </div>
-                <div class="control-group">
-                    <div class="control-group-label">Data &amp; Progress</div>
-                    <div class="control-group-buttons">
-                        <button class="btn btn-primary" onclick="importSpreadsheet()" title="Import your master spreadsheet to populate data">Import Spreadsheet</button>
-                        <button class="btn btn-secondary" onclick="downloadImportTemplate()" title="Download a blank CSV with the required columns and rows for new data entry">Download CSV Template</button>
-                        <button class="btn btn-success" onclick="saveAllocations()" title="Save your current allocations for later">Save Allocations</button>
-                        <button class="btn btn-secondary" onclick="importData()" title="Reload a previously exported allocation file">Import Saved Data</button>
-                        <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
-                        <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
-                    </div>
-                </div>
-                <div class="control-group">
-                    <div class="control-group-label">History</div>
-                    <div class="control-group-buttons">
-                        <button class="btn btn-secondary" onclick="undoLastAction()" id="undoBtn" disabled title="Undo the last change">Undo</button>
-                        <button class="btn btn-secondary" onclick="redoLastAction()" id="redoBtn" disabled title="Redo the last undone change">Redo</button>
-                    </div>
-                </div>
-                <div class="control-group control-group--management">
-                    <div class="control-group-label">Management &amp; Utilities</div>
-                    <div class="control-group-buttons">
-                        <button class="btn btn-primary" onclick="openManagementHub()" title="Open tools to manage teachers, subjects, lines and supplemental data">Management Hub</button>
-                    </div>
-                </div>
-            </div>
+                <div class="control-groups">
+                    <section class="control-group control-group--workflow">
+                        <div class="control-group-header">
+                            <div class="control-group-label">Allocation Workflow</div>
+                            <p class="control-group-description">Use guided prompts or drag subjects directly onto the timetable to keep your matrix balanced.</p>
+                        </div>
+                        <div class="control-group-buttons">
+                            <button class="btn btn-primary" onclick="allocateNewSubject()" title="Allocate an available subject to a teacher">Allocate New Subject</button>
+                            <button class="btn btn-primary" onclick="splitSubject()" title="Divide a subject into multiple allocations">Split Subject</button>
+                            <button class="btn btn-primary" onclick="moveExistingAllocation()" title="Reassign a subject that is already allocated">Move Existing Allocation</button>
+                        </div>
+                    </section>
 
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color available"></div>
-                    <span>Available Subject</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color allocated"></div>
-                    <span>Allocated Subject</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color split"></div>
-                    <span>Split Allocation Portion</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color semester-pair"></div>
-                    <span>Year 8 S1/S2 Pair</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color clash"></div>
-                    <span>Allocation Clash</span>
-                </div>
-            </div>
-        </div>
+                    <section class="control-group control-group--data">
+                        <div class="control-group-header">
+                            <div class="control-group-label">Data &amp; Progress</div>
+                            <p class="control-group-description">Keep imports, exports and saves in sync so everyone works from the latest plan.</p>
+                        </div>
+                        <div class="control-group-buttons">
+                            <button class="btn btn-primary" onclick="importSpreadsheet()" title="Import your master spreadsheet to populate data">Import Spreadsheet</button>
+                            <button class="btn btn-secondary" onclick="downloadImportTemplate()" title="Download a blank CSV with the required columns and rows for new data entry">Download CSV Template</button>
+                            <button class="btn btn-success" onclick="saveAllocations()" title="Save your current allocations for later">Save Allocations</button>
+                            <button class="btn btn-secondary" onclick="importData()" title="Reload a previously exported allocation file">Import Saved Data</button>
+                            <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
+                            <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
+                        </div>
+                    </section>
 
-        <div class="timetable-container">
-            <table class="timetable" id="timetable">
-                <thead id="timetableHead">
-                    <tr>
-                        <th>Line</th>
-                        <!-- Teachers will be dynamically added here -->
-                    </tr>
-                </thead>
-                <tbody id="timetableBody">
-                    <!-- Periods will be generated by JavaScript -->
-                </tbody>
-            </table>
-        </div>
+                    <section class="control-group control-group--history">
+                        <div class="control-group-header">
+                            <div class="control-group-label">History</div>
+                            <p class="control-group-description">Step backwards or forwards through your recent actions.</p>
+                        </div>
+                        <div class="control-group-buttons">
+                            <button class="btn btn-secondary" onclick="undoLastAction()" id="undoBtn" disabled title="Undo the last change">Undo</button>
+                            <button class="btn btn-secondary" onclick="redoLastAction()" id="redoBtn" disabled title="Redo the last undone change">Redo</button>
+                        </div>
+                    </section>
 
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-number" id="totalSubjects">0</div>
-                <div class="stat-label">Total Subjects</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="allocatedSubjects">0</div>
-                <div class="stat-label">Allocated Subjects</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="remainingSubjects">0</div>
-                <div class="stat-label">Available Subjects</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="allocationPercentage">0%</div>
-                <div class="stat-label">Allocation Progress</div>
-            </div>
+                    <section class="control-group control-group--management">
+                        <div class="control-group-header">
+                            <div class="control-group-label">Management &amp; Utilities</div>
+                            <p class="control-group-description">Open advanced tools to manage teachers, subjects, lines and supplemental data.</p>
+                        </div>
+                        <div class="control-group-buttons">
+                            <button class="btn btn-primary" onclick="openManagementHub()" title="Open tools to manage teachers, subjects, lines and supplemental data">Management Hub</button>
+                        </div>
+                    </section>
+                </div>
+            </aside>
+
+            <main class="app-workspace">
+                <section class="workspace-panel workspace-panel--legend">
+                    <div class="workspace-panel__header">
+                        <h2 class="workspace-panel__title">Legend &amp; Quick Reference</h2>
+                        <p class="workspace-panel__subtitle">Every color represents a different allocation state. Use this guide while dragging subjects around the matrix.</p>
+                    </div>
+                    <div class="workspace-panel__body">
+                        <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-color available"></div>
+                                <span>Available Subject</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color allocated"></div>
+                                <span>Allocated Subject</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color split"></div>
+                                <span>Split Allocation Portion</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color semester-pair"></div>
+                                <span>Year 8 S1/S2 Pair</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color clash"></div>
+                                <span>Allocation Clash</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="workspace-panel workspace-panel--matrix">
+                    <div class="workspace-panel__header">
+                        <h2 class="workspace-panel__title">Allocation Matrix</h2>
+                        <p class="workspace-panel__subtitle">Drag subjects onto a teacher&apos;s line or click any cell to launch the quick allocation modal.</p>
+                    </div>
+                    <div class="workspace-panel__body workspace-panel__body--flush">
+                        <div class="timetable-container">
+                            <table class="timetable" id="timetable">
+                                <thead id="timetableHead">
+                                    <tr>
+                                        <th>Line</th>
+                                        <!-- Teachers will be dynamically added here -->
+                                    </tr>
+                                </thead>
+                                <tbody id="timetableBody">
+                                    <!-- Periods will be generated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </main>
         </div>
     </div>
 
@@ -4278,18 +4568,21 @@
             const subjectPool = document.createElement('div');
             subjectPool.id = 'subjectPool';
             subjectPool.style.cssText = `
-                margin-top: 20px;
-                padding: 20px;
-                background: #f8f9fa;
-                border-radius: 8px;
-                border: 1px solid #dee2e6;
+                margin-top: 32px;
+                padding: 28px;
+                background: rgba(255, 255, 255, 0.96);
+                border-radius: 24px;
+                border: 1px solid rgba(15, 23, 42, 0.08);
+                box-shadow: 0 30px 60px rgba(15, 23, 42, 0.15);
                 overflow-x: auto;
             `;
 
             const title = document.createElement('h3');
             title.textContent = 'Subject Pool - Drag subjects to allocate them';
-            title.style.marginBottom = '15px';
-            title.style.color = '#2c3e50';
+            title.style.marginBottom = '18px';
+            title.style.color = '#0f172a';
+            title.style.fontSize = '1.25rem';
+            title.style.fontWeight = '700';
             subjectPool.appendChild(title);
 
             const subjectsContainer = document.createElement('div');
