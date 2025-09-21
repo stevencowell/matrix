@@ -4463,46 +4463,198 @@
                 return { subjects: [], subjectLineMapping: {}, subjectYearMapping: {} };
             }
 
-            const lineColumnMapping = {6: 0, 7: 1, 8: 2, 9: 3, 10: 4, 11: 5};
+            const YEAR_PATTERN = /(?:^|\b)(?:YEAR|YR)\s*(\d{1,2})\b/i;
+            const ROW_PATTERN = /(?:^|\b)ROW\s*(\d{1,2})\b/i;
+            const LINE_PATTERN = /(?:^|\b)LINE\s*(\d{1,2})\b/i;
+            const DEFAULT_LINE_COLUMNS = [6, 7, 8, 9, 10, 11];
+
+            const findYearRowInfo = row => {
+                if (!Array.isArray(row)) {
+                    return null;
+                }
+
+                for (let index = 0; index < row.length; index++) {
+                    const cell = row[index];
+                    if (!cell || typeof cell !== 'string') {
+                        continue;
+                    }
+
+                    const trimmed = cell.trim();
+                    if (trimmed.length === 0) {
+                        continue;
+                    }
+
+                    const match = trimmed.match(YEAR_PATTERN);
+                    if (match) {
+                        const yearNumber = parseInt(match[1], 10);
+                        if (Number.isInteger(yearNumber) && yearNumber > 0) {
+                            return { yearLabel: `Year ${yearNumber}`, columnIndex: index };
+                        }
+                    }
+                }
+
+                return null;
+            };
+
+            const isTeacherMatrixRow = row => {
+                if (!Array.isArray(row)) {
+                    return false;
+                }
+
+                return row.some(cell => {
+                    if (!cell || typeof cell !== 'string') {
+                        return false;
+                    }
+                    return cell.toLowerCase().includes('teacher matrix');
+                });
+            };
+
+            const findLineHeaderColumns = row => {
+                if (!Array.isArray(row)) {
+                    return [];
+                }
+
+                const columns = [];
+                row.forEach((cell, index) => {
+                    if (!cell || typeof cell !== 'string') {
+                        return;
+                    }
+                    const trimmed = cell.trim();
+                    if (trimmed.length === 0) {
+                        return;
+                    }
+
+                    if (LINE_PATTERN.test(trimmed)) {
+                        columns.push(index);
+                    }
+                });
+
+                return columns;
+            };
+
+            const findRowLabelInfo = row => {
+                if (!Array.isArray(row)) {
+                    return null;
+                }
+
+                for (let index = 0; index < row.length; index++) {
+                    const cell = row[index];
+                    if (!cell || typeof cell !== 'string') {
+                        continue;
+                    }
+
+                    const trimmed = cell.trim();
+                    if (trimmed.length === 0) {
+                        continue;
+                    }
+
+                    const match = trimmed.match(ROW_PATTERN);
+                    if (match) {
+                        return { label: `Row ${parseInt(match[1], 10)}`, columnIndex: index };
+                    }
+                }
+
+                return null;
+            };
+
+            const containsSubjectCode = value => {
+                if (!value || typeof value !== 'string') {
+                    return false;
+                }
+                return /\b\d{1,2}\s*[A-Z]{2,6}\s*\d{0,2}\b/.test(value);
+            };
+
+            const buildLineMapping = columns => columns.reduce((acc, columnIndex, lineIndex) => {
+                acc[columnIndex] = lineIndex;
+                return acc;
+            }, {});
 
             for (let i = 0; i < parsedData.length; i++) {
                 const row = parsedData[i];
+                const yearInfo = findYearRowInfo(row);
 
-                if (!row || !row[5]) {
+                if (!yearInfo) {
                     continue;
                 }
 
-                const yearLabel = normalizeYearLabel(row[5]);
-                if (!yearLabel) {
-                    continue;
-                }
-
+                const { yearLabel } = yearInfo;
                 const isYear8 = yearLabel === 'Year 8';
 
                 if (debug) {
-                    console.log('Processing year:', yearLabel, 'to place subjects in correct lines');
+                    console.log('Processing year:', yearLabel, 'starting at CSV row', i);
                 }
+
+                let lineColumns = null;
+                let lineColumnMapping = null;
 
                 for (let j = i + 1; j < parsedData.length; j++) {
                     const nextRow = parsedData[j];
 
-                    if (nextRow[5] && (nextRow[5].includes('Year') || nextRow[5].includes('Teacher Matrix'))) {
+                    if (findYearRowInfo(nextRow) || isTeacherMatrixRow(nextRow)) {
                         break;
                     }
 
-                    if (!nextRow[5] || !nextRow[5].includes('Row')) {
+                    if (!Array.isArray(nextRow)) {
                         continue;
                     }
 
-                    const rowLabel = nextRow[5].trim();
-                    if (debug) {
-                        console.log('Processing row:', rowLabel, 'at CSV row', j);
+                    if (!lineColumns) {
+                        const detectedColumns = findLineHeaderColumns(nextRow);
+                        if (detectedColumns.length > 0) {
+                            lineColumns = detectedColumns;
+                            lineColumnMapping = buildLineMapping(lineColumns);
+
+                            if (debug) {
+                                console.log('Detected line header columns for', yearLabel, ':', lineColumns.join(', '));
+                            }
+                            continue;
+                        }
                     }
 
-                    for (let colIndex = 6; colIndex <= 11; colIndex++) {
-                        const cell = nextRow[colIndex] ? nextRow[colIndex] : '';
+                    const rowInfo = findRowLabelInfo(nextRow);
+                    if (!rowInfo) {
+                        continue;
+                    }
+
+                    if (!lineColumns || lineColumns.length === 0) {
+                        const inferredColumns = [];
+                        nextRow.forEach((cell, index) => {
+                            if (index === rowInfo.columnIndex) {
+                                return;
+                            }
+                            if (containsSubjectCode(cell)) {
+                                inferredColumns.push(index);
+                            }
+                        });
+
+                        if (inferredColumns.length > 0) {
+                            inferredColumns.sort((a, b) => a - b);
+                            lineColumns = inferredColumns;
+                            lineColumnMapping = buildLineMapping(lineColumns);
+
+                            if (debug) {
+                                console.log('Inferred line columns from data for', yearLabel, ':', lineColumns.join(', '));
+                            }
+                        }
+                    }
+
+                    if (!lineColumns || lineColumns.length === 0) {
+                        lineColumns = [...DEFAULT_LINE_COLUMNS];
+                        lineColumnMapping = buildLineMapping(lineColumns);
+
+                        if (debug) {
+                            console.log('Falling back to default line columns for', yearLabel, ':', lineColumns.join(', '));
+                        }
+                    }
+
+                    if (debug) {
+                        console.log('Processing row:', rowInfo.label, 'at CSV row', j);
+                    }
+
+                    lineColumns.forEach(columnIndex => {
+                        const cell = columnIndex < nextRow.length ? nextRow[columnIndex] : '';
                         if (!cell) {
-                            continue;
+                            return;
                         }
 
                         const cellLines = cell.split('\n');
@@ -4513,7 +4665,7 @@
                             }
 
                             const subjectCodes = [];
-                            const codeRegex = /\b\d{1,2}\s*[A-Z]{2,4}\s*\d{0,2}\b/g;
+                            const codeRegex = /\b\d{1,2}\s*[A-Z]{2,6}\s*\d{0,2}\b/g;
                             let match;
 
                             while ((match = codeRegex.exec(trimmedLine)) !== null) {
@@ -4538,7 +4690,7 @@
                             }
 
                             subjectCodes.forEach(subjectCode => {
-                                const lineIndex = lineColumnMapping[colIndex];
+                                const lineIndex = lineColumnMapping[columnIndex];
                                 if (lineIndex === undefined) {
                                     return;
                                 }
@@ -4549,7 +4701,7 @@
 
                                 if (debug) {
                                     const lineName = `Line ${lineIndex + 1}`;
-                                    console.log(`Found subject: ${subjectCode} belongs in ${lineName} (column ${colIndex}) from "${trimmedLine}"`);
+                                    console.log(`Found subject: ${subjectCode} belongs in ${lineName} (column ${columnIndex}) from "${trimmedLine}"`);
                                 }
                             });
 
@@ -4557,7 +4709,7 @@
                                 console.log(`Could not parse any subject codes from: "${trimmedLine}"`);
                             }
                         });
-                    }
+                    });
                 }
             }
 
