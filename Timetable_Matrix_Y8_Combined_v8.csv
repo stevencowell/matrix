@@ -1,76 +1,118 @@
-﻿,,,,,Year 12,,,,,,
+Timetable Matrix Template,,,,,,,,,,,
+,,,,,Year 12,,,,,,
 ,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
-,,,,,Row 1,,,,,,
-,,,,,Row 2,,,,,,
-,,,,,Row 3,12 DAT1,,,12 MAV1,,12 COV 1
-,,,,,Row 4,,12 PIV1,,,,12 HOV 1
-,,,,,Row 5,,,,,,
-,,,,,Row 6,,,,,,
+,,,,,Row 1,12 ENG1,12 MAT1,12 SCI1,12 HIS1,12 GEO1,12 ART1
+,,,,,Row 2,12 ENG2,12 MAT2,12 SCI2,12 HIS2,12 GEO2,12 ART2
+,,,,,Row 3,12 BIO1,12 CHE1,12 PHY1,12 ECO1,12 BUS1,12 COV1
+,,,,,Row 4,12 BIO2,12 CHE2,12 PHY2,12 ECO2,12 BUS2,12 LAW1
+,,,,,Row 5,12 PE1,12 PE2,12 PE3,12 PE4,12 PE5,12 PE6
+,,,,,Row 6,12 IT1,12 IT2,12 IT3,12 IT4,12 IT5,12 IT6
 ,,,,,,,,,,,
 ,,,,,,,,,,,
 ,,,,,Year 11,,,,,,
 ,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
-,,,,,Row 1,,,,,,
-,,,,,Row 2,,,,11 DAT,11 COV,
-,,,,,Row 3,,,,,,11 PIV
-,,,,,Row 4,,,,11 HOV,,
-,,,,,Row 5,,,,11 MUM,,
-,,,,,Row 6,,,11 MAV,,11 WKS,
+,,,,,Row 1,11 ENG1,11 MAT1,11 SCI1,11 HIS1,11 GEO1,11 ART1
+,,,,,Row 2,11 ENG2,11 MAT2,11 SCI2,11 HIS2,11 GEO2,11 ART2
+,,,,,Row 3,11 BIO1,11 CHE1,11 PHY1,11 ECO1,11 BUS1,11 PIV1
+,,,,,Row 4,11 BIO2,11 CHE2,11 PHY2,11 ECO2,11 BUS2,11 HOV1
+,,,,,Row 5,11 PE1,11 PE2,11 PE3,11 PE4,11 PE5,11 WKS1
+,,,,,Row 6,11 IT1,11 IT2,11 IT3,11 IT4,11 IT5,11 MUM1
 ,,,,,,,,,,,
 ,,,,,,,,,,,
 ,,,,,Year 10,,,,,,
 ,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
-,,,,,Row 1,,10 AGRE 1,,,,10 AGRE2
-,,,,,Row 2,,,,,,10 FOTET
-,,,,,Row 3,,10 METE 1,10 ENSE 1,,,
-,,,,,Row 4,,,10 FOTE 1,,,
-,,,,,Row 5,,,,,,
-,,,,,Row 6,,10 WOTE 1,10 WOTE2,,,
+,,,,,Row 1,10 ENG1,10 MAT1,10 SCI1,10 HIS1,10 GEO1,10 ART1
+,,,,,Row 2,10 ENG2,10 MAT2,10 SCI2,10 HIS2,10 GEO2,10 ART2
+,,,,,Row 3,10 BIO1,10 CHE1,10 PHY1,10 ECO1,10 BUS1,10 FOTET
+,,,,,Row 4,10 BIO2,10 CHE2,10 PHY2,10 ECO2,10 BUS2,10 FOTE1
+,,,,,Row 5,10 PE1,10 PE2,10 PE3,10 PE4,10 PE5,10 WOTE1
+,,,,,Row 6,10 IT1,10 IT2,10 IT3,10 IT4,10 IT5,10 WOTE2
 ,,,,,,,,,,,
 ,,,,,,,,,,,
 ,,,,,Year 9,,,,,,
 ,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
-,,,,,Row 1,,,,9AGRE1,,9AGRE2
-,,,,,Row 2,9FOTE2,,,,,
-,,,,,Row 3,9METE 1,,,9ENSE,,
-,,,,,Row 4,,,,9METE2,,9FOTE 1
-,,,,,Row 5,9WOTE,,,,,
-,,,,,Row 6,,,,,,
+,,,,,Row 1,9 ENG1,9 MAT1,9 SCI1,9 HIS1,9 GEO1,9 ART1
+,,,,,Row 2,9 ENG2,9 MAT2,9 SCI2,9 HIS2,9 GEO2,9 ART2
+,,,,,Row 3,9 BIO1,9 CHE1,9 PHY1,9 ECO1,9 BUS1,9 FOTE1
+,,,,,Row 4,9 BIO2,9 CHE2,9 PHY2,9 ECO2,9 BUS2,9 HOV1
+,,,,,Row 5,9 PE1,9 PE2,9 PE3,9 PE4,9 PE5,9 WOTE1
+,,,,,Row 6,9 IT1,9 IT2,9 IT3,9 IT4,9 IT5,9 TEX1
 ,,,,,,,,,,,
 ,,,,,,,,,,,
 ,,,,,Year 8 (Semesters combined into one cell),,,,,,
 ,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
-,,,,,Row 1,,"S1: 8AGRE1
-S2: 8AGRE4",,,"S1: 8AGRE3
-S2: 8AGRE2",
-,,,,,Row 2,,,,,,
-,,,,,Row 3,,,,,"S1: 8FOTE3
-S2: 8FOTE4",
-,,,,,Row 4,,"S1: 8FOTE2
-S2: 8FOTE 1",,,"S1: 8METE3
-S2: 8WOTE 1",
-,,,,,Row 5,,"S1: 8METE2
-S2: 8METE 1",,,"S1: 8MUME
-S2: 8ANIE",
-,,,,,Row 6,,,,,,
-,,,,,Row 7,,"S1: 8WOTE2
-S2: 8WOTE3",,,"S1: 8TEXE
-S2: 8JEWE",
+,,,,,Row 1,"S1: 8AGRE1
+S2: 8AGRE4","S1: 8ENG1
+S2: 8ENG2","S1: 8SCI1
+S2: 8SCI2","S1: 8HIS1
+S2: 8HIS2","S1: 8GEO1
+S2: 8GEO2","S1: 8ART1
+S2: 8ART2"
+,,,,,Row 2,"S1: 8AGRE2
+S2: 8AGRE5","S1: 8ENG3
+S2: 8ENG4","S1: 8SCI3
+S2: 8SCI4","S1: 8HIS3
+S2: 8HIS4","S1: 8GEO3
+S2: 8GEO4","S1: 8ART3
+S2: 8ART4"
+,,,,,Row 3,"S1: 8BIO1
+S2: 8BIO2","S1: 8CHE1
+S2: 8CHE2","S1: 8PHY1
+S2: 8PHY2","S1: 8ECO1
+S2: 8ECO2","S1: 8BUS1
+S2: 8BUS2","S1: 8FOTE3
+S2: 8FOTE4"
+,,,,,Row 4,"S1: 8BIO3
+S2: 8BIO4","S1: 8CHE3
+S2: 8CHE4","S1: 8PHY3
+S2: 8PHY4","S1: 8ECO3
+S2: 8ECO4","S1: 8BUS3
+S2: 8BUS4","S1: 8METE3
+S2: 8WOTE1"
+,,,,,Row 5,"S1: 8PE1
+S2: 8PE2","S1: 8PE3
+S2: 8PE4","S1: 8PE5
+S2: 8PE6","S1: 8MUME
+S2: 8ANIE","S1: 8DRM1
+S2: 8DRM2","S1: 8TEXE
+S2: 8JEWE"
+,,,,,Row 6,"S1: 8IT1
+S2: 8IT2","S1: 8IT3
+S2: 8IT4","S1: 8IT5
+S2: 8IT6","S1: 8DES1
+S2: 8DES2","S1: 8DIG1
+S2: 8DIG2","S1: 8ROB1
+S2: 8ROB2"
+,,,,,Row 7,"S1: 8WOTE2
+S2: 8WOTE3","S1: 8TEX1
+S2: 8TEX2","S1: 8JEW1
+S2: 8JEW2","S1: 8FDS1
+S2: 8FDS2","S1: 8DRA1
+S2: 8DRA2","S1: 8MUS1
+S2: 8MUS2"
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 7,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,7 ENG1,7 MAT1,7 SCI1,7 HIS1,7 GEO1,7 ART1
+,,,,,Row 2,7 ENG2,7 MAT2,7 SCI2,7 HIS2,7 GEO2,7 ART2
+,,,,,Row 3,7 BIO1,7 CHE1,7 PHY1,7 ECO1,7 BUS1,7 TEX1
+,,,,,Row 4,7 BIO2,7 CHE2,7 PHY2,7 ECO2,7 BUS2,7 HOV1
+,,,,,Row 5,7 PE1,7 PE2,7 PE3,7 PE4,7 PE5,7 WOTE1
+,,,,,Row 6,7 IT1,7 IT2,7 IT3,7 IT4,7 IT5,7 MUS1
 ,,,,,,,,,,,
 ,,,,,,,,,,,
 Teacher Matrix (Lines aligned G–L),,,,,,,,,,,
 Teacher,Loads,Allowance,Plus/minus,Current,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
-Steve Cowell,,,0,0,,,,,,,
-Scott Trenaman,,,0,0,,,,,,,
-Josh Harris,,,0,0,,12 DAT1,,,,,
-Clint Campbell,,,0,0,,,,,,,
-,,,0,0,,,,,,,
-,,,0,0,,,,,,,
-Louis Orr,,,0,0,,,12 PIV1,,,,
-Deborah Clark (Deb),,,0,0,,,,,,,
-Emma Fuller,,,0,0,,,,,,,
-,,,0,0,,,,,,,
-Joanne Dennis (Jo),,,0,0,,,,,,,
-Josh McKenzie,,,0,0,,,,,,,
-Katrina Bedford (Trina),,,0,0,,,,,,,
-,,,0,0,,,,,,,
+Steve Cowell,RED:20,RED:2,RED:+0,RED:22,,RED:12 ENG1,RED:12 MAT1,RED:12 SCI1,RED:12 HIS1,RED:12 GEO1,RED:12Cov1
+Scott Trenaman,18,2,-1,19,,12 ENG2,12 MAT2,12 SCI2,12 HIS2,12 GEO2,12 ART2
+Josh Harris,16,0,+2,18,,12 BIO1,12 CHE1,12 PHY1,12 ECO1,12 BUS1,12 LAW1
+Clint Campbell,21,1,0,22,,11 ENG1,11 MAT1,11 SCI1,11 HIS1,11 GEO1,11 ART1
+Louis Orr,20,0,-2,18,,11 BIO1,11 CHE1,11 PHY1,11 ECO1,11 BUS1,11 PIV1
+Deborah Clark (Deb),19,1,+1,21,,10 ENG1,10 MAT1,10 SCI1,10 HIS1,10 GEO1,10 ART1
+Emma Fuller,17,0,0,17,,10 BIO1,10 CHE1,10 PHY1,10 ECO1,10 BUS1,10 FOTET
+Joanne Dennis (Jo),18,2,-1,19,,9 ENG1,9 MAT1,9 SCI1,9 HIS1,9 GEO1,9 ART1
+Josh McKenzie,22,0,-3,19,,9 BIO1,9 CHE1,9 PHY1,9 ECO1,9 BUS1,9 FOTE1
+Katrina Bedford (Trina),20,1,+2,23,,8AGRE1/8ENG1,8ENG3/8ENG4,8SCI3/8SCI4,8HIS3/8HIS4,8GEO3/8GEO4,8ART3/8ART4
+Example Teacher A,18,0,0,18,,7 ENG1,7 MAT1,7 SCI1,7 HIS1,7 GEO1,7 ART1
+Example Teacher B,19,1,-1,19,,7 BIO1,7 CHE1,7 PHY1,7 ECO1,7 BUS1,7 TEX1
