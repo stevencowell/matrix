@@ -1000,14 +1000,57 @@
             gap: 16px;
         }
 
+        .management-actions__tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .management-actions__tab {
+            border: 1px solid #d0d7e2;
+            border-radius: 999px;
+            padding: 8px 18px;
+            background: #ffffff;
+            color: #1f3d63;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(31, 61, 99, 0.1);
+            transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .management-actions__tab:hover,
+        .management-actions__tab:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(31, 61, 99, 0.18);
+            outline: none;
+        }
+
+        .management-actions__tab--active {
+            background: linear-gradient(135deg, #1f3d63, #315a8a);
+            color: #ffffff;
+            border-color: rgba(31, 61, 99, 0.9);
+            box-shadow: 0 6px 18px rgba(31, 61, 99, 0.3);
+        }
+
+        .management-actions__sections {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
         .management-actions__section {
             border: 1px solid #dfe6f1;
             border-radius: 12px;
             padding: 14px;
             background: linear-gradient(135deg, rgba(236, 240, 241, 0.4), rgba(255, 255, 255, 0.95));
-            display: flex;
+            display: none;
             flex-direction: column;
             gap: 12px;
+        }
+
+        .management-actions__section--active {
+            display: flex;
         }
 
         .management-actions__section--add {
@@ -1958,7 +2001,34 @@
 
             managementContainer.innerHTML = '';
 
+            const tabsContainer = document.createElement('div');
+            tabsContainer.className = 'management-actions__tabs';
+            tabsContainer.setAttribute('role', 'tablist');
+
+            const sectionsWrapper = document.createElement('div');
+            sectionsWrapper.className = 'management-actions__sections';
+
+            managementContainer.appendChild(tabsContainer);
+            managementContainer.appendChild(sectionsWrapper);
+
+            const sectionRefs = new Map();
             let actionCount = 0;
+
+            const setActiveSection = (key) => {
+                sectionRefs.forEach(({ tab, section }, sectionKey) => {
+                    const isActive = sectionKey === key;
+
+                    if (tab) {
+                        tab.classList.toggle('management-actions__tab--active', isActive);
+                        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                    }
+
+                    if (section) {
+                        section.classList.toggle('management-actions__section--active', isActive);
+                        section.hidden = !isActive;
+                    }
+                });
+            };
 
             sections.forEach(section => {
                 const availableActions = Array.isArray(section.actions)
@@ -1971,8 +2041,26 @@
 
                 actionCount += availableActions.length;
 
+                const sectionId = `management-section-${section.key}`;
+
+                const tabButton = document.createElement('button');
+                tabButton.type = 'button';
+                tabButton.className = 'management-actions__tab';
+                tabButton.textContent = section.title;
+                tabButton.setAttribute('data-section-key', section.key);
+                tabButton.setAttribute('aria-controls', sectionId);
+                tabButton.setAttribute('role', 'tab');
+                const tabId = `management-tab-${section.key}`;
+                tabButton.id = tabId;
+                tabsContainer.appendChild(tabButton);
+
                 const sectionElement = document.createElement('section');
                 sectionElement.className = `management-actions__section ${section.sectionClass || ''}`.trim();
+                sectionElement.id = sectionId;
+                sectionElement.dataset.sectionKey = section.key;
+                sectionElement.setAttribute('role', 'tabpanel');
+                sectionElement.setAttribute('aria-labelledby', tabId);
+                sectionElement.hidden = true;
 
                 const header = document.createElement('div');
                 header.className = 'management-actions__header';
@@ -2027,16 +2115,32 @@
                 });
 
                 sectionElement.appendChild(buttonGroup);
-                managementContainer.appendChild(sectionElement);
+                sectionsWrapper.appendChild(sectionElement);
+
+                sectionRefs.set(section.key, { tab: tabButton, section: sectionElement });
+
+                tabButton.addEventListener('click', () => {
+                    setActiveSection(section.key);
+
+                    const firstActionButton = sectionElement.querySelector('button.management-actions__button');
+                    if (firstActionButton) {
+                        firstActionButton.focus({ preventScroll: true });
+                    }
+                });
             });
 
             if (actionCount === 0) {
+                managementContainer.innerHTML = '';
+
                 const emptyState = document.createElement('div');
                 emptyState.textContent = 'No management actions are currently available.';
                 emptyState.style.fontSize = '0.9rem';
                 emptyState.style.color = '#5d6d7e';
                 emptyState.style.textAlign = 'center';
                 managementContainer.appendChild(emptyState);
+            } else {
+                const preferredDefault = sectionRefs.has('add') ? 'add' : sectionRefs.keys().next().value;
+                setActiveSection(preferredDefault);
             }
 
             managementContainer.style.display = 'flex';
