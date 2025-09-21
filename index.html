@@ -1314,7 +1314,7 @@
         // Dynamic data loaded from spreadsheet
         let subjects = [];
         let teachers = [];
-        let years = ['Year 12', 'Year 11', 'Year 10', 'Year 9', 'Year 8'];
+        let years = ['Year 12', 'Year 11', 'Year 10', 'Year 9', 'Year 8', 'Year 7'];
         let lines = ['Line 1', 'Line 2', 'Line 3', 'Line 4', 'Line 5', 'Line 6'];
         let teacherAllocations = {}; // Stores which teachers can teach which lines
         let subjectLineMapping = {}; // Maps subject codes to their correct line index
@@ -5208,7 +5208,8 @@
                 { label: 'Year 11' },
                 { label: 'Year 10' },
                 { label: 'Year 9' },
-                { label: 'Year 8', extra: 'Include S1 or S2 in subject codes where applicable (e.g. "S1 8 MDT1").' }
+                { label: 'Year 8', extra: 'Include S1 or S2 in subject codes where applicable (e.g. "S1 8 MDT1").' },
+                { label: 'Year 7', extra: 'Year 7 Tech Mandatory classes = 5 periods per cycle.' }
             ];
 
             yearGroups.forEach(group => {
