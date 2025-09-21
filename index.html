@@ -3834,6 +3834,139 @@
             return code;
         }
 
+        function normalizeSubjectList(subjectList) {
+            if (!Array.isArray(subjectList)) {
+                return [];
+            }
+
+            const seen = new Set();
+            const normalized = [];
+
+            subjectList.forEach(subject => {
+                if (typeof subject !== 'string') {
+                    return;
+                }
+
+                const normalizedCode = normalizeSubjectCode(subject);
+                if (!normalizedCode || seen.has(normalizedCode)) {
+                    return;
+                }
+
+                seen.add(normalizedCode);
+                normalized.push(normalizedCode);
+            });
+
+            return normalized;
+        }
+
+        function normalizeSubjectMapping(source) {
+            if (!source || typeof source !== 'object') {
+                return {};
+            }
+
+            const normalized = {};
+
+            Object.entries(source).forEach(([code, value]) => {
+                if (typeof code !== 'string') {
+                    return;
+                }
+
+                const normalizedCode = normalizeSubjectCode(code);
+                if (!normalizedCode) {
+                    return;
+                }
+
+                normalized[normalizedCode] = value;
+            });
+
+            return normalized;
+        }
+
+        function canonicalizeSubjectData() {
+            if (!Array.isArray(subjects)) {
+                subjects = [];
+            }
+
+            subjects = normalizeSubjectList(subjects);
+
+            subjectLineMapping = normalizeSubjectMapping(subjectLineMapping);
+            subjectYearMapping = normalizeSubjectMapping(subjectYearMapping);
+
+            if (!allocations || typeof allocations !== 'object') {
+                allocations = {};
+            } else {
+                const normalizedAllocations = {};
+
+                Object.entries(allocations).forEach(([key, value]) => {
+                    const subjectList = Array.isArray(value) ? value : [value];
+                    const seenSubjects = new Set();
+                    const normalizedSubjects = [];
+
+                    subjectList.forEach(subjectCode => {
+                        if (typeof subjectCode !== 'string') {
+                            return;
+                        }
+
+                        const normalizedCode = normalizeSubjectCode(subjectCode);
+                        if (!normalizedCode || seenSubjects.has(normalizedCode)) {
+                            return;
+                        }
+
+                        seenSubjects.add(normalizedCode);
+                        normalizedSubjects.push(normalizedCode);
+                    });
+
+                    if (normalizedSubjects.length > 0) {
+                        normalizedAllocations[key] = normalizedSubjects;
+                    }
+                });
+
+                allocations = {};
+                Object.entries(normalizedAllocations).forEach(([key, value]) => {
+                    setAllocationSubjects(key, value);
+                });
+            }
+
+            if (subjectSplits && typeof subjectSplits === 'object') {
+                const normalizedSplits = {};
+
+                Object.entries(subjectSplits).forEach(([baseSubject, splits]) => {
+                    if (!Array.isArray(splits)) {
+                        return;
+                    }
+
+                    const normalizedBase = normalizeSubjectCode(baseSubject);
+                    if (!normalizedBase) {
+                        return;
+                    }
+
+                    const seenSplitCodes = new Set();
+                    const sanitizedSplits = [];
+
+                    splits.forEach(split => {
+                        if (!split || typeof split !== 'object' || typeof split.code !== 'string') {
+                            return;
+                        }
+
+                        const normalizedSplitCode = normalizeSubjectCode(split.code);
+                        if (!normalizedSplitCode || seenSplitCodes.has(normalizedSplitCode)) {
+                            return;
+                        }
+
+                        seenSplitCodes.add(normalizedSplitCode);
+                        sanitizedSplits.push({ ...split, code: normalizedSplitCode });
+                    });
+
+                    if (sanitizedSplits.length > 0) {
+                        normalizedSplits[normalizedBase] = sanitizedSplits;
+                    }
+                });
+
+                subjectSplits = normalizedSplits;
+                rebuildSplitLookup();
+            }
+        }
+
         function detectCSVDelimiter(csvText) {
             if (typeof csvText !== 'string' || csvText.length === 0) {
                 return ',';
@@ -4232,12 +4365,10 @@
                 .filter(teacher => teacher.length > 0);
             teachers = Array.from(new Set(teachers));
 
-            subjects = parsedSubjects
-                .map(subject => (typeof subject === 'string' ? subject.trim() : ''))
-                .filter(subject => subject.length > 0);
+            subjects = normalizeSubjectList(parsedSubjects);
 
-            subjectLineMapping = parsedMapping;
-            subjectYearMapping = parsedYearMapping;
+            subjectLineMapping = normalizeSubjectMapping(parsedMapping);
+            subjectYearMapping = normalizeSubjectMapping(parsedYearMapping);
 
             csvData = Array.isArray(parsed.parsedData) ? parsed.parsedData : [];
 
@@ -4250,6 +4381,7 @@
                 getTeacherLoadSettings(teacher);
             });
 
+            canonicalizeSubjectData();
             populateYearMappingFromSubjects();
 
             initializeTimetable();
@@ -4272,6 +4404,8 @@
                 ? Array.from(new Set(options.allowedYears.map(label => normalizeYearLabel(label)).filter(Boolean)))
                 : null;
             const allowedYearSet = allowedYears ? new Set(allowedYears.map(label => label.toLowerCase())) : null;
+
+            canonicalizeSubjectData();
 
             const summary = {
                 addedTeachers: 0,
@@ -4301,12 +4435,16 @@
             });
 
             const parsedSubjects = Array.isArray(parsed.subjects) ? parsed.subjects : [];
-            const mapping = parsed.subjectLineMapping && typeof parsed.subjectLineMapping === 'object'
-                ? parsed.subjectLineMapping
-                : {};
-            const yearMapping = parsed.subjectYearMapping && typeof parsed.subjectYearMapping === 'object'
-                ? parsed.subjectYearMapping
-                : {};
+            const mapping = normalizeSubjectMapping(
+                parsed.subjectLineMapping && typeof parsed.subjectLineMapping === 'object'
+                    ? parsed.subjectLineMapping
+                    : {}
+            );
+            const yearMapping = normalizeSubjectMapping(
+                parsed.subjectYearMapping && typeof parsed.subjectYearMapping === 'object'
+                    ? parsed.subjectYearMapping
+                    : {}
+            );
 
             parsedSubjects.forEach(subject => {
                 if (typeof subject !== 'string') {
@@ -4320,10 +4458,36 @@
                     return;
                 }
 
-                const subjectYear = yearMapping[trimmed] || normalizeYearLabel(trimmed);
+                const normalized = normalizeSubjectCode(trimmed);
+                if (!normalized) {
+                    summary.skippedSubjects += 1;
+                    return;
+                }
+
+                let subjectYear = null;
+                const candidateYearKeys = normalized === trimmed ? [normalized] : [normalized, trimmed];
+                for (const key of candidateYearKeys) {
+                    if (Object.prototype.hasOwnProperty.call(yearMapping, key)) {
+                        subjectYear = yearMapping[key];
+                        if (key !== normalized) {
+                            yearMapping[normalized] = subjectYear;
+                        }
+                        break;
+                    }
+                }
+
+                if (!subjectYear) {
+                    subjectYear = normalizeYearLabel(normalized);
+                }
 
                 if (allowedYearSet && allowedYearSet.size > 0) {
-                    if (!subjectYear || !allowedYearSet.has(subjectYear.toLowerCase())) {
+                    if (!subjectYear) {
+                        summary.skippedSubjects += 1;
+                        return;
+                    }
+
+                    const yearKey = String(subjectYear).toLowerCase();
+                    if (!allowedYearSet.has(yearKey)) {
                         summary.skippedSubjects += 1;
                         return;
                     }
@@ -4331,21 +4495,27 @@
 
                 summary.processedSubjects += 1;
 
-                if (!subjects.includes(trimmed)) {
-                    subjects.push(trimmed);
+                if (!subjects.includes(normalized)) {
+                    subjects.push(normalized);
                     summary.addedSubjects += 1;
                 } else {
                     summary.updatedSubjects += 1;
                 }
 
-                if (Object.prototype.hasOwnProperty.call(mapping, trimmed) && Number.isFinite(mapping[trimmed])) {
-                    if (applyLineMappingToSubject(trimmed, mapping[trimmed])) {
+                let mappedLine = mapping[normalized];
+                if (mappedLine === undefined && normalized !== trimmed && Object.prototype.hasOwnProperty.call(mapping, trimmed)) {
+                    mappedLine = mapping[trimmed];
+                    mapping[normalized] = mappedLine;
+                }
+
+                if (Number.isFinite(mappedLine)) {
+                    if (applyLineMappingToSubject(normalized, mappedLine)) {
                         summary.mappingUpdates += 1;
                     }
                 }
 
                 if (subjectYear) {
-                    applyYearMappingToSubject(trimmed, subjectYear);
+                    applyYearMappingToSubject(normalized, subjectYear);
                 }
             });
 
@@ -6157,7 +6327,7 @@
                 redoBtn.disabled = true;
             }
 
-            if (data.subjects) subjects = data.subjects;
+            if (data.subjects) subjects = Array.isArray(data.subjects) ? [...data.subjects] : data.subjects;
             if (data.teachers) teachers = data.teachers;
             if (data.lines) lines = data.lines;
 
@@ -6234,9 +6404,9 @@
             }
 
             if (data.subjectLineMapping) {
-                subjectLineMapping = { ...data.subjectLineMapping };
+                subjectLineMapping = normalizeSubjectMapping(data.subjectLineMapping);
             } else if (extracted) {
-                subjectLineMapping = extracted.subjectLineMapping;
+                subjectLineMapping = normalizeSubjectMapping(extracted.subjectLineMapping);
                 if (!data.subjects || data.subjects.length === 0) {
                     subjects = extracted.subjects;
                 }
@@ -6245,13 +6415,15 @@
             }
 
             if (data.subjectYearMapping && typeof data.subjectYearMapping === 'object') {
+                let yearMappingSource;
                 try {
-                    subjectYearMapping = JSON.parse(JSON.stringify(data.subjectYearMapping));
+                    yearMappingSource = JSON.parse(JSON.stringify(data.subjectYearMapping));
                 } catch (error) {
-                    subjectYearMapping = { ...data.subjectYearMapping };
+                    yearMappingSource = { ...data.subjectYearMapping };
                 }
+                subjectYearMapping = normalizeSubjectMapping(yearMappingSource);
             } else if (extracted && extracted.subjectYearMapping) {
-                subjectYearMapping = { ...extracted.subjectYearMapping };
+                subjectYearMapping = normalizeSubjectMapping(extracted.subjectYearMapping);
             } else {
                 subjectYearMapping = {};
             }
@@ -6263,10 +6435,28 @@
             if (data.allocations) {
                 Object.entries(data.allocations).forEach(([key, value]) => {
                     const subjectsList = Array.isArray(value) ? value : [value];
-                    setAllocationSubjects(key, subjectsList);
+                    const normalizedSubjects = [];
+                    const seenSubjects = new Set();
+
+                    subjectsList.forEach(subjectCode => {
+                        if (typeof subjectCode !== 'string') {
+                            return;
+                        }
+
+                        const normalizedCode = normalizeSubjectCode(subjectCode);
+                        if (!normalizedCode || seenSubjects.has(normalizedCode)) {
+                            return;
+                        }
+
+                        seenSubjects.add(normalizedCode);
+                        normalizedSubjects.push(normalizedCode);
+                    });
+
+                    setAllocationSubjects(key, normalizedSubjects);
                 });
             }
 
+            canonicalizeSubjectData();
             populateYearMappingFromSubjects();
 
             initializeTimetable();
