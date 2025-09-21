@@ -4467,6 +4467,81 @@
             const ROW_PATTERN = /(?:^|\b)ROW\s*(\d{1,2})\b/i;
             const LINE_PATTERN = /(?:^|\b)LINE\s*(\d{1,2})\b/i;
             const DEFAULT_LINE_COLUMNS = [6, 7, 8, 9, 10, 11];
+            const EXPECTED_LINE_COUNT = DEFAULT_LINE_COLUMNS.length;
+
+            const groupAdjacentColumns = (columns, maxGap = 2) => {
+                if (!Array.isArray(columns) || columns.length === 0) {
+                    return [];
+                }
+
+                const sorted = [...columns].sort((a, b) => a - b);
+                const groups = [];
+                let currentGroup = [sorted[0]];
+
+                for (let index = 1; index < sorted.length; index++) {
+                    const previous = sorted[index - 1];
+                    const current = sorted[index];
+
+                    if (current - previous <= maxGap) {
+                        currentGroup.push(current);
+                    } else {
+                        groups.push(currentGroup);
+                        currentGroup = [current];
+                    }
+                }
+
+                groups.push(currentGroup);
+                return groups;
+            };
+
+            const selectColumnGroup = (groups, referenceIndex = null) => {
+                if (!Array.isArray(groups) || groups.length === 0) {
+                    return [];
+                }
+
+                const hasReference = typeof referenceIndex === 'number' && Number.isFinite(referenceIndex);
+
+                const sortedGroups = [...groups].sort((a, b) => {
+                    const aStart = a[0];
+                    const bStart = b[0];
+
+                    if (hasReference) {
+                        const aDistance = Math.abs(aStart - referenceIndex);
+                        const bDistance = Math.abs(bStart - referenceIndex);
+
+                        if (aDistance !== bDistance) {
+                            return aDistance - bDistance;
+                        }
+                    }
+
+                    if (b.length !== a.length) {
+                        return b.length - a.length;
+                    }
+
+                    return aStart - bStart;
+                });
+
+                return sortedGroups[0];
+            };
+
+            const filterColumnsNearReference = (columns, referenceIndex = null) => {
+                if (!Array.isArray(columns) || columns.length === 0) {
+                    return [];
+                }
+
+                const groups = groupAdjacentColumns(columns);
+                const bestGroup = selectColumnGroup(groups, referenceIndex);
+
+                if (!bestGroup || bestGroup.length === 0) {
+                    return columns;
+                }
+
+                if (bestGroup.length > EXPECTED_LINE_COUNT) {
+                    return bestGroup.slice(0, EXPECTED_LINE_COUNT);
+                }
+
+                return bestGroup.slice();
+            };
 
             const findYearRowInfo = row => {
                 if (!Array.isArray(row)) {
@@ -4509,11 +4584,12 @@
                 });
             };
 
-            const findLineHeaderColumns = row => {
+            const findLineHeaderColumns = (row, options = {}) => {
                 if (!Array.isArray(row)) {
                     return [];
                 }
 
+                const { yearColumnIndex = null } = options;
                 const columns = [];
                 row.forEach((cell, index) => {
                     if (!cell || typeof cell !== 'string') {
@@ -4529,7 +4605,12 @@
                     }
                 });
 
-                return columns;
+                if (columns.length === 0) {
+                    return columns;
+                }
+
+                const filteredColumns = filterColumnsNearReference(columns, yearColumnIndex);
+                return filteredColumns.length > 0 ? filteredColumns : columns;
             };
 
             const findRowLabelInfo = row => {
@@ -4569,11 +4650,12 @@
                 return acc;
             }, {});
 
-            const inferColumnsFromRow = (row, skipIndex = null) => {
+            const inferColumnsFromRow = (row, skipIndex = null, options = {}) => {
                 if (!Array.isArray(row)) {
                     return [];
                 }
 
+                const { referenceIndex = null } = options;
                 const inferred = [];
                 row.forEach((cell, index) => {
                     if (skipIndex !== null && index === skipIndex) {
@@ -4589,7 +4671,12 @@
                     inferred.sort((a, b) => a - b);
                 }
 
-                return inferred;
+                if (inferred.length === 0) {
+                    return inferred;
+                }
+
+                const filteredColumns = filterColumnsNearReference(inferred, referenceIndex);
+                return filteredColumns.length > 0 ? filteredColumns : inferred;
             };
 
             for (let i = 0; i < parsedData.length; i++) {
@@ -4600,7 +4687,7 @@
                     continue;
                 }
 
-                const { yearLabel } = yearInfo;
+                const { yearLabel, columnIndex: yearColumnIndex } = yearInfo;
                 const isYear8 = yearLabel === 'Year 8';
 
                 if (debug) {
@@ -4623,7 +4710,7 @@
                     }
 
                     if (!lineColumns) {
-                        const detectedColumns = findLineHeaderColumns(nextRow);
+                        const detectedColumns = findLineHeaderColumns(nextRow, { yearColumnIndex });
                         if (detectedColumns.length > 0) {
                             lineColumns = detectedColumns;
                             lineColumnMapping = buildLineMapping(lineColumns);
@@ -4636,7 +4723,7 @@
                     }
 
                     let rowInfo = findRowLabelInfo(nextRow);
-                    const inferredColumns = inferColumnsFromRow(nextRow, rowInfo ? rowInfo.columnIndex : null);
+                    const inferredColumns = inferColumnsFromRow(nextRow, rowInfo ? rowInfo.columnIndex : null, { referenceIndex: yearColumnIndex });
 
                     if ((!lineColumns || lineColumns.length === 0) && inferredColumns.length > 0) {
                         lineColumns = inferredColumns;
@@ -4648,7 +4735,7 @@
                     }
 
                     if (!lineColumns || lineColumns.length === 0) {
-                        const fallbackColumns = inferColumnsFromRow(nextRow, null);
+                        const fallbackColumns = inferColumnsFromRow(nextRow, null, { referenceIndex: yearColumnIndex });
                         if (fallbackColumns.length > 0) {
                             lineColumns = fallbackColumns;
                             lineColumnMapping = buildLineMapping(lineColumns);
