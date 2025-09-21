@@ -1137,6 +1137,46 @@
             border-left-color: #3498db;
         }
 
+        .download-toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 3000;
+            pointer-events: none;
+        }
+
+        .download-toast {
+            background: rgba(44, 62, 80, 0.95);
+            color: #ffffff;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(44, 62, 80, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            transform: translateY(12px);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .download-toast--visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .download-toast__icon {
+            font-size: 1.25rem;
+        }
+
+        .download-toast__message {
+            flex: 1;
+        }
+
         @media (max-width: 768px) {
             .control-groups {
                 grid-template-columns: 1fr;
@@ -1186,6 +1226,17 @@
             .modal-content {
                 margin: 5% auto;
                 width: 95%;
+            }
+
+            .download-toast-container {
+                left: 16px;
+                right: 16px;
+                bottom: 16px;
+                align-items: stretch;
+            }
+
+            .download-toast {
+                width: 100%;
             }
         }
     </style>
@@ -1346,6 +1397,70 @@
         const ASSEMBLY_SHORT_PERIOD_EQUIVALENT = ASSEMBLY_SHORT_MINUTES / PERIOD_MINUTES;
 
         let teacherLoadSettings = {};
+
+        function ensureDownloadToastContainer() {
+            let container = document.getElementById('downloadToastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'downloadToastContainer';
+                container.className = 'download-toast-container';
+                container.setAttribute('aria-live', 'polite');
+                container.setAttribute('aria-atomic', 'true');
+                document.body.appendChild(container);
+            }
+            return container;
+        }
+
+        function showDownloadNotification(message, options = {}) {
+            if (!message) {
+                return;
+            }
+
+            const duration = typeof options.duration === 'number' && Number.isFinite(options.duration)
+                ? Math.max(1000, options.duration)
+                : 4000;
+
+            const container = ensureDownloadToastContainer();
+            const toast = document.createElement('div');
+            toast.className = 'download-toast';
+            toast.setAttribute('role', 'status');
+
+            const icon = document.createElement('span');
+            icon.className = 'download-toast__icon';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = typeof options.icon === 'string' && options.icon.trim() !== ''
+                ? options.icon
+                : '⬇️';
+
+            const text = document.createElement('span');
+            text.className = 'download-toast__message';
+            text.textContent = message;
+
+            toast.appendChild(icon);
+            toast.appendChild(text);
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.add('download-toast--visible');
+            });
+
+            const hideToast = () => {
+                toast.classList.remove('download-toast--visible');
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.parentElement.removeChild(toast);
+                    }
+                }, 300);
+            };
+
+            const timeoutId = setTimeout(hideToast, duration);
+
+            toast.addEventListener('click', () => {
+                clearTimeout(timeoutId);
+                hideToast();
+            });
+        }
 
         const YEAR_PERIOD_ALLOCATION = {
             12: 7,
@@ -3234,9 +3349,6 @@
                 card.className = 'teacher-period-card';
                 const balancePositive = metrics.balanceMinutes >= 0;
                 card.classList.add(balancePositive ? 'balance-positive' : 'balance-negative');
-                if (!balancePositive) {
-                    card.open = true;
-                }
 
                 const summaryToggle = document.createElement('summary');
                 summaryToggle.className = 'teacher-card-summary';
@@ -6054,6 +6166,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            showDownloadNotification('CSV template downloaded successfully.', { icon: '📄' });
         }
 
         function downloadAllocationSpreadsheet() {
@@ -6079,6 +6192,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            showDownloadNotification('Allocation spreadsheet exported as CSV.', { icon: '📊' });
         }
 
         function exportData() {
@@ -6111,6 +6225,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            showDownloadNotification('Allocation data exported as JSON file.', { icon: '💾' });
         }
 
         function importData() {
