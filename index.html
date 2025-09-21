@@ -3834,13 +3834,73 @@
             return code;
         }
 
-        function convertCSVToArray(csvText) {
+        function detectCSVDelimiter(csvText) {
+            if (typeof csvText !== 'string' || csvText.length === 0) {
+                return ',';
+            }
+
+            const delimiters = [',', ';', '\t', '|'];
+            const counts = { ',': 0, ';': 0, '\t': 0, '|': 0 };
+            const sample = csvText.slice(0, 10000);
+            let inQuotes = false;
+
+            for (let i = 0; i < sample.length; i++) {
+                const char = sample[i];
+
+                if (char === '"') {
+                    if (inQuotes && sample[i + 1] === '"') {
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (!inQuotes && counts.hasOwnProperty(char)) {
+                    counts[char]++;
+                }
+            }
+
+            let detected = ',';
+            let maxCount = counts[detected];
+
+            delimiters.forEach(delimiter => {
+                if (counts[delimiter] > maxCount) {
+                    maxCount = counts[delimiter];
+                    detected = delimiter;
+                }
+            });
+
+            if (maxCount === 0) {
+                return ',';
+            }
+
+            const firstLine = sample.split(/\r?\n/).find(line => line.trim().length > 0);
+            if (firstLine) {
+                const candidateSplit = firstLine.split(detected);
+                if (candidateSplit.length <= 1) {
+                    return ',';
+                }
+            }
+
+            return detected;
+        }
+
+        function convertCSVToArray(csvText, options = {}) {
+            const { debug = false } = options;
             const rows = [];
             let field = '';
             let row = [];
             let inQuotes = false;
 
+            if (typeof csvText !== 'string' || csvText.length === 0) {
+                return rows;
+            }
+
             const text = csvText.replace(/^\uFEFF/, '');
+            const delimiter = detectCSVDelimiter(text);
+
+            if (debug) {
+                const delimiterLabel = delimiter === '\t' ? 'TAB' : delimiter;
+                console.log(`Detected CSV delimiter: ${delimiterLabel}`);
+            }
 
             for (let i = 0; i < text.length; i++) {
                 const char = text[i];
@@ -3852,7 +3912,7 @@
                     } else {
                         inQuotes = !inQuotes;
                     }
-                } else if (char === ',' && !inQuotes) {
+                } else if (char === delimiter && !inQuotes) {
                     row.push(field.trim());
                     field = '';
                 } else if ((char === '\n' || char === '\r') && !inQuotes) {
@@ -4514,7 +4574,7 @@
             }
 
             const { debug = false } = options;
-            const parsedData = convertCSVToArray(csvText);
+            const parsedData = convertCSVToArray(csvText, { debug });
 
             const parsedTeachers = [];
             let teacherMatrixStart = -1;
