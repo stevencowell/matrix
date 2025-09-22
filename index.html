@@ -3514,6 +3514,18 @@
                 .replace(/[^a-z0-9]/g, '');
         }
 
+        function extractFirstInteger(value) {
+            const text = String(value ?? '').trim();
+            if (text === '') {
+                return NaN;
+            }
+            if (/^-?\d+$/.test(text)) {
+                return Number(text);
+            }
+            const match = text.match(/-?\d+/);
+            return match ? Number(match[0]) : NaN;
+        }
+
         function looksLong(headers) {
             const normalizedHeaders = new Set(headers.map(normalizeHeaderName));
             return ['year', 'row', 'line', 'codes'].every(h => normalizedHeaders.has(h));
@@ -3563,6 +3575,8 @@
                 cellsByYear.get(year).push(cell);
             };
             const yearsEncountered = new Set();
+            const lastRowByYear = new Map();
+            let lastExplicitYear = null;
 
             if (looksLong(headers)) {
                 const yearIdx = getIndex('Year');
@@ -3574,30 +3588,53 @@
                 }
                 for (let r = 1; r < rows.length; r++) {
                     const row = rows[r];
-                    if (!row || (row.length === 1 && row[0].trim() === '')) {
+                    if (!row || row.every(cell => String(cell ?? '').trim() === '')) {
                         continue;
                     }
-                    const Year = yearIdx !== -1 ? row[yearIdx]?.trim() : '';
-                    const Row = rowIdx !== -1 ? row[rowIdx]?.trim() : '';
-                    const Line = lineIdx !== -1 ? row[lineIdx]?.trim() : '';
-                    const Codes = codesIdx !== -1 ? row[codesIdx]?.trim() : '';
-                    if (!Year || !Row || !Line) {
+                    const rawYear = yearIdx !== -1 ? row[yearIdx] : '';
+                    const rawRow = rowIdx !== -1 ? row[rowIdx] : '';
+                    const rawLine = lineIdx !== -1 ? row[lineIdx] : '';
+                    const rawCodesCell = codesIdx !== -1 ? row[codesIdx] : '';
+                    const codesText = rawCodesCell == null ? '' : String(rawCodesCell).trim();
+                    const yearText = rawYear == null ? '' : String(rawYear).trim();
+                    const rowText = rawRow == null ? '' : String(rawRow).trim();
+                    const lineText = rawLine == null ? '' : String(rawLine).trim();
+                    if (yearText === '' && rowText === '' && lineText === '' && codesText === '') {
                         continue;
                     }
-                    const year = Number(Year);
-                    const line = Number(Line);
-                    const rowIndex = Number(Row);
-                    if (!(year >= 7 && year <= 12)) {
-                        throw new Error(`Bad Year @ row ${r + 1}`);
+                    let year;
+                    if (yearText === '') {
+                        if (!Number.isInteger(lastExplicitYear)) {
+                            if (codesText === '') {
+                                continue;
+                            }
+                            throw new Error(`Bad Year @ row ${r + 1}`);
+                        }
+                        year = lastExplicitYear;
+                    } else {
+                        year = extractFirstInteger(yearText);
+                        if (!Number.isInteger(year) || !(year >= 7 && year <= 12)) {
+                            throw new Error(`Bad Year @ row ${r + 1}`);
+                        }
+                        lastExplicitYear = year;
                     }
-                    if (!(line >= 1 && line <= 6)) {
+                    let rowIndex = extractFirstInteger(rowText);
+                    const line = extractFirstInteger(lineText);
+                    if (!Number.isInteger(line) || !(line >= 1 && line <= 6)) {
                         throw new Error(`Bad Line @ row ${r + 1}`);
+                    }
+                    if (!Number.isInteger(rowIndex)) {
+                        if (codesText === '') {
+                            continue;
+                        }
+                        rowIndex = (lastRowByYear.get(year) ?? 0) + 1;
                     }
                     if (!(rowIndex >= 1 && rowIndex <= 6)) {
                         throw new Error(`Bad Row @ row ${r + 1}`);
                     }
+                    lastRowByYear.set(year, rowIndex);
                     yearsEncountered.add(year);
-                    const rawCodes = Codes ? Codes.split(';') : [];
+                    const rawCodes = codesText === '' ? [] : codesText.split(';');
                     const codes = rawCodes
                         .map(c => (shouldNormalize ? normalizeSubjectCode(c) : String(c).trim()))
                         .filter(Boolean);
@@ -3618,26 +3655,55 @@
                 }
                 for (let r = 1; r < rows.length; r++) {
                     const row = rows[r];
-                    if (!row || (row.length === 1 && row[0].trim() === '')) {
+                    if (!row || row.every(cell => String(cell ?? '').trim() === '')) {
                         continue;
                     }
-                    const Year = row[yearIdx]?.trim();
-                    const Row = row[rowIdx]?.trim();
-                    if (!Year || !Row) {
+                    const rawYear = row[yearIdx];
+                    const rawRow = row[rowIdx];
+                    const yearText = rawYear == null ? '' : String(rawYear).trim();
+                    const rowText = rawRow == null ? '' : String(rawRow).trim();
+                    const hasCodes = lineCols.some(col => {
+                        const value = row[col.i];
+                        if (value === undefined || value === null) {
+                            return false;
+                        }
+                        return String(value).trim() !== '';
+                    });
+                    if (yearText === '' && rowText === '' && !hasCodes) {
                         continue;
                     }
-                    const year = Number(Year);
-                    const rowIndex = Number(Row);
-                    if (!(year >= 7 && year <= 12)) {
-                        throw new Error(`Bad Year @ row ${r + 1}`);
+                    let year;
+                    if (yearText === '') {
+                        if (!Number.isInteger(lastExplicitYear)) {
+                            if (!hasCodes) {
+                                continue;
+                            }
+                            throw new Error(`Bad Year @ row ${r + 1}`);
+                        }
+                        year = lastExplicitYear;
+                    } else {
+                        year = extractFirstInteger(yearText);
+                        if (!Number.isInteger(year) || !(year >= 7 && year <= 12)) {
+                            throw new Error(`Bad Year @ row ${r + 1}`);
+                        }
+                        lastExplicitYear = year;
+                    }
+                    let rowIndex = extractFirstInteger(rowText);
+                    if (!Number.isInteger(rowIndex)) {
+                        if (!hasCodes) {
+                            continue;
+                        }
+                        rowIndex = (lastRowByYear.get(year) ?? 0) + 1;
                     }
                     if (!(rowIndex >= 1 && rowIndex <= 6)) {
                         throw new Error(`Bad Row @ row ${r + 1}`);
                     }
+                    lastRowByYear.set(year, rowIndex);
                     yearsEncountered.add(year);
                     for (const col of lineCols) {
                         const raw = row[col.i] ?? '';
-                        const rawCodes = String(raw).split(/\n/);
+                        const text = String(raw);
+                        const rawCodes = text === '' ? [] : text.split(/\n/);
                         const codes = rawCodes
                             .map(c => (shouldNormalize ? normalizeSubjectCode(c) : String(c).trim()))
                             .filter(Boolean);
