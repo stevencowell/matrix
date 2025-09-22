@@ -21,6 +21,10 @@
             line-height: 1.5;
         }
 
+        .is-hidden {
+            display: none !important;
+        }
+
         .app-shell {
             min-height: 100vh;
             display: flex;
@@ -329,6 +333,11 @@
             flex-direction: column;
             gap: 12px;
             padding: 28px 32px 0;
+        }
+
+        .workspace-panel__header-actions {
+            display: flex;
+            justify-content: flex-end;
         }
 
         .workspace-panel__title {
@@ -1791,6 +1800,7 @@
                             <button class="btn btn-secondary" onclick="importData()" title="Reload a previously exported allocation file">Import Saved Data</button>
                             <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
                             <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
+                            <button class="btn btn-secondary" id="togglePatchConverterBtn" type="button" onclick="togglePatchConverter()" aria-expanded="false" aria-controls="patchConverterPanel" title="Open the lineCells patch converter when you need it">Open Patch Converter</button>
                         </div>
                     </section>
 
@@ -1849,10 +1859,15 @@
                     </div>
                 </section>
 
-                <section class="workspace-panel workspace-panel--converter">
+                <section class="workspace-panel workspace-panel--converter is-hidden" id="patchConverterPanel" aria-hidden="true">
                     <div class="workspace-panel__header">
-                        <h2 class="workspace-panel__title">Line Cells Patch Converter</h2>
-                        <p class="workspace-panel__subtitle">Upload a CSV (long or wide) to produce a JSON <code>lineCells</code> patch, or validate an existing patch.</p>
+                        <div>
+                            <h2 class="workspace-panel__title">Line Cells Patch Converter</h2>
+                            <p class="workspace-panel__subtitle">Upload a CSV (long or wide) to produce a JSON <code>lineCells</code> patch, or validate an existing patch.</p>
+                        </div>
+                        <div class="workspace-panel__header-actions">
+                            <button class="btn btn-secondary btn-compact" id="closePatchConverterBtn" type="button" onclick="togglePatchConverter(false)" aria-label="Close patch converter">Close</button>
+                        </div>
                     </div>
                     <div class="workspace-panel__body converter-body">
                         <div class="converter-grid">
@@ -1985,6 +2000,9 @@
 
         let teacherLoadSettings = {};
 
+        const patchConverterPanel = document.getElementById('patchConverterPanel');
+        const patchConverterToggleBtn = document.getElementById('togglePatchConverterBtn');
+
         function ensureDownloadToastContainer() {
             let container = document.getElementById('downloadToastContainer');
             if (!container) {
@@ -1996,6 +2014,26 @@
                 document.body.appendChild(container);
             }
             return container;
+        }
+
+        function togglePatchConverter(forceState) {
+            if (!patchConverterPanel || !patchConverterToggleBtn) {
+                return;
+            }
+
+            const shouldShow = typeof forceState === 'boolean'
+                ? forceState
+                : patchConverterPanel.classList.contains('is-hidden');
+
+            patchConverterPanel.classList.toggle('is-hidden', !shouldShow);
+            patchConverterPanel.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+
+            patchConverterToggleBtn.textContent = shouldShow ? 'Hide Patch Converter' : 'Open Patch Converter';
+            patchConverterToggleBtn.setAttribute('aria-expanded', shouldShow ? 'true' : 'false');
+
+            if (shouldShow) {
+                patchConverterPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
 
         function showDownloadNotification(message, options = {}) {
