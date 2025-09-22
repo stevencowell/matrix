@@ -516,6 +516,52 @@
             color: #64748b;
         }
 
+        .converter-quick-guide {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(79, 70, 229, 0.2);
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(14, 165, 233, 0.08));
+        }
+
+        .converter-quick-guide p {
+            font-size: 0.85rem;
+            color: #334155;
+        }
+
+        .converter-status {
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: rgba(248, 250, 255, 0.92);
+            font-size: 0.85rem;
+            color: #1e293b;
+        }
+
+        .converter-status + .converter-row {
+            margin-top: 8px;
+        }
+
+        .converter-status--ready {
+            border-color: rgba(34, 197, 94, 0.45);
+            background: rgba(34, 197, 94, 0.12);
+            color: #065f46;
+        }
+
+        .converter-status--success {
+            border-color: rgba(14, 165, 233, 0.45);
+            background: rgba(14, 165, 233, 0.12);
+            color: #075985;
+        }
+
+        .converter-status--error {
+            border-color: rgba(239, 68, 68, 0.45);
+            background: rgba(239, 68, 68, 0.12);
+            color: #991b1b;
+        }
+
         .converter-textarea {
             width: 100%;
             min-height: 170px;
@@ -1980,16 +2026,23 @@
                     <div class="workspace-panel__body converter-body">
                         <div class="converter-intro">
                             <span class="converter-intro__tag">How it works</span>
-                            <p>Use this tool when you need to bulk update subjects. It translates CSV spreadsheets into JSON <code>lineCells</code> patches and can validate a patch that someone has shared with you.</p>
+                            <p>Use this streamlined workflow to drop a timetable spreadsheet straight into the matrix.</p>
                             <ol class="converter-steps">
-                                <li>Download the Allocation Data Template CSV and fill in your subjects, teachers and lines.</li>
-                                <li>Upload the completed CSV (or another exported CSV) to preview the first 30 cells and generate the JSON patch automatically.</li>
-                                <li>Optional: paste an existing JSON patch into the panel on the right to validate it and download a tidy copy.</li>
+                                <li>Download the Allocation Data Template CSV (or grab an existing export) and fill in your subjects.</li>
+                                <li>Upload the completed file to preview the first 30 cells and check the summary.</li>
+                                <li>Press <strong>Add to Matrix</strong> to merge the data instantly. Downloading the JSON remains optional for sharing or backups.</li>
                             </ol>
                         </div>
                         <div class="converter-grid">
                             <div class="converter-column">
                                 <h3 class="converter-heading">1. Upload CSV or JSON</h3>
+                                <div class="converter-quick-guide">
+                                    <div>
+                                        <strong>Need the template?</strong>
+                                        <p>Download a fresh copy before you upload your completed spreadsheet.</p>
+                                    </div>
+                                    <button class="btn btn-secondary btn-compact" id="converterDownloadTemplate">Download Allocation Data Template</button>
+                                </div>
                                 <div class="converter-row">
                                     <input id="converterFile" class="converter-file-input" type="file" accept=".csv,.json">
                                     <button class="btn btn-secondary btn-compact" id="converterClear">Clear</button>
@@ -2017,14 +2070,12 @@
                             <div class="converter-column">
                                 <h3 class="converter-heading">2. Review &amp; export JSON</h3>
                                 <textarea id="converterJson" class="converter-textarea" spellcheck="false" placeholder="Your JSON lineCells patch appears here, or paste an existing patch to validate it."></textarea>
+                                <div id="converterStatus" class="converter-status">Load a CSV or JSON patch to enable <strong>Add to Matrix</strong>.</div>
                                 <div class="converter-row converter-actions">
-                                    <button class="btn btn-primary btn-compact" id="converterDownloadJson" disabled>Download JSON</button>
+                                    <button class="btn btn-success btn-compact" id="converterApply" disabled>Add to Matrix</button>
                                     <button class="btn btn-secondary btn-compact" id="converterValidate">Validate JSON</button>
+                                    <button class="btn btn-primary btn-compact" id="converterDownloadJson" disabled>Download JSON</button>
                                     <button class="btn btn-warning btn-compact" id="converterCopy" disabled>Copy</button>
-                                </div>
-                                <h3 class="converter-heading">CSV Templates</h3>
-                                <div class="converter-row">
-                                    <button class="btn btn-secondary btn-compact" id="converterDownloadTemplate">Download Allocation Data Template</button>
                                 </div>
                             </div>
                         </div>
@@ -7393,12 +7444,15 @@
             const copyBtn = document.getElementById('converterCopy');
             const clearBtn = document.getElementById('converterClear');
             const downloadTemplateBtn = document.getElementById('converterDownloadTemplate');
+            const statusEl = document.getElementById('converterStatus');
+            const applyBtn = document.getElementById('converterApply');
 
-            if (!fileInput || !detectedEl || !summaryEl || !jsonOutput || !cellsEl || !downloadBtn || !validateBtn || !copyBtn || !clearBtn || !downloadTemplateBtn) {
+            if (!fileInput || !detectedEl || !summaryEl || !jsonOutput || !cellsEl || !downloadBtn || !validateBtn || !copyBtn || !clearBtn || !downloadTemplateBtn || !statusEl || !applyBtn) {
                 return;
             }
 
             let currentPatch = null;
+            const defaultStatusMessage = 'Load a CSV or JSON patch to enable Add to Matrix.';
 
             const allocationTemplateCsv = `Year,Row,Line1,Line2,Line3,Line4,Line5,Line6
 7,1,7,4,,,,
@@ -7462,6 +7516,18 @@
                 detectedEl.textContent = text;
             };
 
+            const setStatus = (message, variant = 'idle') => {
+                statusEl.textContent = message;
+                statusEl.classList.remove('converter-status--ready', 'converter-status--error', 'converter-status--success');
+                if (variant === 'ready') {
+                    statusEl.classList.add('converter-status--ready');
+                } else if (variant === 'error') {
+                    statusEl.classList.add('converter-status--error');
+                } else if (variant === 'success') {
+                    statusEl.classList.add('converter-status--success');
+                }
+            };
+
             const renderCells = cells => {
                 if (!Array.isArray(cells) || cells.length === 0) {
                     cellsEl.innerHTML = '<div class="converter-muted">No cells parsed yet.</div>';
@@ -7513,6 +7579,8 @@
                 jsonOutput.value = '';
                 downloadBtn.disabled = true;
                 copyBtn.disabled = true;
+                applyBtn.disabled = true;
+                setStatus(defaultStatusMessage);
             };
 
             const applyPatchToUi = (patch, { detectedLabel, syncControls = false, updateText = true } = {}) => {
@@ -7552,9 +7620,10 @@
                     }
                 }
 
-                const yearLabel = summary.years.length > 0 ? summary.years.join(', ') : '—';
+                const yearSummary = summary.years.length > 0 ? summary.years.join(', ') : '—';
+                const formattedYearLabel = formatLineCellsYears(summary.years);
 
-                setSummary({ cells: summary.cellCount, codes: summary.codeCount, yearLabel, normalize, inherit, remove });
+                setSummary({ cells: summary.cellCount, codes: summary.codeCount, yearLabel: yearSummary, normalize, inherit, remove });
                 renderCells(summary.cells);
 
                 if (updateText) {
@@ -7564,6 +7633,8 @@
                 currentPatch = patch;
                 downloadBtn.disabled = false;
                 copyBtn.disabled = false;
+                applyBtn.disabled = false;
+                setStatus(`Ready to add ${summary.cellCount} cell${summary.cellCount === 1 ? '' : 's'} for ${formattedYearLabel}.`, 'ready');
 
                 if (detectedLabel) {
                     setDetected(detectedLabel);
@@ -7652,6 +7723,7 @@
                 } catch (error) {
                     resetDisplay();
                     alert('Error: ' + (error && error.message ? error.message : error));
+                    setStatus('Could not read that file. Please try again.', 'error');
                 } finally {
                     fileInput.value = '';
                 }
@@ -7662,6 +7734,7 @@
                     return;
                 }
                 downloadFile('line-cells-patch.json', 'application/json', JSON.stringify(currentPatch, null, 2));
+                setStatus('Downloaded a tidy JSON copy for reference.', 'success');
             });
 
             validateBtn.addEventListener('click', () => {
@@ -7672,8 +7745,10 @@
                     const summary = summarizeLineCellsPatch(patch);
                     const yearLabel = formatLineCellsYears(summary.years);
                     alert(`Valid JSON patch ✅\n${yearLabel} with ${summary.cellCount} cells.`);
+                    setStatus('JSON looks good. Press Add to Matrix to merge it.', 'ready');
                 } catch (error) {
                     alert('Invalid JSON patch ❌\n' + error.message);
+                    setStatus('Invalid JSON patch: ' + error.message, 'error');
                 }
             });
 
@@ -7681,8 +7756,10 @@
                 try {
                     await navigator.clipboard.writeText(jsonOutput.value || '');
                     alert('Copied JSON to clipboard');
+                    setStatus('JSON copied to your clipboard.', 'success');
                 } catch (error) {
                     alert('Could not copy to clipboard');
+                    setStatus('Could not copy JSON to clipboard.', 'error');
                 }
             });
 
@@ -7696,6 +7773,71 @@
 
             downloadTemplateBtn.addEventListener('click', () => {
                 downloadFile('allocation-data-template.csv', 'text/csv', allocationTemplateCsv);
+                setStatus('Template downloaded. Fill it in, then upload it here.', 'success');
+            });
+
+            applyBtn.addEventListener('click', () => {
+                if (!jsonOutput.value || jsonOutput.value.trim() === '') {
+                    alert('Load a CSV or JSON patch before adding it to the matrix.');
+                    setStatus('Upload a CSV or JSON patch before adding it to the matrix.', 'error');
+                    return;
+                }
+
+                try {
+                    const parsed = JSON.parse(jsonOutput.value);
+                    const patch = ensureOptionsShape(assertLineCellsPatch(parsed));
+                    applyPatchToUi(patch, { detectedLabel: detectedEl.textContent || 'JSON ready', syncControls: true });
+
+                    const summary = summarizeLineCellsPatch(patch);
+                    const yearLabel = formatLineCellsYears(summary.years);
+
+                    const appState = {
+                        subjects,
+                        subjectYearMapping,
+                        subjectLineMapping,
+                        subjectSplits,
+                        allocations
+                    };
+
+                    const cloneState = () => {
+                        if (typeof structuredClone === 'function') {
+                            return structuredClone(appState);
+                        }
+                        return JSON.parse(JSON.stringify(appState));
+                    };
+
+                    const preview = applyLineCellsPatchBundle(cloneState(), patch);
+                    const confirmMessage = [
+                        'Add this data to the matrix?',
+                        yearLabel,
+                        `Subjects added/updated: ${preview.changes.length}`,
+                        `Total cells: ${summary.cellCount}`,
+                        `Allocations changed: ${preview.allocationsTouched}`,
+                        '',
+                        'Choose OK to merge these updates.'
+                    ].join('\n');
+
+                    if (!confirm(confirmMessage)) {
+                        return;
+                    }
+
+                    const result = applyLineCellsPatchBundle(appState, patch);
+                    if (result.changes.length > 0 || result.allocationsTouched > 0) {
+                        createSubjectPool();
+                        renderAllAllocations();
+                        updateStats();
+                        clearActionHistory();
+                    } else {
+                        updateStats();
+                    }
+
+                    showDownloadNotification(`Added ${summary.cellCount} cells for ${yearLabel}.`, { icon: '✅', duration: 5000 });
+                    resetDisplay();
+                    setStatus('Patch applied successfully. Upload another file when ready.', 'success');
+                } catch (error) {
+                    alert('Could not apply patch: ' + error.message);
+                    setStatus('Could not apply patch: ' + error.message, 'error');
+                }
             });
 
             renderCells([]);
