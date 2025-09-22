@@ -2029,7 +2029,8 @@
         let splitSubjectLookup = {};
 
         const FTE_OPTIONS = ['1.0', '0.8', '0.6', '0.4', '0.2'];
-        const FTE_LOAD_MAPPING = {
+        // Base load expressed in 59-minute period equivalents for each FTE value
+        const FTE_BASE_PERIODS_MAPPING = {
             '1.0': 37.95,
             '0.8': 30.35,
             '0.6': 22.77,
@@ -4161,14 +4162,14 @@
             }
 
             const stringValue = String(value).trim();
-            if (FTE_LOAD_MAPPING[stringValue] !== undefined) {
+            if (FTE_BASE_PERIODS_MAPPING[stringValue] !== undefined) {
                 return stringValue;
             }
 
             const numeric = Number(stringValue);
             if (Number.isFinite(numeric)) {
                 const fixed = numeric.toFixed(1);
-                if (FTE_LOAD_MAPPING[fixed] !== undefined) {
+                if (FTE_BASE_PERIODS_MAPPING[fixed] !== undefined) {
                     return fixed;
                 }
             }
@@ -4181,11 +4182,19 @@
             return Number.isFinite(numeric) ? numeric : 0;
         }
 
-        function getFteHours(value) {
+        function getFteBasePeriods(value) {
             const normalized = normalizeFteValue(value);
-            return FTE_LOAD_MAPPING[normalized] !== undefined
-                ? FTE_LOAD_MAPPING[normalized]
-                : FTE_LOAD_MAPPING[DEFAULT_FTE_VALUE];
+            return FTE_BASE_PERIODS_MAPPING[normalized] !== undefined
+                ? FTE_BASE_PERIODS_MAPPING[normalized]
+                : FTE_BASE_PERIODS_MAPPING[DEFAULT_FTE_VALUE];
+        }
+
+        function getFteBaseMinutes(value) {
+            return getFteBasePeriods(value) * PERIOD_MINUTES;
+        }
+
+        function getFteHours(value) {
+            return getFteBaseMinutes(value) / 60;
         }
 
         function getTeacherLoadSettings(teacherName) {
@@ -4226,9 +4235,9 @@
             const allowanceMinutes = periodAllowanceMinutes + assemblyFullMinutes + assemblyShortMinutes + additionalMinutes;
             const allowancePeriods = allowanceMinutes / PERIOD_MINUTES;
 
+            const basePeriods = getFteBasePeriods(settings.fte);
+            const baseMinutes = getFteBaseMinutes(settings.fte);
             const fteHours = getFteHours(settings.fte);
-            const baseMinutes = fteHours * 60;
-            const basePeriods = baseMinutes / PERIOD_MINUTES;
 
             const loadUsedMinutes = teachingMinutes + allowanceMinutes;
             const loadUsedPeriods = loadUsedMinutes / PERIOD_MINUTES;
@@ -4579,7 +4588,7 @@
                 const fteChip = document.createElement('span');
                 fteChip.className = 'teacher-card-chip fte-chip';
                 fteChip.textContent = `FTE ${normalizeFteValue(settings.fte)}`;
-                fteChip.title = `${formatHours(metrics.fteHours)} base load (${formatMinutes(metrics.baseMinutes)})`;
+                fteChip.title = `${formatPeriods(metrics.basePeriods)} period base (${formatMinutes(metrics.baseMinutes)} ≈ ${formatHours(metrics.fteHours)})`;
                 summaryChips.appendChild(fteChip);
 
                 const loadChip = document.createElement('span');
@@ -4624,10 +4633,13 @@
                 FTE_OPTIONS.forEach(optionValue => {
                     const option = document.createElement('option');
                     option.value = optionValue;
-                    const hours = FTE_LOAD_MAPPING[optionValue];
-                    option.textContent = hours !== undefined
-                        ? `${optionValue} (${hours.toFixed(2)} h)`
-                        : optionValue;
+                    const basePeriods = FTE_BASE_PERIODS_MAPPING[optionValue];
+                    if (basePeriods !== undefined) {
+                        const baseHours = (basePeriods * PERIOD_MINUTES) / 60;
+                        option.textContent = `${optionValue} (${basePeriods.toFixed(2)} periods ≈ ${baseHours.toFixed(2)} h)`;
+                    } else {
+                        option.textContent = optionValue;
+                    }
                     if (optionValue === normalizedFte) {
                         option.selected = true;
                     }
@@ -4755,7 +4767,7 @@
 
                 summaryContainer.appendChild(createSummaryRow(
                     'FTE allocation',
-                    `${formatHours(metrics.fteHours)} (${formatMinutes(metrics.baseMinutes)} ≈ ${formatPeriods(metrics.basePeriods)} periods)`
+                    `${formatPeriods(metrics.basePeriods)} periods (${formatMinutes(metrics.baseMinutes)} ≈ ${formatHours(metrics.fteHours)})`
                 ));
 
                 const balanceRow = createSummaryRow(
