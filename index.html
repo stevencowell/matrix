@@ -3507,14 +3507,23 @@
                 .map(splitCsvLine);
         }
 
+        function normalizeHeaderName(header) {
+            return String(header || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '');
+        }
+
         function looksLong(headers) {
-            return ['Year', 'Row', 'Line', 'Codes'].every(h => headers.includes(h));
+            const normalizedHeaders = new Set(headers.map(normalizeHeaderName));
+            return ['year', 'row', 'line', 'codes'].every(h => normalizedHeaders.has(h));
         }
 
         function looksWide(headers) {
-            const base = ['Year', 'Row'];
-            const linesHeaders = [1, 2, 3, 4, 5, 6].map(n => 'Line' + n);
-            return base.every(h => headers.includes(h)) && linesHeaders.some(h => headers.includes(h));
+            const normalizedHeaders = new Set(headers.map(normalizeHeaderName));
+            const base = ['year', 'row'];
+            const linesHeaders = [1, 2, 3, 4, 5, 6].map(n => 'line' + n);
+            return base.every(h => normalizedHeaders.has(h)) && linesHeaders.some(h => normalizedHeaders.has(h));
         }
 
         // ---------- CSV -> lineCells patch ----------
@@ -3523,8 +3532,27 @@
             if (rows.length === 0) {
                 throw new Error('Empty CSV');
             }
-            const headers = rows[0].map(h => h.trim());
-            const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
+            const headers = rows[0].map(header => String(header ?? '').trim());
+            const canonicalHeaders = headers.map(normalizeHeaderName);
+            const headerIndex = new Map();
+            headers.forEach((header, index) => {
+                const trimmed = header;
+                if (trimmed && !headerIndex.has(trimmed)) {
+                    headerIndex.set(trimmed, index);
+                }
+                const canonical = canonicalHeaders[index];
+                if (canonical && !headerIndex.has(canonical)) {
+                    headerIndex.set(canonical, index);
+                }
+            });
+            const getIndex = name => {
+                const direct = headerIndex.get(name);
+                if (direct !== undefined) {
+                    return direct;
+                }
+                const canonical = normalizeHeaderName(name);
+                return headerIndex.has(canonical) ? headerIndex.get(canonical) : -1;
+            };
             const shouldNormalize = normalizeCodes !== false;
 
             const cellsByYear = new Map();
@@ -3537,15 +3565,22 @@
             const yearsEncountered = new Set();
 
             if (looksLong(headers)) {
+                const yearIdx = getIndex('Year');
+                const rowIdx = getIndex('Row');
+                const lineIdx = getIndex('Line');
+                const codesIdx = getIndex('Codes');
+                if (yearIdx === -1 || rowIdx === -1 || lineIdx === -1 || codesIdx === -1) {
+                    throw new Error('Missing Year/Row/Line/Codes columns');
+                }
                 for (let r = 1; r < rows.length; r++) {
                     const row = rows[r];
                     if (!row || (row.length === 1 && row[0].trim() === '')) {
                         continue;
                     }
-                    const Year = row[idx.Year]?.trim();
-                    const Row = row[idx.Row]?.trim();
-                    const Line = row[idx.Line]?.trim();
-                    const Codes = row[idx.Codes]?.trim();
+                    const Year = yearIdx !== -1 ? row[yearIdx]?.trim() : '';
+                    const Row = rowIdx !== -1 ? row[rowIdx]?.trim() : '';
+                    const Line = lineIdx !== -1 ? row[lineIdx]?.trim() : '';
+                    const Codes = codesIdx !== -1 ? row[codesIdx]?.trim() : '';
                     if (!Year || !Row || !Line) {
                         continue;
                     }
@@ -3571,12 +3606,14 @@
             } else if (looksWide(headers)) {
                 const lineCols = [];
                 for (let l = 1; l <= 6; l++) {
-                    const key = 'Line' + l;
-                    if (key in idx) {
-                        lineCols.push({ line: l, i: idx[key] });
+                    const columnIndex = getIndex('Line' + l);
+                    if (columnIndex !== -1) {
+                        lineCols.push({ line: l, i: columnIndex });
                     }
                 }
-                if (!('Year' in idx) || !('Row' in idx)) {
+                const yearIdx = getIndex('Year');
+                const rowIdx = getIndex('Row');
+                if (yearIdx === -1 || rowIdx === -1) {
                     throw new Error('Missing Year/Row columns');
                 }
                 for (let r = 1; r < rows.length; r++) {
@@ -3584,8 +3621,8 @@
                     if (!row || (row.length === 1 && row[0].trim() === '')) {
                         continue;
                     }
-                    const Year = row[idx.Year]?.trim();
-                    const Row = row[idx.Row]?.trim();
+                    const Year = row[yearIdx]?.trim();
+                    const Row = row[rowIdx]?.trim();
                     if (!Year || !Row) {
                         continue;
                     }
