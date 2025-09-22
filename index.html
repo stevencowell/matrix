@@ -602,13 +602,17 @@
             color: #334155;
         }
 
-        .converter-status {
+        .converter-status { 
             padding: 12px 14px;
             border-radius: 16px;
             border: 1px solid rgba(148, 163, 184, 0.4);
             background: rgba(248, 250, 255, 0.92);
             font-size: 0.85rem;
             color: #1e293b;
+        }
+
+        .converter-upload {
+            align-self: flex-start;
         }
 
         .converter-status + .converter-row {
@@ -2028,7 +2032,6 @@
                             <p class="control-group-description">Keep imports, exports and saves in sync so everyone works from the latest plan.</p>
                         </div>
                         <div class="control-group-buttons">
-                            <button class="btn btn-primary" onclick="importSupplementalData()" title="Merge supplemental staff data into the planner">Import Additional Info</button>
                             <button class="btn btn-success" onclick="saveAllocations()" title="Save your current allocations for later">Save Allocations</button>
                             <button class="btn btn-secondary" onclick="importData()" title="Reload a previously exported allocation file">Import Saved Data</button>
                             <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
@@ -2106,7 +2109,7 @@
                         </div>
                         <div class="converter-grid">
                             <div class="converter-column">
-                                <h3 class="converter-heading">1. Upload CSV or JSON</h3>
+                                <h3 class="converter-heading">Upload CSV or JSON</h3>
                                 <div class="converter-quick-guide">
                                     <div>
                                         <strong>Need the template?</strong>
@@ -2145,9 +2148,10 @@
                                 </div>
                             </div>
                             <div class="converter-column">
-                                <h3 class="converter-heading">2. Review &amp; export JSON</h3>
+                                <h3 class="converter-heading">Review &amp; export JSON</h3>
                                 <textarea id="converterJson" class="converter-textarea" spellcheck="false" placeholder="Your JSON lineCells patch appears here, or paste an existing patch to validate it."></textarea>
                                 <div id="converterStatus" class="converter-status">Load a CSV or JSON patch to enable <strong>Add to Matrix</strong>.</div>
+                                <button type="button" class="btn btn-secondary btn-compact converter-upload" id="converterUploadCsv">Upload CSV File</button>
                                 <div class="converter-row converter-actions">
                                     <button class="btn btn-success btn-compact" id="converterApply" disabled>Add to Matrix</button>
                                     <button class="btn btn-primary btn-compact" id="converterDownloadJson" disabled>Download JSON</button>
@@ -7523,6 +7527,7 @@
             const removeCheckbox = document.getElementById('converterRemove');
             const forceYearInput = document.getElementById('converterForceYear');
             const downloadBtn = document.getElementById('converterDownloadJson');
+            const uploadCsvBtn = document.getElementById('converterUploadCsv');
             const validateBtn = document.getElementById('converterValidate');
             const copyBtn = document.getElementById('converterCopy');
             const clearBtn = document.getElementById('converterClear');
@@ -7537,43 +7542,10 @@
             let currentPatch = null;
             const defaultStatusMessage = 'Load a CSV or JSON patch to enable Add to Matrix.';
 
-            const allocationTemplateCsv = `Year,Row,Line1,Line2,Line3,Line4,Line5,Line6
-7,1,7,4,,,,
-7,2,7,2,,,,
-7,3,7,5,,,,
-7,4,7,3,,,,
-7,5,7,1,,,,
-7,6,7,6,,,,
-8,1,8,4,,,,
-8,2,8,2,,,,
-8,3,8,5,,,,
-8,4,8,3,,,,
-8,5,8,1,,,,
-8,6,8,6,,,,
-9,1,9,4,,,,
-9,2,9,2,,,,
-9,3,9,5,,,,
-9,4,9,3,,,,
-9,5,9,1,,,,
-9,6,9,6,,,,
-10,1,10,4,,,,
-10,2,10,2,,,,
-10,3,10,5,,,,
-10,4,10,3,,,,
-10,5,10,1,,,,
-10,6,10,6,,,,
-11,1,11,4,,,,
-11,2,11,2,,,,
-11,3,11,5,,,,
-11,4,11,3,,,,
-11,5,11,1,,,,
-11,6,11,6,,,,
-12,1,12,4,,,,
-12,2,12,2,,,,
-12,3,12,5,,,,
-12,4,12,3,,,,
-12,5,12,1,,,,
-12,6,12,6,,,,`;
+            const allocationTemplateCsv = [
+                'Year,Row,Line1,Line2,Line3,Line4,Line5,Line6',
+                ...Array.from({ length: 12 }, () => ',,,,,,,')
+            ].join('\n');
 
             const escapeHtml = value => String(value ?? '')
                 .replace(/&/g, '&amp;')
@@ -7780,6 +7752,12 @@
             };
 
             resetDisplay();
+
+            if (uploadCsvBtn) {
+                uploadCsvBtn.addEventListener('click', () => {
+                    fileInput.click();
+                });
+            }
 
             fileInput.addEventListener('change', async event => {
                 const file = event.target.files && event.target.files[0];
