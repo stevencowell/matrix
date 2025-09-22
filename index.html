@@ -1845,7 +1845,7 @@
                             <button class="btn btn-secondary" onclick="importData()" title="Reload a previously exported allocation file">Import Saved Data</button>
                             <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
                             <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
-                            <button class="btn btn-secondary" id="togglePatchConverterBtn" type="button" onclick="togglePatchConverter()" aria-expanded="false" aria-controls="patchConverterPanel" title="Convert CSVs into JSON lineCells patches or validate a patch">Open Patch Builder</button>
+                            <button class="btn btn-secondary" id="togglePatchConverterBtn" type="button" onclick="togglePatchConverter()" aria-expanded="false" aria-controls="patchConverterPanel" title="Convert CSVs into JSON lineCells patches or validate a patch in the File Converter">Open File Converter</button>
                         </div>
                     </section>
 
@@ -1907,11 +1907,11 @@
                 <section class="workspace-panel workspace-panel--converter is-hidden" id="patchConverterPanel" aria-hidden="true">
                     <div class="workspace-panel__header">
                         <div>
-                            <h2 class="workspace-panel__title">LineCells Patch Builder &amp; Validator</h2>
+                            <h2 class="workspace-panel__title">LineCells File Converter &amp; Validator</h2>
                             <p class="workspace-panel__subtitle">Convert timetable spreadsheets into JSON <code>lineCells</code> patches or double-check a patch before importing.</p>
                         </div>
                         <div class="workspace-panel__header-actions">
-                            <button class="btn btn-secondary btn-compact" id="closePatchConverterBtn" type="button" onclick="togglePatchConverter(false)" aria-label="Close patch builder">Close</button>
+                            <button class="btn btn-secondary btn-compact" id="closePatchConverterBtn" type="button" onclick="togglePatchConverter(false)" aria-label="Close file converter">Close</button>
                         </div>
                     </div>
                     <div class="workspace-panel__body converter-body">
@@ -2082,7 +2082,7 @@
             patchConverterPanel.classList.toggle('is-hidden', !shouldShow);
             patchConverterPanel.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
 
-            patchConverterToggleBtn.textContent = shouldShow ? 'Hide Patch Builder' : 'Open Patch Builder';
+            patchConverterToggleBtn.textContent = shouldShow ? 'Hide File Converter' : 'Open File Converter';
             patchConverterToggleBtn.setAttribute('aria-expanded', shouldShow ? 'true' : 'false');
 
             if (shouldShow) {
