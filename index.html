@@ -1877,6 +1877,7 @@
                             <button class="btn btn-secondary" onclick="importData()" title="Reload a previously exported allocation file">Import Saved Data</button>
                             <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
                             <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
+                            <button class="btn btn-danger" onclick="clearAllData()" title="Remove all imported data, allocations and saved settings to start from scratch">Clear All Data</button>
                             <button class="btn btn-secondary" id="togglePatchConverterBtn" type="button" onclick="togglePatchConverter()" aria-expanded="false" aria-controls="patchConverterPanel" title="Convert CSVs into JSON lineCells patches or validate a patch in the File Converter">Open File Converter</button>
                         </div>
                     </section>
@@ -2061,7 +2062,8 @@
         let subjects = [];
         let teachers = [];
         let years = ['Year 12', 'Year 11', 'Year 10', 'Year 9', 'Year 8', 'Year 7'];
-        let lines = ['Line 1', 'Line 2', 'Line 3', 'Line 4', 'Line 5', 'Line 6'];
+        const DEFAULT_LINES = ['Line 1', 'Line 2', 'Line 3', 'Line 4', 'Line 5', 'Line 6'];
+        let lines = [...DEFAULT_LINES];
         let teacherAllocations = {}; // Stores which teachers can teach which lines
         let subjectLineMapping = {}; // Maps subject codes to their correct line index
         let subjectYearMapping = {}; // Tracks the owning year level for each subject code
@@ -6780,6 +6782,40 @@
                 createSubjectPool();
                 updateStats();
             }
+        }
+
+        function clearAllData() {
+            const confirmed = confirm('This will remove all imported teachers, subjects, allocations and saved settings. Continue?');
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                localStorage.removeItem('facultyAllocations');
+            } catch (error) {
+                console.error('Unable to remove saved data from localStorage:', error);
+            }
+
+            subjects = [];
+            teachers = [];
+            lines = [...DEFAULT_LINES];
+            allocations = {};
+            teacherAllocations = {};
+            subjectLineMapping = {};
+            subjectYearMapping = {};
+            csvData = [];
+            teacherLoadSettings = {};
+            pendingClashContext = null;
+            lastAllocationOutcome = { status: 'idle', reason: null };
+
+            resetSplitData();
+            clearActionHistory();
+
+            initializeTimetable();
+            createSubjectPool();
+            updateStats();
+
+            alert('All planner data has been cleared. You can now import new information or start building from scratch.');
         }
 
         function getSubjectYearLabel(subjectCode) {
