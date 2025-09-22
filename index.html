@@ -733,6 +733,45 @@
             text-align: center;
         }
 
+        .tlc-period-editor {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tlc-period-text {
+            font-size: 0.78rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(49, 46, 129, 0.88);
+        }
+
+        .tlc-period-input {
+            width: 76px;
+            padding: 4px 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(79, 70, 229, 0.4);
+            background: rgba(255, 255, 255, 0.95);
+            color: #1e1b4b;
+            font-weight: 600;
+            text-align: center;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            -moz-appearance: textfield;
+        }
+
+        .tlc-period-input:focus {
+            outline: none;
+            border-color: rgba(79, 70, 229, 0.65);
+            box-shadow: 0 0 0 2px rgba(165, 180, 252, 0.55);
+        }
+
+        .tlc-period-input::-webkit-outer-spin-button,
+        .tlc-period-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
         .subject-slot {
             background: rgba(99, 102, 241, 0.16);
             border: 1.5px dashed rgba(99, 102, 241, 0.45);
@@ -4530,13 +4569,58 @@
                 const rawValue = settings ? toNumberOrZero(settings.assemblyShortCount) : 0;
                 const sanitizedValue = Math.max(0, rawValue);
                 const displayValue = formatTlcDisplayValue(sanitizedValue);
-                cell.textContent = `TLC - ${displayValue}`;
+
+                const editor = document.createElement('div');
+                editor.className = 'tlc-period-editor';
+
+                const label = document.createElement('span');
+                label.className = 'tlc-period-text';
+                label.textContent = 'TLC -';
+                editor.appendChild(label);
+
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'tlc-period-input';
+                input.min = '0';
+                input.step = '0.01';
+                input.value = displayValue;
+
+                const teacherLabel = typeof teacher === 'string' && teacher.trim().length > 0
+                    ? teacher.trim()
+                    : 'teacher';
+                input.setAttribute('aria-label', `Short/TLC assemblies for ${teacherLabel}`);
+
+                input.addEventListener('focus', function() {
+                    this.select();
+                });
+
+                input.addEventListener('change', function() {
+                    const numeric = Number(this.value);
+                    const sanitized = Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
+                    const rounded = Math.round(sanitized * 100) / 100;
+                    const teacherSettings = getTeacherLoadSettings(teacher);
+                    const previous = Math.round(Math.max(0, toNumberOrZero(teacherSettings.assemblyShortCount)) * 100) / 100;
+
+                    if (Math.abs(previous - rounded) < 0.0001) {
+                        this.value = formatTlcDisplayValue(previous);
+                        return;
+                    }
+
+                    teacherSettings.assemblyShortCount = rounded;
+                    this.value = formatTlcDisplayValue(rounded);
+                    updateTeacherPeriodTotals();
+                });
+
+                editor.appendChild(input);
+                cell.appendChild(editor);
 
                 if (sanitizedValue > 0) {
-                    const label = Math.abs(sanitizedValue - 1) < 0.005 ? 'short/TLC assembly' : 'short/TLC assemblies';
-                    cell.title = `${displayValue} ${label}`;
+                    const tooltipLabel = Math.abs(sanitizedValue - 1) < 0.005 ? 'short/TLC assembly' : 'short/TLC assemblies';
+                    cell.title = `${displayValue} ${tooltipLabel}`;
+                    input.title = cell.title;
                 } else {
                     cell.title = 'No short/TLC assemblies';
+                    input.title = cell.title;
                 }
 
                 row.appendChild(cell);
