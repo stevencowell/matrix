@@ -2074,6 +2074,7 @@
         let subjectSplits = {};
         let splitSubjectLookup = {};
         let pendingClashContext = null;
+        let lastAllocationOutcome = { status: 'idle', reason: null };
 
         const FTE_OPTIONS = ['1.0', '0.8', '0.6', '0.4', '0.2'];
         // Base load expressed in 59-minute period equivalents for each FTE value
@@ -5170,8 +5171,12 @@
                 }
 
                 const finalizeAllocation = (lineIndex) => {
-                    if (!allocateSubjectToTeacher(subjectCode, teacherIndex, lineIndex)) {
-                        alert('Unable to allocate this subject to the selected teacher.');
+                    const allocationSucceeded = allocateSubjectToTeacher(subjectCode, teacherIndex, lineIndex);
+
+                    if (!allocationSucceeded) {
+                        if (!wasLastAllocationBlockedByClash()) {
+                            alert('Unable to allocate this subject to the selected teacher.');
+                        }
                         return;
                     }
 
@@ -6042,9 +6047,11 @@
                 setTimeout(() => {
                     showAutocomplete('Select Teacher for ' + selectedSubject, teachers, function(selectedTeacher) {
                         const teacherIndex = teachers.indexOf(selectedTeacher);
-                        if (allocateSubjectToTeacher(selectedSubject, teacherIndex)) {
+                        const allocationSucceeded = allocateSubjectToTeacher(selectedSubject, teacherIndex);
+
+                        if (allocationSucceeded) {
                             alert('Subject ' + selectedSubject + ' allocated to ' + selectedTeacher + ' successfully!');
-                        } else {
+                        } else if (!wasLastAllocationBlockedByClash()) {
                             alert('Unable to allocate this subject to the selected teacher.');
                         }
                     });
@@ -6237,10 +6244,11 @@
                 setTimeout(() => {
                     showAutocomplete(`Move ${allocation.subject} to which teacher?`, teachers, function(selectedTeacher) {
                         const newTeacherIndex = teachers.indexOf(selectedTeacher);
+                        const allocationSucceeded = allocateSubjectToTeacher(allocation.subject, newTeacherIndex, allocation.lineIndex);
 
-                        if (allocateSubjectToTeacher(allocation.subject, newTeacherIndex, allocation.lineIndex)) {
+                        if (allocationSucceeded) {
                             alert(`${allocation.subject} moved from ${allocation.teacher} to ${selectedTeacher} on Line ${allocation.lineIndex + 1} successfully!`);
-                        } else {
+                        } else if (!wasLastAllocationBlockedByClash()) {
                             alert(`${allocation.subject} is already allocated to ${selectedTeacher} on Line ${allocation.lineIndex + 1}.`);
                         }
                     });
@@ -6468,7 +6476,10 @@
         }
 
         function allocateSubjectToTeacher(subjectCode, teacherIndex, preferredLine = null, options = {}) {
+            lastAllocationOutcome = { status: 'failure', reason: 'unknown' };
+
             if (teacherIndex < 0 || teacherIndex >= teachers.length) {
+                lastAllocationOutcome = { status: 'failure', reason: 'invalid-teacher' };
                 return false;
             }
 
@@ -6482,19 +6493,22 @@
             if (targetLine === null) {
                 const teacherCells = document.querySelectorAll(`[data-teacher="${teacherIndex}"]`);
                 if (teacherCells.length === 0) {
+                    lastAllocationOutcome = { status: 'failure', reason: 'no-available-cells' };
                     return false;
                 }
-                targetLine = parseInt(teacherCells[0].dataset.period);
+                targetLine = parseInt(teacherCells[0].dataset.period, 10);
             }
 
             const cell = document.querySelector(`[data-period="${targetLine}"][data-teacher="${teacherIndex}"]`);
             if (!cell) {
+                lastAllocationOutcome = { status: 'failure', reason: 'cell-not-found' };
                 return false;
             }
 
             const key = getAllocationKey(targetLine, teacherIndex);
             let currentSubjects = getAllocationSubjects(key);
             if (currentSubjects.includes(subjectCode)) {
+                lastAllocationOutcome = { status: 'failure', reason: 'duplicate' };
                 return false;
             }
 
@@ -6516,6 +6530,7 @@
                     },
                     onCancel: options.onClashCancelled
                 });
+                lastAllocationOutcome = { status: 'clash', reason: 'pending-resolution' };
                 return false;
             }
 
@@ -6546,6 +6561,7 @@
             if (updatedSubjects.includes(subjectCode)) {
                 renderCell(targetLine, teacherIndex);
                 updateStats();
+                lastAllocationOutcome = { status: 'success', reason: null };
                 return true;
             }
 
@@ -6567,7 +6583,12 @@
             }
 
             updateStats();
+            lastAllocationOutcome = { status: 'success', reason: null };
             return true;
+        }
+
+        function wasLastAllocationBlockedByClash() {
+            return lastAllocationOutcome && lastAllocationOutcome.status === 'clash';
         }
 
         // Undo functionality
@@ -6710,7 +6731,9 @@
 
             // Show subject autocomplete
             showAutocomplete(`Allocate subject to ${teacherName} on ${lineName}`, availableSubjects, function(selectedSubject) {
-                if (!allocateSubjectToTeacher(selectedSubject, teacherIndex, lineIndex)) {
+                const allocationSucceeded = allocateSubjectToTeacher(selectedSubject, teacherIndex, lineIndex);
+
+                if (!allocationSucceeded && !wasLastAllocationBlockedByClash()) {
                     alert('Unable to allocate ' + selectedSubject + ' to ' + teacherName + ' on ' + lineName + '.');
                 }
             });
