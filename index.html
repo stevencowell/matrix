@@ -366,6 +366,46 @@
             gap: 24px;
         }
 
+        .converter-intro {
+            display: grid;
+            gap: 12px;
+            padding: 20px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(14, 165, 233, 0.06));
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .converter-intro__tag {
+            align-self: flex-start;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(79, 70, 229, 0.12);
+            color: #312e81;
+        }
+
+        .converter-intro p {
+            font-size: 0.92rem;
+            color: #1e293b;
+        }
+
+        .converter-steps {
+            display: grid;
+            gap: 8px;
+            margin: 4px 0 0 1.2em;
+            font-size: 0.9rem;
+            color: #334155;
+        }
+
+        .converter-steps li::marker {
+            font-weight: 600;
+            color: #4f46e5;
+        }
+
         .converter-body {
             display: flex;
             flex-direction: column;
@@ -454,6 +494,11 @@
             border-color: #4f46e5;
             outline: none;
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+        }
+
+        .converter-force-note {
+            font-size: 0.78rem;
+            margin-top: 4px;
         }
 
         .converter-summary {
@@ -1800,7 +1845,7 @@
                             <button class="btn btn-secondary" onclick="importData()" title="Reload a previously exported allocation file">Import Saved Data</button>
                             <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
                             <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
-                            <button class="btn btn-secondary" id="togglePatchConverterBtn" type="button" onclick="togglePatchConverter()" aria-expanded="false" aria-controls="patchConverterPanel" title="Open the lineCells patch converter when you need it">Open Patch Converter</button>
+                            <button class="btn btn-secondary" id="togglePatchConverterBtn" type="button" onclick="togglePatchConverter()" aria-expanded="false" aria-controls="patchConverterPanel" title="Convert CSVs into JSON lineCells patches or validate a patch">Open Patch Builder</button>
                         </div>
                     </section>
 
@@ -1862,17 +1907,26 @@
                 <section class="workspace-panel workspace-panel--converter is-hidden" id="patchConverterPanel" aria-hidden="true">
                     <div class="workspace-panel__header">
                         <div>
-                            <h2 class="workspace-panel__title">Line Cells Patch Converter</h2>
-                            <p class="workspace-panel__subtitle">Upload a CSV (long or wide) to produce a JSON <code>lineCells</code> patch, or validate an existing patch.</p>
+                            <h2 class="workspace-panel__title">LineCells Patch Builder &amp; Validator</h2>
+                            <p class="workspace-panel__subtitle">Convert timetable spreadsheets into JSON <code>lineCells</code> patches or double-check a patch before importing.</p>
                         </div>
                         <div class="workspace-panel__header-actions">
-                            <button class="btn btn-secondary btn-compact" id="closePatchConverterBtn" type="button" onclick="togglePatchConverter(false)" aria-label="Close patch converter">Close</button>
+                            <button class="btn btn-secondary btn-compact" id="closePatchConverterBtn" type="button" onclick="togglePatchConverter(false)" aria-label="Close patch builder">Close</button>
                         </div>
                     </div>
                     <div class="workspace-panel__body converter-body">
+                        <div class="converter-intro">
+                            <span class="converter-intro__tag">How it works</span>
+                            <p>Use this tool when you need to bulk update subjects. It translates CSV spreadsheets into JSON <code>lineCells</code> patches and can validate a patch that someone has shared with you.</p>
+                            <ol class="converter-steps">
+                                <li>Download a long-form or wide-form CSV template and fill in your subjects, teachers and lines.</li>
+                                <li>Upload the completed CSV (or another exported CSV) to preview the first 30 cells and generate the JSON patch automatically.</li>
+                                <li>Optional: paste an existing JSON patch into the panel on the right to validate it and download a tidy copy.</li>
+                            </ol>
+                        </div>
                         <div class="converter-grid">
                             <div class="converter-column">
-                                <h3 class="converter-heading">Upload</h3>
+                                <h3 class="converter-heading">1. Upload CSV or JSON</h3>
                                 <div class="converter-row">
                                     <input id="converterFile" class="converter-file-input" type="file" accept=".csv,.json">
                                     <button class="btn btn-secondary btn-compact" id="converterClear">Clear</button>
@@ -1880,12 +1934,13 @@
                                 <div class="converter-options">
                                     <label><input type="checkbox" id="converterNormalize" checked> Normalize codes</label>
                                     <label><input type="checkbox" id="converterInherit" checked> Inherit line for splits</label>
-                                    <label><input type="checkbox" id="converterRemove"> removeMissingInThisYear</label>
+                                    <label><input type="checkbox" id="converterRemove"> Add <code>removeMissingInThisYear</code></label>
                                 </div>
                                 <div class="converter-force">
                                     <label>Force Year (optional)
                                         <input id="converterForceYear" class="converter-force-input" type="number" min="7" max="12" placeholder="7-12">
                                     </label>
+                                    <div class="converter-muted converter-force-note">Use this if your CSV doesn't include a Year column.</div>
                                 </div>
                                 <div>
                                     <h4 class="converter-subheading">Detected</h4>
@@ -1897,8 +1952,8 @@
                                 </div>
                             </div>
                             <div class="converter-column">
-                                <h3 class="converter-heading">JSON Patch</h3>
-                                <textarea id="converterJson" class="converter-textarea" spellcheck="false" placeholder="Converted lineCells patch will appear here..."></textarea>
+                                <h3 class="converter-heading">2. Review &amp; export JSON</h3>
+                                <textarea id="converterJson" class="converter-textarea" spellcheck="false" placeholder="Your JSON lineCells patch appears here, or paste an existing patch to validate it."></textarea>
                                 <div class="converter-row converter-actions">
                                     <button class="btn btn-primary btn-compact" id="converterDownloadJson" disabled>Download JSON</button>
                                     <button class="btn btn-secondary btn-compact" id="converterValidate">Validate JSON</button>
@@ -2028,7 +2083,7 @@
             patchConverterPanel.classList.toggle('is-hidden', !shouldShow);
             patchConverterPanel.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
 
-            patchConverterToggleBtn.textContent = shouldShow ? 'Hide Patch Converter' : 'Open Patch Converter';
+            patchConverterToggleBtn.textContent = shouldShow ? 'Hide Patch Builder' : 'Open Patch Builder';
             patchConverterToggleBtn.setAttribute('aria-expanded', shouldShow ? 'true' : 'false');
 
             if (shouldShow) {
