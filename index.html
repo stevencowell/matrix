@@ -353,6 +353,213 @@
             padding: 0;
         }
 
+        .workspace-panel--converter .workspace-panel__body {
+            gap: 24px;
+        }
+
+        .converter-body {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .converter-grid {
+            display: grid;
+            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        .converter-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 18px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(248, 250, 255, 0.95), rgba(226, 232, 240, 0.55));
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .converter-heading {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .converter-subheading {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .converter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .converter-file-input {
+            flex: 1 1 260px;
+            min-width: 200px;
+        }
+
+        .converter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        .converter-options label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            background: rgba(148, 163, 184, 0.16);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        .converter-force label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        .converter-force-input {
+            width: 72px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(248, 250, 255, 0.95);
+            color: #0f172a;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .converter-force-input:focus {
+            border-color: #4f46e5;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+        }
+
+        .converter-summary {
+            display: grid;
+            gap: 6px;
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+
+        .converter-summary strong {
+            color: #0f172a;
+        }
+
+        .converter-muted {
+            color: #64748b;
+        }
+
+        .converter-textarea {
+            width: 100%;
+            min-height: 170px;
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            padding: 12px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            font-size: 0.85rem;
+            color: #0f172a;
+            background: rgba(248, 250, 255, 0.92);
+            resize: vertical;
+        }
+
+        .converter-textarea:focus {
+            border-color: #4f46e5;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.16);
+        }
+
+        .converter-actions {
+            justify-content: flex-start;
+        }
+
+        .converter-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .converter-cells {
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(248, 250, 255, 0.95);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .converter-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .converter-table th,
+        .converter-table td {
+            border-top: 1px solid rgba(148, 163, 184, 0.35);
+            padding: 8px 10px;
+            text-align: left;
+        }
+
+        .converter-table th {
+            background: rgba(15, 23, 42, 0.05);
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        .converter-table td {
+            color: #1e293b;
+        }
+
+        .converter-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            margin: 2px 4px 2px 0;
+            font-size: 0.75rem;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            color: #1e293b;
+        }
+
+        .converter-footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        @media (max-width: 900px) {
+            .converter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .converter-row {
+                align-items: stretch;
+            }
+
+            .converter-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .converter-actions .btn {
+                width: 100%;
+            }
+        }
+
         .legend {
             display: flex;
             flex-wrap: wrap;
@@ -1639,6 +1846,61 @@
                                 <span>Allocation Clash</span>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <section class="workspace-panel workspace-panel--converter">
+                    <div class="workspace-panel__header">
+                        <h2 class="workspace-panel__title">Line Cells Patch Converter</h2>
+                        <p class="workspace-panel__subtitle">Upload a CSV (long or wide) to produce a JSON <code>lineCells</code> patch, or validate an existing patch.</p>
+                    </div>
+                    <div class="workspace-panel__body converter-body">
+                        <div class="converter-grid">
+                            <div class="converter-column">
+                                <h3 class="converter-heading">Upload</h3>
+                                <div class="converter-row">
+                                    <input id="converterFile" class="converter-file-input" type="file" accept=".csv,.json">
+                                    <button class="btn btn-secondary btn-compact" id="converterClear">Clear</button>
+                                </div>
+                                <div class="converter-options">
+                                    <label><input type="checkbox" id="converterNormalize" checked> Normalize codes</label>
+                                    <label><input type="checkbox" id="converterInherit" checked> Inherit line for splits</label>
+                                    <label><input type="checkbox" id="converterRemove"> removeMissingInThisYear</label>
+                                </div>
+                                <div class="converter-force">
+                                    <label>Force Year (optional)
+                                        <input id="converterForceYear" class="converter-force-input" type="number" min="7" max="12" placeholder="7-12">
+                                    </label>
+                                </div>
+                                <div>
+                                    <h4 class="converter-subheading">Detected</h4>
+                                    <div id="converterDetected" class="converter-muted">—</div>
+                                </div>
+                                <div>
+                                    <h4 class="converter-subheading">Summary</h4>
+                                    <div id="converterSummary" class="converter-summary">—</div>
+                                </div>
+                            </div>
+                            <div class="converter-column">
+                                <h3 class="converter-heading">JSON Patch</h3>
+                                <textarea id="converterJson" class="converter-textarea" spellcheck="false" placeholder="Converted lineCells patch will appear here..."></textarea>
+                                <div class="converter-row converter-actions">
+                                    <button class="btn btn-primary btn-compact" id="converterDownloadJson" disabled>Download JSON</button>
+                                    <button class="btn btn-secondary btn-compact" id="converterValidate">Validate JSON</button>
+                                    <button class="btn btn-warning btn-compact" id="converterCopy" disabled>Copy</button>
+                                </div>
+                                <h3 class="converter-heading">CSV Templates</h3>
+                                <div class="converter-row">
+                                    <button class="btn btn-secondary btn-compact" id="converterDownloadLong">Download Long-form CSV</button>
+                                    <button class="btn btn-secondary btn-compact" id="converterDownloadWide">Download Wide-form CSV</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="converter-preview">
+                            <h3 class="converter-heading">Parsed Cells (first 30)</h3>
+                            <div id="converterCells" class="converter-cells"><div class="converter-muted">No cells parsed yet.</div></div>
+                        </div>
+                        <p class="converter-footer">No data leaves your browser. Built for quick, safe imports.</p>
                     </div>
                 </section>
 
@@ -2951,6 +3213,7 @@
             }
             const headers = rows[0].map(h => h.trim());
             const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
+            const shouldNormalize = normalizeCodes !== false;
 
             const cells = [];
             let yearValue = null;
@@ -2986,7 +3249,7 @@
                     }
                     const rawCodes = Codes ? Codes.split(';') : [];
                     const codes = rawCodes
-                        .map(c => (normalizeCodes ? normalizeSubjectCode(c) : String(c).trim()))
+                        .map(c => (shouldNormalize ? normalizeSubjectCode(c) : String(c).trim()))
                         .filter(Boolean);
                     cells.push({ line, row: rowIndex, codes });
                 }
@@ -3027,7 +3290,7 @@
                         const raw = row[col.i] ?? '';
                         const rawCodes = String(raw).split(/\n/);
                         const codes = rawCodes
-                            .map(c => (normalizeCodes ? normalizeSubjectCode(c) : String(c).trim()))
+                            .map(c => (shouldNormalize ? normalizeSubjectCode(c) : String(c).trim()))
                             .filter(Boolean);
                         cells.push({ line: col.line, row: rowIndex, codes });
                     }
@@ -3040,7 +3303,7 @@
                 patchType: 'lineCells',
                 year: yearValue ?? 7,
                 cells,
-                options: { normalizeCodes: true, inheritLineForSplits: true, touchAllocations: false }
+                options: { normalizeCodes: shouldNormalize, inheritLineForSplits: true, touchAllocations: false }
             };
         }
 
@@ -6455,6 +6718,254 @@
             updateTeacherPeriodTotals();
         }
 
+        function initializeLineCellsConverter() {
+            const fileInput = document.getElementById('converterFile');
+            const detectedEl = document.getElementById('converterDetected');
+            const summaryEl = document.getElementById('converterSummary');
+            const jsonOutput = document.getElementById('converterJson');
+            const cellsEl = document.getElementById('converterCells');
+            const normalizeCheckbox = document.getElementById('converterNormalize');
+            const inheritCheckbox = document.getElementById('converterInherit');
+            const removeCheckbox = document.getElementById('converterRemove');
+            const forceYearInput = document.getElementById('converterForceYear');
+            const downloadBtn = document.getElementById('converterDownloadJson');
+            const validateBtn = document.getElementById('converterValidate');
+            const copyBtn = document.getElementById('converterCopy');
+            const clearBtn = document.getElementById('converterClear');
+            const downloadLongBtn = document.getElementById('converterDownloadLong');
+            const downloadWideBtn = document.getElementById('converterDownloadWide');
+
+            if (!fileInput || !detectedEl || !summaryEl || !jsonOutput || !cellsEl || !downloadBtn || !validateBtn || !copyBtn || !clearBtn || !downloadLongBtn || !downloadWideBtn) {
+                return;
+            }
+
+            let currentPatch = null;
+
+            const templates = {
+                long: `Year,Row,Line,Codes
+8,1,1,8TM1
+8,2,1,8TM2
+8,3,1,8TM3
+8,4,1,8TM4
+8,5,1,8TM5
+8,6,1,8TM6
+`,
+                wide: `Year,Row,Line1,Line2,Line3,Line4,Line5,Line6
+8,1,8TM1,,,,,
+8,2,8TM2,,,,,
+8,3,8TM3,,,,,
+8,4,8TM4,,,,,
+8,5,8TM5,,,,,
+8,6,8TM6,,,,,
+`
+            };
+
+            const escapeHtml = value => String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
+            const downloadFile = (filename, mimeType, text) => {
+                const blob = new Blob([text], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = filename;
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+                setTimeout(() => URL.revokeObjectURL(url), 300);
+            };
+
+            const setDetected = text => {
+                detectedEl.textContent = text;
+            };
+
+            const renderCells = cells => {
+                if (!Array.isArray(cells) || cells.length === 0) {
+                    cellsEl.innerHTML = '<div class="converter-muted">No cells parsed yet.</div>';
+                    return;
+                }
+
+                const max = 30;
+                const rowsHtml = cells.slice(0, max).map(cell => {
+                    const codes = Array.isArray(cell.codes) ? cell.codes : [];
+                    const codesHtml = codes.length > 0
+                        ? codes.map(code => `<span class="converter-pill">${escapeHtml(code)}</span>`).join('')
+                        : '<span class="converter-muted">—</span>';
+                    return `<tr><td>${escapeHtml(cell.row)}</td><td>${escapeHtml(cell.line)}</td><td>${codesHtml}</td></tr>`;
+                }).join('');
+
+                const moreText = cells.length > max
+                    ? `<div class="converter-muted">…and ${cells.length - max} more</div>`
+                    : '';
+
+                cellsEl.innerHTML = `<table class="converter-table"><thead><tr><th>Row</th><th>Line</th><th>Codes</th></tr></thead><tbody>${rowsHtml}</tbody></table>${moreText}`;
+            };
+
+            const setSummary = ({ cells = 0, codes = 0, year = '—', normalize = true, inherit = true, remove = false }) => {
+                summaryEl.innerHTML = `
+                    <div>Cells: <strong>${cells}</strong></div>
+                    <div>Total codes parsed: <strong>${codes}</strong></div>
+                    <div>Year: <strong>${year}</strong></div>
+                    <div class="converter-muted">Options: normalize=${normalize}, inheritLineForSplits=${inherit}${remove ? ', removeMissingInThisYear=true' : ''}</div>
+                `;
+            };
+
+            const resetDisplay = () => {
+                currentPatch = null;
+                setDetected('—');
+                summaryEl.textContent = '—';
+                cellsEl.innerHTML = '<div class="converter-muted">No cells parsed yet.</div>';
+                jsonOutput.value = '';
+                downloadBtn.disabled = true;
+                copyBtn.disabled = true;
+            };
+
+            const applyPatchToUi = (patch, { detectedLabel, syncControls = false, updateText = true } = {}) => {
+                if (!patch) {
+                    return;
+                }
+
+                const options = patch.options || {};
+                const normalize = options.normalizeCodes !== false;
+                const inherit = options.inheritLineForSplits !== false;
+                const remove = options.removeMissingInThisYear === true;
+
+                if (syncControls) {
+                    if (normalizeCheckbox) {
+                        normalizeCheckbox.checked = normalize;
+                    }
+                    if (inheritCheckbox) {
+                        inheritCheckbox.checked = inherit;
+                    }
+                    if (removeCheckbox) {
+                        removeCheckbox.checked = remove;
+                    }
+                    if (forceYearInput) {
+                        forceYearInput.value = patch.year ?? '';
+                    }
+                }
+
+                const codeCount = Array.isArray(patch.cells)
+                    ? patch.cells.reduce((acc, cell) => acc + (Array.isArray(cell.codes) ? cell.codes.length : 0), 0)
+                    : 0;
+
+                const yearValue = patch.year ?? '—';
+
+                setSummary({ cells: Array.isArray(patch.cells) ? patch.cells.length : 0, codes: codeCount, year: yearValue, normalize, inherit, remove });
+                renderCells(Array.isArray(patch.cells) ? patch.cells : []);
+
+                if (updateText) {
+                    jsonOutput.value = JSON.stringify(patch, null, 2);
+                }
+
+                currentPatch = patch;
+                downloadBtn.disabled = false;
+                copyBtn.disabled = false;
+
+                if (detectedLabel) {
+                    setDetected(detectedLabel);
+                }
+            };
+
+            const ensureOptionsShape = patch => {
+                patch.options = Object.assign({ touchAllocations: false }, patch.options);
+                return patch;
+            };
+
+            resetDisplay();
+
+            fileInput.addEventListener('change', async event => {
+                const file = event.target.files && event.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                try {
+                    const text = await file.text();
+                    const lowerName = file.name.toLowerCase();
+
+                    if (lowerName.endsWith('.csv')) {
+                        const shouldNormalize = normalizeCheckbox ? normalizeCheckbox.checked : true;
+                        let patch = csvToLineCellsPatch(text, { normalizeCodes: shouldNormalize });
+                        const forcedYear = parseInt(forceYearInput && forceYearInput.value, 10);
+                        if (Number.isInteger(forcedYear) && forcedYear >= 7 && forcedYear <= 12) {
+                            patch.year = forcedYear;
+                        }
+                        patch = ensureOptionsShape(patch);
+                        patch.options.normalizeCodes = shouldNormalize;
+                        const inherit = inheritCheckbox ? inheritCheckbox.checked : true;
+                        patch.options.inheritLineForSplits = inherit;
+                        if (removeCheckbox && removeCheckbox.checked) {
+                            patch.options.removeMissingInThisYear = true;
+                        } else {
+                            delete patch.options.removeMissingInThisYear;
+                        }
+                        applyPatchToUi(patch, { detectedLabel: 'CSV detected' });
+                    } else if (lowerName.endsWith('.json')) {
+                        const parsed = JSON.parse(text);
+                        const patch = ensureOptionsShape(assertLineCellsPatch(parsed));
+                        applyPatchToUi(patch, { detectedLabel: 'JSON detected', syncControls: true });
+                    } else {
+                        throw new Error('Please choose a .csv or .json file');
+                    }
+                } catch (error) {
+                    resetDisplay();
+                    alert('Error: ' + (error && error.message ? error.message : error));
+                } finally {
+                    fileInput.value = '';
+                }
+            });
+
+            downloadBtn.addEventListener('click', () => {
+                if (!currentPatch) {
+                    return;
+                }
+                downloadFile('line-cells-patch.json', 'application/json', JSON.stringify(currentPatch, null, 2));
+            });
+
+            validateBtn.addEventListener('click', () => {
+                try {
+                    const parsed = JSON.parse(jsonOutput.value || '{}');
+                    const patch = ensureOptionsShape(assertLineCellsPatch(parsed));
+                    applyPatchToUi(patch, { detectedLabel: 'JSON validated', syncControls: true });
+                    alert(`Valid JSON patch ✅\nYear ${patch.year} with ${patch.cells.length} cells.`);
+                } catch (error) {
+                    alert('Invalid JSON patch ❌\n' + error.message);
+                }
+            });
+
+            copyBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(jsonOutput.value || '');
+                    alert('Copied JSON to clipboard');
+                } catch (error) {
+                    alert('Could not copy to clipboard');
+                }
+            });
+
+            clearBtn.addEventListener('click', () => {
+                fileInput.value = '';
+                if (forceYearInput) {
+                    forceYearInput.value = '';
+                }
+                resetDisplay();
+            });
+
+            downloadLongBtn.addEventListener('click', () => {
+                downloadFile('line-cells-patch-long.csv', 'text/csv', templates.long);
+            });
+
+            downloadWideBtn.addEventListener('click', () => {
+                downloadFile('line-cells-patch-wide.csv', 'text/csv', templates.wide);
+            });
+
+            renderCells([]);
+        }
+
         // Load saved data on page load
         function loadSavedData() {
             const savedData = localStorage.getItem('facultyAllocations');
@@ -6471,9 +6982,10 @@
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             try {
-            initializeTimetable();
-            loadSavedData();
+                initializeTimetable();
+                loadSavedData();
                 setupModalEventListeners();
+                initializeLineCellsConverter();
             } catch (error) {
                 console.error('Error during initialization:', error);
                 alert('Error initializing application: ' + error.message);
