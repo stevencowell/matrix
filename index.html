@@ -1493,6 +1493,36 @@
             gap: 10px;
             justify-content: flex-end;
             margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .modal-message {
+            margin-top: 16px;
+            font-size: 0.95rem;
+            color: #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-message__lead {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .modal-message ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #1f2937;
+        }
+
+        .modal-message li {
+            margin-bottom: 6px;
+        }
+
+        .modal-message__note {
+            font-size: 0.88rem;
+            color: #475569;
         }
 
         .management-actions {
@@ -2011,6 +2041,21 @@
         </div>
     </div>
 
+    <div id="clashModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="clashModalTitle">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title" id="clashModalTitle">Allocation Clash</span>
+                <span class="close" id="clashModalClose">&times;</span>
+            </div>
+            <div id="clashModalMessage" class="modal-message"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="clashProceedBtn">Proceed</button>
+                <button class="btn btn-warning" id="clashCancelBtn">Cancel</button>
+                <button class="btn btn-danger" id="clashReplaceBtn">Replace</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Dynamic data loaded from spreadsheet
         let subjects = [];
@@ -2028,6 +2073,7 @@
         let draggedElement = null;
         let subjectSplits = {};
         let splitSubjectLookup = {};
+        let pendingClashContext = null;
 
         const FTE_OPTIONS = ['1.0', '0.8', '0.6', '0.4', '0.2'];
         // Base load expressed in 59-minute period equivalents for each FTE value
@@ -6232,6 +6278,195 @@
             console.log('Action recorded:', actionHistory[actionHistory.length - 1]);
         }
 
+        function closeClashModal() {
+            const modal = document.getElementById('clashModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+
+            const messageContainer = document.getElementById('clashModalMessage');
+            if (messageContainer) {
+                messageContainer.innerHTML = '';
+            }
+
+            pendingClashContext = null;
+        }
+
+        function handleClashCancel() {
+            const context = pendingClashContext;
+            closeClashModal();
+
+            if (context && typeof context.onCancel === 'function') {
+                try {
+                    context.onCancel();
+                } catch (error) {
+                    console.error('Error handling clash cancel callback:', error);
+                }
+            }
+        }
+
+        function showClashResolutionDialog(config) {
+            const modal = document.getElementById('clashModal');
+            const title = document.getElementById('clashModalTitle');
+            const messageContainer = document.getElementById('clashModalMessage');
+            const proceedBtn = document.getElementById('clashProceedBtn');
+            const cancelBtn = document.getElementById('clashCancelBtn');
+            const replaceBtn = document.getElementById('clashReplaceBtn');
+
+            if (!modal || !title || !messageContainer || !proceedBtn || !cancelBtn || !replaceBtn) {
+                const teacherName = typeof teachers[config.teacherIndex] === 'string'
+                    ? teachers[config.teacherIndex]
+                    : `Teacher ${config.teacherIndex + 1}`;
+                const lineName = typeof lines[config.lineIndex] === 'string'
+                    ? lines[config.lineIndex]
+                    : `Line ${config.lineIndex + 1}`;
+                const confirmationMessage = `Allocating ${config.subjectCode} to ${teacherName} on ${lineName} will clash with an existing subject. Continue?`;
+                if (window.confirm(confirmationMessage)) {
+                    if (typeof config.onProceed === 'function') {
+                        config.onProceed();
+                    }
+                } else if (typeof config.onCancel === 'function') {
+                    config.onCancel();
+                }
+                return;
+            }
+
+            const teacherIndex = config.teacherIndex;
+            const lineIndex = config.lineIndex;
+            const subjectCode = config.subjectCode;
+            const existingSubjects = Array.isArray(config.existingSubjects)
+                ? config.existingSubjects
+                : [];
+
+            const teacherName = typeof teachers[teacherIndex] === 'string' && teachers[teacherIndex].trim().length > 0
+                ? teachers[teacherIndex].trim()
+                : `Teacher ${teacherIndex + 1}`;
+
+            const lineName = typeof lines[lineIndex] === 'string' && lines[lineIndex].trim().length > 0
+                ? lines[lineIndex].trim()
+                : `Line ${lineIndex + 1}`;
+
+            title.textContent = 'Allocation clash detected';
+
+            messageContainer.innerHTML = '';
+
+            const lead = document.createElement('p');
+            lead.className = 'modal-message__lead';
+            lead.append('Adding ');
+            const subjectStrong = document.createElement('strong');
+            subjectStrong.textContent = subjectCode;
+            lead.appendChild(subjectStrong);
+            lead.append(' to ');
+            const teacherStrong = document.createElement('strong');
+            teacherStrong.textContent = teacherName;
+            lead.appendChild(teacherStrong);
+            lead.append(' on ');
+            const lineStrong = document.createElement('strong');
+            lineStrong.textContent = lineName;
+            lead.appendChild(lineStrong);
+            lead.append(' will clash with an existing allocation.');
+            messageContainer.appendChild(lead);
+
+            if (existingSubjects.length > 0) {
+                const intro = document.createElement('p');
+                intro.textContent = 'Existing subject(s) in this cell:';
+                messageContainer.appendChild(intro);
+
+                const list = document.createElement('ul');
+                existingSubjects.forEach(subject => {
+                    const item = document.createElement('li');
+                    item.textContent = subject;
+                    list.appendChild(item);
+                });
+                messageContainer.appendChild(list);
+            }
+
+            const note = document.createElement('p');
+            note.className = 'modal-message__note';
+            note.textContent = 'Proceed keeps all subjects and records the clash. Replace removes the existing subject(s) before allocating the new one. Cancel will stop this allocation.';
+            messageContainer.appendChild(note);
+
+            pendingClashContext = {
+                onProceed: config.onProceed,
+                onReplace: config.onReplace,
+                onCancel: config.onCancel
+            };
+
+            modal.style.display = 'block';
+
+            setTimeout(() => {
+                try {
+                    proceedBtn.focus();
+                } catch (error) {
+                    console.error('Unable to focus clash proceed button:', error);
+                }
+            }, 0);
+        }
+
+        function setupClashModalEventListeners() {
+            const modal = document.getElementById('clashModal');
+            if (!modal) {
+                return;
+            }
+
+            const proceedBtn = document.getElementById('clashProceedBtn');
+            const cancelBtn = document.getElementById('clashCancelBtn');
+            const replaceBtn = document.getElementById('clashReplaceBtn');
+            const closeBtn = document.getElementById('clashModalClose');
+            const modalContent = modal.querySelector('.modal-content');
+
+            if (proceedBtn) {
+                proceedBtn.addEventListener('click', function() {
+                    const context = pendingClashContext;
+                    closeClashModal();
+                    if (context && typeof context.onProceed === 'function') {
+                        try {
+                            context.onProceed();
+                        } catch (error) {
+                            console.error('Error handling clash proceed callback:', error);
+                        }
+                    }
+                });
+            }
+
+            if (replaceBtn) {
+                replaceBtn.addEventListener('click', function() {
+                    const context = pendingClashContext;
+                    closeClashModal();
+                    if (context && typeof context.onReplace === 'function') {
+                        try {
+                            context.onReplace();
+                        } catch (error) {
+                            console.error('Error handling clash replace callback:', error);
+                        }
+                    }
+                });
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', handleClashCancel);
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', handleClashCancel);
+            }
+
+            modal.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    handleClashCancel();
+                }
+            });
+
+            if (modalContent) {
+                modalContent.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        handleClashCancel();
+                    }
+                });
+            }
+        }
+
         function allocateSubjectToTeacher(subjectCode, teacherIndex, preferredLine = null, options = {}) {
             if (teacherIndex < 0 || teacherIndex >= teachers.length) {
                 return false;
@@ -6258,10 +6493,40 @@
             }
 
             const key = getAllocationKey(targetLine, teacherIndex);
-            const currentSubjects = getAllocationSubjects(key);
+            let currentSubjects = getAllocationSubjects(key);
             if (currentSubjects.includes(subjectCode)) {
                 return false;
             }
+
+            const prospectiveSubjects = [...currentSubjects, subjectCode];
+            const clashAction = typeof options.clashAction === 'string' ? options.clashAction : null;
+            const statusIfAllocated = determineCellStatus(prospectiveSubjects);
+
+            if (statusIfAllocated === 'clash' && clashAction !== 'proceed' && clashAction !== 'replace') {
+                showClashResolutionDialog({
+                    subjectCode: subjectCode,
+                    teacherIndex: teacherIndex,
+                    lineIndex: targetLine,
+                    existingSubjects: currentSubjects,
+                    onProceed: () => {
+                        allocateSubjectToTeacher(subjectCode, teacherIndex, targetLine, { ...options, clashAction: 'proceed' });
+                    },
+                    onReplace: () => {
+                        allocateSubjectToTeacher(subjectCode, teacherIndex, targetLine, { ...options, clashAction: 'replace' });
+                    },
+                    onCancel: options.onClashCancelled
+                });
+                return false;
+            }
+
+            if (clashAction === 'replace' && currentSubjects.length > 0) {
+                const subjectsToRemove = [...currentSubjects];
+                subjectsToRemove.forEach(existingSubject => {
+                    removeSubjectFromCell(targetLine, teacherIndex, existingSubject, true);
+                });
+            }
+
+            currentSubjects = getAllocationSubjects(key);
 
             const existingLocation = findSubjectLocation(subjectCode);
             let fromTeacher = null;
@@ -6277,8 +6542,15 @@
                 renderCell(existingLocation.lineIndex, existingLocation.teacherIndex);
             }
 
-            currentSubjects.push(subjectCode);
-            setAllocationSubjects(key, currentSubjects);
+            const updatedSubjects = getAllocationSubjects(key);
+            if (updatedSubjects.includes(subjectCode)) {
+                renderCell(targetLine, teacherIndex);
+                updateStats();
+                return true;
+            }
+
+            updatedSubjects.push(subjectCode);
+            setAllocationSubjects(key, updatedSubjects);
             renderCell(targetLine, teacherIndex);
 
             removeSubjectFromPool(subjectCode);
@@ -6376,9 +6648,15 @@
             let success = false;
 
             if (actionToRedo.type === 'allocate') {
-                success = allocateSubjectToTeacher(actionToRedo.subject, actionToRedo.toTeacher, actionToRedo.lineIndex, { recordAction: false });
+                success = allocateSubjectToTeacher(actionToRedo.subject, actionToRedo.toTeacher, actionToRedo.lineIndex, {
+                    recordAction: false,
+                    clashAction: 'proceed'
+                });
             } else if (actionToRedo.type === 'move') {
-                success = allocateSubjectToTeacher(actionToRedo.subject, actionToRedo.toTeacher, actionToRedo.lineIndex, { recordAction: false });
+                success = allocateSubjectToTeacher(actionToRedo.subject, actionToRedo.toTeacher, actionToRedo.lineIndex, {
+                    recordAction: false,
+                    clashAction: 'proceed'
+                });
             }
 
             if (!success) {
@@ -7299,6 +7577,7 @@
                 initializeTimetable();
                 loadSavedData();
                 setupModalEventListeners();
+                setupClashModalEventListeners();
                 initializeLineCellsConverter();
             } catch (error) {
                 console.error('Error during initialization:', error);
