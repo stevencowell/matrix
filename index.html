@@ -512,8 +512,79 @@
             color: #0f172a;
         }
 
+        .converter-summary-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .converter-summary-options .converter-pill {
+            margin: 0;
+        }
+
         .converter-muted {
             color: #64748b;
+        }
+
+        .converter-advanced {
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 16px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.04), rgba(14, 165, 233, 0.06));
+            color: #1e293b;
+        }
+
+        .converter-advanced summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #0f172a;
+            list-style: none;
+        }
+
+        .converter-advanced summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .converter-advanced summary::after {
+            content: '\25BC';
+            font-size: 0.8rem;
+            color: #6366f1;
+            transition: transform 0.2s ease;
+        }
+
+        .converter-advanced[open] summary::after {
+            transform: rotate(-180deg);
+        }
+
+        .converter-advanced summary:focus-visible {
+            outline: 2px solid #4f46e5;
+            outline-offset: 2px;
+            border-radius: 10px;
+        }
+
+        .converter-advanced__content {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .converter-advanced__content .btn {
+            width: fit-content;
+        }
+
+        .converter-advanced--actions {
+            margin-top: 8px;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(14, 165, 233, 0.05));
+        }
+
+        .converter-advanced__description {
+            font-size: 0.78rem;
         }
 
         .converter-quick-guide {
@@ -2047,17 +2118,23 @@
                                     <input id="converterFile" class="converter-file-input" type="file" accept=".csv,.json">
                                     <button class="btn btn-secondary btn-compact" id="converterClear">Clear</button>
                                 </div>
-                                <div class="converter-options">
-                                    <label><input type="checkbox" id="converterNormalize" checked> Normalize codes</label>
-                                    <label><input type="checkbox" id="converterInherit" checked> Inherit line for splits</label>
-                                    <label><input type="checkbox" id="converterRemove"> Add <code>removeMissingInThisYear</code></label>
-                                </div>
-                                <div class="converter-force">
-                                    <label>Force Year (optional)
-                                        <input id="converterForceYear" class="converter-force-input" type="number" min="7" max="12" placeholder="7-12">
-                                    </label>
-                                    <div class="converter-muted converter-force-note">Use this if your CSV doesn't include a Year column.</div>
-                                </div>
+                                <details class="converter-advanced">
+                                    <summary>Advanced options</summary>
+                                    <div class="converter-advanced__content">
+                                        <p class="converter-advanced__description converter-muted">Tweak how your data is cleaned or set a fallback year before importing.</p>
+                                        <div class="converter-options">
+                                            <label><input type="checkbox" id="converterNormalize" checked> Normalize codes</label>
+                                            <label><input type="checkbox" id="converterInherit" checked> Inherit line for splits</label>
+                                            <label><input type="checkbox" id="converterRemove"> Add <code>removeMissingInThisYear</code></label>
+                                        </div>
+                                        <div class="converter-force">
+                                            <label>Force Year (optional)
+                                                <input id="converterForceYear" class="converter-force-input" type="number" min="7" max="12" placeholder="7-12">
+                                            </label>
+                                            <div class="converter-muted converter-force-note">Use this if your CSV doesn't include a Year column.</div>
+                                        </div>
+                                    </div>
+                                </details>
                                 <div>
                                     <h4 class="converter-subheading">Detected</h4>
                                     <div id="converterDetected" class="converter-muted">—</div>
@@ -2073,10 +2150,16 @@
                                 <div id="converterStatus" class="converter-status">Load a CSV or JSON patch to enable <strong>Add to Matrix</strong>.</div>
                                 <div class="converter-row converter-actions">
                                     <button class="btn btn-success btn-compact" id="converterApply" disabled>Add to Matrix</button>
-                                    <button class="btn btn-secondary btn-compact" id="converterValidate">Validate JSON</button>
                                     <button class="btn btn-primary btn-compact" id="converterDownloadJson" disabled>Download JSON</button>
                                     <button class="btn btn-warning btn-compact" id="converterCopy" disabled>Copy</button>
                                 </div>
+                                <details class="converter-advanced converter-advanced--actions">
+                                    <summary>Advanced tools</summary>
+                                    <div class="converter-advanced__content">
+                                        <p class="converter-advanced__description converter-muted">Validate a manual JSON edit before applying it to the matrix.</p>
+                                        <button class="btn btn-secondary btn-compact" id="converterValidate">Validate JSON</button>
+                                    </div>
+                                </details>
                             </div>
                         </div>
                         <div class="converter-preview">
@@ -7563,12 +7646,28 @@
             };
 
             const setSummary = ({ cells = 0, codes = 0, yearLabel = '—', normalize = true, inherit = true, remove = false }) => {
-                summaryEl.innerHTML = `
-                    <div>Cells: <strong>${cells}</strong></div>
-                    <div>Total codes parsed: <strong>${codes}</strong></div>
-                    <div>Year(s): <strong>${escapeHtml(yearLabel)}</strong></div>
-                    <div class="converter-muted">Options: normalize=${normalize}, inheritLineForSplits=${inherit}${remove ? ', removeMissingInThisYear=true' : ''}</div>
-                `;
+                const summaryParts = [
+                    `<div>Cells: <strong>${cells}</strong></div>`,
+                    `<div>Total codes parsed: <strong>${codes}</strong></div>`,
+                    `<div>Year(s): <strong>${escapeHtml(yearLabel)}</strong></div>`
+                ];
+
+                const optionPills = [];
+                if (!normalize) {
+                    optionPills.push('<span class="converter-pill">Normalize codes off</span>');
+                }
+                if (!inherit) {
+                    optionPills.push('<span class="converter-pill">No line inheritance</span>');
+                }
+                if (remove) {
+                    optionPills.push('<span class="converter-pill">removeMissingInThisYear</span>');
+                }
+
+                if (optionPills.length > 0) {
+                    summaryParts.push(`<div class="converter-summary-options">${optionPills.join('')}</div>`);
+                }
+
+                summaryEl.innerHTML = summaryParts.join('');
             };
 
             const resetDisplay = () => {
