@@ -2521,7 +2521,7 @@
                     sectionClass: 'management-actions__section--utility',
                     buttonClass: 'management-actions__button--utility',
                     actions: [
-                        { label: 'Import Additional Info', description: 'Merge supplemental staff data into the planner.', handler: importSupplementalData }
+                        { label: 'Import Additional Info', description: 'Accepts JSON lineCells patches, CSV (Year/Row/Line…), or legacy supplemental JSON.', handler: importSupplementalData }
                     ]
                 }
             ];
@@ -2856,28 +2856,439 @@
             });
         }
 
+        // ---------- Normalise ----------
+        function normalizeSubjectCode(raw) {
+            const s = String(raw || '').trim().replace(/\s+/g, ' ').toUpperCase();
+            if (!s) {
+                return '';
+            }
+            if (/^S[12]\s+\d/.test(s)) {
+                return s;
+            }
+            return s.replace(/\s+/g, '');
+        }
+
+        function subjectComparisonKey(code) {
+            if (!code) {
+                return '';
+            }
+            return normalizeSubjectCode(code).replace(/\s+/g, '');
+        }
+
+        // ---------- CSV parsing (small, robust) ----------
+        function splitCsvLine(line) {
+            const out = [];
+            let cur = '';
+            let inQ = false;
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQ && line[i + 1] === '"') {
+                        cur += '"';
+                        i++;
+                    } else {
+                        inQ = !inQ;
+                    }
+                } else if (ch === ',' && !inQ) {
+                    out.push(cur);
+                    cur = '';
+                } else {
+                    cur += ch;
+                }
+            }
+            out.push(cur);
+            return out;
+        }
+
+        function parseCsv(text) {
+            return text
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n')
+                .split('\n')
+                .map(splitCsvLine);
+        }
+
+        function looksLong(headers) {
+            return ['Year', 'Row', 'Line', 'Codes'].every(h => headers.includes(h));
+        }
+
+        function looksWide(headers) {
+            const base = ['Year', 'Row'];
+            const linesHeaders = [1, 2, 3, 4, 5, 6].map(n => 'Line' + n);
+            return base.every(h => headers.includes(h)) && linesHeaders.some(h => headers.includes(h));
+        }
+
+        // ---------- CSV -> lineCells patch ----------
+        function csvToLineCellsPatch(csvText, { normalizeCodes = true } = {}) {
+            const rows = parseCsv(csvText);
+            if (rows.length === 0) {
+                throw new Error('Empty CSV');
+            }
+            const headers = rows[0].map(h => h.trim());
+            const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
+
+            const cells = [];
+            let yearValue = null;
+
+            if (looksLong(headers)) {
+                for (let r = 1; r < rows.length; r++) {
+                    const row = rows[r];
+                    if (!row || (row.length === 1 && row[0].trim() === '')) {
+                        continue;
+                    }
+                    const Year = row[idx.Year]?.trim();
+                    const Row = row[idx.Row]?.trim();
+                    const Line = row[idx.Line]?.trim();
+                    const Codes = row[idx.Codes]?.trim();
+                    if (!Year || !Row || !Line) {
+                        continue;
+                    }
+                    const year = Number(Year);
+                    const line = Number(Line);
+                    const rowIndex = Number(Row);
+                    if (!(year >= 7 && year <= 12)) {
+                        throw new Error(`Bad Year @ row ${r + 1}`);
+                    }
+                    if (!(line >= 1 && line <= 6)) {
+                        throw new Error(`Bad Line @ row ${r + 1}`);
+                    }
+                    if (!(rowIndex >= 1 && rowIndex <= 6)) {
+                        throw new Error(`Bad Row @ row ${r + 1}`);
+                    }
+                    yearValue = yearValue ?? year;
+                    if (yearValue !== year) {
+                        throw new Error('Multiple Years not supported in a single patch');
+                    }
+                    const rawCodes = Codes ? Codes.split(';') : [];
+                    const codes = rawCodes
+                        .map(c => (normalizeCodes ? normalizeSubjectCode(c) : String(c).trim()))
+                        .filter(Boolean);
+                    cells.push({ line, row: rowIndex, codes });
+                }
+            } else if (looksWide(headers)) {
+                const lineCols = [];
+                for (let l = 1; l <= 6; l++) {
+                    const key = 'Line' + l;
+                    if (key in idx) {
+                        lineCols.push({ line: l, i: idx[key] });
+                    }
+                }
+                if (!('Year' in idx) || !('Row' in idx)) {
+                    throw new Error('Missing Year/Row columns');
+                }
+                for (let r = 1; r < rows.length; r++) {
+                    const row = rows[r];
+                    if (!row || (row.length === 1 && row[0].trim() === '')) {
+                        continue;
+                    }
+                    const Year = row[idx.Year]?.trim();
+                    const Row = row[idx.Row]?.trim();
+                    if (!Year || !Row) {
+                        continue;
+                    }
+                    const year = Number(Year);
+                    const rowIndex = Number(Row);
+                    if (!(year >= 7 && year <= 12)) {
+                        throw new Error(`Bad Year @ row ${r + 1}`);
+                    }
+                    if (!(rowIndex >= 1 && rowIndex <= 6)) {
+                        throw new Error(`Bad Row @ row ${r + 1}`);
+                    }
+                    yearValue = yearValue ?? year;
+                    if (yearValue !== year) {
+                        throw new Error('Multiple Years not supported in a single patch');
+                    }
+                    for (const col of lineCols) {
+                        const raw = row[col.i] ?? '';
+                        const rawCodes = String(raw).split(/\n/);
+                        const codes = rawCodes
+                            .map(c => (normalizeCodes ? normalizeSubjectCode(c) : String(c).trim()))
+                            .filter(Boolean);
+                        cells.push({ line: col.line, row: rowIndex, codes });
+                    }
+                }
+            } else {
+                throw new Error('CSV shape not recognised. Expected: (Year,Row,Line,Codes) OR (Year,Row,Line1..Line6)');
+            }
+
+            return {
+                patchType: 'lineCells',
+                year: yearValue ?? 7,
+                cells,
+                options: { normalizeCodes: true, inheritLineForSplits: true, touchAllocations: false }
+            };
+        }
+
+        // ---------- JSON validator ----------
+        function assertLineCellsPatch(obj) {
+            if (!obj || typeof obj !== 'object') {
+                throw new Error('Patch must be an object');
+            }
+            if (obj.patchType !== 'lineCells') {
+                throw new Error("patchType must be 'lineCells'");
+            }
+            if (![7, 8, 9, 10, 11, 12].includes(obj.year)) {
+                throw new Error('year must be 7..12');
+            }
+            if (!Array.isArray(obj.cells)) {
+                throw new Error('cells must be an array');
+            }
+            obj.cells.forEach((c, i) => {
+                if (!(Number.isInteger(c.line) && c.line >= 1 && c.line <= 6)) {
+                    throw new Error(`cells[${i}].line must be 1..6`);
+                }
+                if (!(Number.isInteger(c.row) && c.row >= 1 && c.row <= 6)) {
+                    throw new Error(`cells[${i}].row must be 1..6`);
+                }
+                if (!Array.isArray(c.codes)) {
+                    throw new Error(`cells[${i}].codes must be string[]`);
+                }
+            });
+            if (obj.options && obj.options.touchAllocations) {
+                throw new Error('touchAllocations is not allowed for lineCells patch');
+            }
+            if (obj.options?.normalizeCodes !== false) {
+                obj.cells.forEach(c => {
+                    c.codes = c.codes.map(normalizeSubjectCode);
+                });
+            }
+            return obj;
+        }
+
+        // ---------- Apply patch to state (allocations untouched) ----------
+        function applyLineCellsPatch(state, patch) {
+            if (patch.patchType !== 'lineCells') {
+                throw new Error('Wrong patchType');
+            }
+            if (patch.options?.touchAllocations) {
+                throw new Error('Not allowed in lineCells patch');
+            }
+            if (!Array.isArray(state.subjects) || typeof state.subjectYearMapping !== 'object' || typeof state.subjectLineMapping !== 'object') {
+                throw new Error('Invalid state for lineCells patch');
+            }
+
+            const patchYearLabel = normalizeYearLabel(patch.year);
+            if (!patchYearLabel) {
+                throw new Error('Invalid year in lineCells patch');
+            }
+
+            const changes = [];
+            const seenThisYear = new Set();
+
+            const toLineIndex = lineNumber => {
+                const numericLine = Number(lineNumber);
+                if (!Number.isInteger(numericLine)) {
+                    return null;
+                }
+                return numericLine - 1;
+            };
+
+            const findExistingSubject = code => {
+                const targetKey = subjectComparisonKey(code);
+                if (!targetKey) {
+                    return null;
+                }
+                for (const existing of state.subjects) {
+                    if (subjectComparisonKey(existing) === targetKey) {
+                        return existing;
+                    }
+                }
+                return null;
+            };
+
+            const addChange = change => {
+                changes.push(change);
+            };
+
+            function upsert(rawCode, rawLine) {
+                const normalizedCode = normalizeSubjectCode(rawCode);
+                if (!normalizedCode) {
+                    return;
+                }
+                const lineIndex = toLineIndex(rawLine);
+                if (lineIndex === null || lineIndex < 0) {
+                    throw new Error('Invalid line in lineCells patch');
+                }
+
+                const existingCode = findExistingSubject(normalizedCode);
+                const codeKey = existingCode || normalizedCode;
+
+                if (!existingCode) {
+                    state.subjects.push(codeKey);
+                    addChange({ kind: 'addSubject', code: codeKey, year: patchYearLabel, line: lineIndex });
+                }
+
+                if (state.subjectYearMapping[codeKey] !== patchYearLabel) {
+                    const fromYear = state.subjectYearMapping[codeKey];
+                    state.subjectYearMapping[codeKey] = patchYearLabel;
+                    addChange({ kind: 'setYear', code: codeKey, from: fromYear, to: patchYearLabel });
+                }
+
+                const previousLine = state.subjectLineMapping[codeKey];
+                if (previousLine !== lineIndex) {
+                    state.subjectLineMapping[codeKey] = lineIndex;
+                    addChange({ kind: 'updateMapping', code: codeKey, from: previousLine, to: lineIndex });
+                }
+
+                seenThisYear.add(codeKey);
+
+                if (patch.options?.inheritLineForSplits && state.subjectSplits && typeof state.subjectSplits === 'object') {
+                    Object.entries(state.subjectSplits).forEach(([base, splits]) => {
+                        if (!Array.isArray(splits)) {
+                            return;
+                        }
+                        const matches = splits.some(split => {
+                            const splitCode = typeof split === 'string' ? split : split && split.code;
+                            if (!splitCode) {
+                                return false;
+                            }
+                            return subjectComparisonKey(splitCode) === subjectComparisonKey(codeKey);
+                        });
+                        if (!matches) {
+                            return;
+                        }
+                        const baseCode = findExistingSubject(base) || normalizeSubjectCode(base);
+                        if (!baseCode) {
+                            return;
+                        }
+                        const previous = state.subjectLineMapping[baseCode];
+                        if (previous !== lineIndex) {
+                            state.subjectLineMapping[baseCode] = lineIndex;
+                            addChange({ kind: 'updateMapping', code: baseCode, from: previous, to: lineIndex });
+                        }
+                        seenThisYear.add(baseCode);
+                    });
+                }
+            }
+
+            for (const cell of patch.cells) {
+                if (!cell || !Array.isArray(cell.codes)) {
+                    continue;
+                }
+                for (const code of cell.codes) {
+                    upsert(code, cell.line);
+                }
+            }
+
+            if (patch.options?.removeMissingInThisYear) {
+                state.subjects.forEach(code => {
+                    if (state.subjectYearMapping[code] === patchYearLabel && !seenThisYear.has(code)) {
+                        delete state.subjectLineMapping[code];
+                    }
+                });
+            }
+
+            return { changes, allocationsTouched: 0 };
+        }
+
+        async function handleAdditionalInfoImport(file, appState) {
+            const text = await file.text();
+            const name = file.name.toLowerCase();
+
+            const cloneState = () => {
+                if (typeof structuredClone === 'function') {
+                    return structuredClone(appState);
+                }
+                return JSON.parse(JSON.stringify(appState));
+            };
+
+            if (name.endsWith('.csv')) {
+                const patch = csvToLineCellsPatch(text, { normalizeCodes: true });
+                const preview = applyLineCellsPatch(cloneState(), patch);
+                const ok = confirm(
+                    `Line Cells Patch detected (CSV).\n` +
+                    `Year ${patch.year}\n` +
+                    `Subjects added/updated: ${preview.changes.length}\n` +
+                    `Allocations changed: 0\n\nApply now?`
+                );
+                if (!ok) {
+                    return;
+                }
+                const result = applyLineCellsPatch(appState, patch);
+                if (result.changes.length > 0) {
+                    createSubjectPool();
+                    renderAllAllocations();
+                    updateStats();
+                    clearActionHistory();
+                } else {
+                    updateStats();
+                }
+                alert(`Applied. Changes: ${result.changes.length}. Allocations touched: ${result.allocationsTouched}.`);
+                return;
+            }
+
+            if (name.endsWith('.json')) {
+                try {
+                    const parsed = JSON.parse(text);
+                    if (parsed && parsed.patchType === 'lineCells') {
+                        const patch = assertLineCellsPatch(parsed);
+                        const preview = applyLineCellsPatch(cloneState(), patch);
+                        const ok = confirm(
+                            `Line Cells Patch detected (JSON).\n` +
+                            `Year ${patch.year}\n` +
+                            `Subjects added/updated: ${preview.changes.length}\n` +
+                            `Allocations changed: 0\n\nApply now?`
+                        );
+                        if (!ok) {
+                            return;
+                        }
+                        const result = applyLineCellsPatch(appState, patch);
+                        if (result.changes.length > 0) {
+                            createSubjectPool();
+                            renderAllAllocations();
+                            updateStats();
+                            clearActionHistory();
+                        } else {
+                            updateStats();
+                        }
+                        alert(`Applied. Changes: ${result.changes.length}. Allocations touched: ${result.allocationsTouched}.`);
+                        return;
+                    }
+                } catch (e) {
+                    // fall through to legacy path if not valid JSON
+                }
+            }
+
+            try {
+                const supp = JSON.parse(text);
+                if (supp && (supp.subjects || supp.subjectLineMapping || supp.subjectYearMapping)) {
+                    mergeSupplementalData(supp);
+                    return;
+                }
+            } catch (e) {
+                // not JSON
+            }
+
+            alert('No new supplemental data detected.');
+        }
+
         function importSupplementalData() {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.json';
+            input.accept = '.json,.csv';
 
-            input.onchange = function(event) {
-                const file = event.target.files && event.target.files[0];
-                if (!file) {
+            input.onchange = async function(event) {
+                const selectedFile = event.target.files && event.target.files[0];
+                if (!selectedFile) {
                     return;
                 }
 
-                const reader = new FileReader();
-                reader.onload = function(loadEvent) {
-                    try {
-                        const data = JSON.parse(loadEvent.target.result);
-                        mergeSupplementalData(data);
-                    } catch (error) {
-                        alert('Error importing supplemental data: ' + error.message);
-                        console.error('Supplemental import error:', error);
-                    }
+                const appState = {
+                    subjects,
+                    subjectYearMapping,
+                    subjectLineMapping,
+                    subjectSplits,
+                    allocations
                 };
-                reader.readAsText(file);
+
+                try {
+                    await handleAdditionalInfoImport(selectedFile, appState);
+                } catch (error) {
+                    alert('Error importing supplemental data: ' + error.message);
+                    console.error('Supplemental import error:', error);
+                } finally {
+                    event.target.value = '';
+                }
             };
 
             input.click();
@@ -4224,18 +4635,6 @@
         const DEFAULT_CANCEL_LABEL = 'Cancel';
         const DEFAULT_PLACEHOLDER = 'Start typing to search...';
 
-        function normalizeSubjectCode(rawCode) {
-            if (!rawCode) {
-                return '';
-            }
-
-            let code = rawCode.replace(/\r/g, '').trim().toUpperCase();
-            code = code.replace(/\s+/g, ' ');
-            code = code.replace(/([A-Z])\s+(\d)/g, '$1$2');
-            code = code.replace(/(\d)\s+([A-Z])/g, '$1$2');
-            return code;
-        }
-
         function normalizeSubjectList(subjectList) {
             if (!Array.isArray(subjectList)) {
                 return [];
@@ -4250,11 +4649,16 @@
                 }
 
                 const normalizedCode = normalizeSubjectCode(subject);
-                if (!normalizedCode || seen.has(normalizedCode)) {
+                if (!normalizedCode) {
                     return;
                 }
 
-                seen.add(normalizedCode);
+                const comparisonKey = normalizedCode.replace(/\s+/g, '');
+                if (seen.has(comparisonKey)) {
+                    return;
+                }
+
+                seen.add(comparisonKey);
                 normalized.push(normalizedCode);
             });
 
