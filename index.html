@@ -3299,8 +3299,14 @@
             const idx = Object.fromEntries(headers.map((h, i) => [h, i]));
             const shouldNormalize = normalizeCodes !== false;
 
-            const cells = [];
-            let yearValue = null;
+            const cellsByYear = new Map();
+            const addCell = (year, cell) => {
+                if (!cellsByYear.has(year)) {
+                    cellsByYear.set(year, []);
+                }
+                cellsByYear.get(year).push(cell);
+            };
+            const yearsEncountered = new Set();
 
             if (looksLong(headers)) {
                 for (let r = 1; r < rows.length; r++) {
@@ -3327,15 +3333,12 @@
                     if (!(rowIndex >= 1 && rowIndex <= 6)) {
                         throw new Error(`Bad Row @ row ${r + 1}`);
                     }
-                    yearValue = yearValue ?? year;
-                    if (yearValue !== year) {
-                        throw new Error('Multiple Years not supported in a single patch');
-                    }
+                    yearsEncountered.add(year);
                     const rawCodes = Codes ? Codes.split(';') : [];
                     const codes = rawCodes
                         .map(c => (shouldNormalize ? normalizeSubjectCode(c) : String(c).trim()))
                         .filter(Boolean);
-                    cells.push({ line, row: rowIndex, codes });
+                    addCell(year, { line, row: rowIndex, codes });
                 }
             } else if (looksWide(headers)) {
                 const lineCols = [];
@@ -3366,35 +3369,148 @@
                     if (!(rowIndex >= 1 && rowIndex <= 6)) {
                         throw new Error(`Bad Row @ row ${r + 1}`);
                     }
-                    yearValue = yearValue ?? year;
-                    if (yearValue !== year) {
-                        throw new Error('Multiple Years not supported in a single patch');
-                    }
+                    yearsEncountered.add(year);
                     for (const col of lineCols) {
                         const raw = row[col.i] ?? '';
                         const rawCodes = String(raw).split(/\n/);
                         const codes = rawCodes
                             .map(c => (shouldNormalize ? normalizeSubjectCode(c) : String(c).trim()))
                             .filter(Boolean);
-                        cells.push({ line: col.line, row: rowIndex, codes });
+                        addCell(year, { line: col.line, row: rowIndex, codes });
                     }
                 }
             } else {
                 throw new Error('CSV shape not recognised. Expected: (Year,Row,Line,Codes) OR (Year,Row,Line1..Line6)');
             }
 
-            return {
+            const uniqueYears = Array.from(yearsEncountered).sort((a, b) => a - b);
+            const buildOptions = () => ({
+                normalizeCodes: shouldNormalize,
+                inheritLineForSplits: true,
+                touchAllocations: false
+            });
+
+            if (uniqueYears.length <= 1) {
+                const year = uniqueYears[0] ?? 7;
+                const cells = cellsByYear.get(year) ?? [];
+                return {
+                    patchType: 'lineCells',
+                    year,
+                    cells,
+                    options: buildOptions()
+                };
+            }
+
+            const patches = uniqueYears.map(year => ({
                 patchType: 'lineCells',
-                year: yearValue ?? 7,
-                cells,
-                options: { normalizeCodes: shouldNormalize, inheritLineForSplits: true, touchAllocations: false }
+                year,
+                cells: cellsByYear.get(year) ?? [],
+                options: buildOptions()
+            }));
+
+            return {
+                patchType: 'lineCellsMulti',
+                years: uniqueYears,
+                patches,
+                options: buildOptions()
             };
+        }
+
+        function flattenLineCellsPatch(patch) {
+            if (!patch || typeof patch !== 'object') {
+                return [];
+            }
+            if (patch.patchType === 'lineCellsMulti') {
+                const out = [];
+                const nested = Array.isArray(patch.patches) ? patch.patches : [];
+                nested.forEach(subPatch => {
+                    if (!subPatch || typeof subPatch !== 'object') {
+                        return;
+                    }
+                    const year = subPatch.year;
+                    const cells = Array.isArray(subPatch.cells) ? subPatch.cells : [];
+                    cells.forEach(cell => {
+                        out.push({
+                            year,
+                            row: cell?.row,
+                            line: cell?.line,
+                            codes: Array.isArray(cell?.codes) ? cell.codes.slice() : []
+                        });
+                    });
+                });
+                return out;
+            }
+            const cells = Array.isArray(patch.cells) ? patch.cells : [];
+            return cells.map(cell => ({
+                row: cell?.row,
+                line: cell?.line,
+                codes: Array.isArray(cell?.codes) ? cell.codes.slice() : []
+            }));
+        }
+
+        function collectLineCellsPatchYears(patch) {
+            const yearsSet = new Set();
+            const walk = target => {
+                if (!target || typeof target !== 'object') {
+                    return;
+                }
+                if (target.patchType === 'lineCellsMulti') {
+                    if (Array.isArray(target.years)) {
+                        target.years.forEach(year => {
+                            if (Number.isInteger(year)) {
+                                yearsSet.add(year);
+                            }
+                        });
+                    }
+                    if (Array.isArray(target.patches)) {
+                        target.patches.forEach(walk);
+                    }
+                    return;
+                }
+                if (target.patchType === 'lineCells' && Number.isInteger(target.year)) {
+                    yearsSet.add(target.year);
+                }
+            };
+            walk(patch);
+            return Array.from(yearsSet).sort((a, b) => a - b);
+        }
+
+        function summarizeLineCellsPatch(patch) {
+            const cells = flattenLineCellsPatch(patch);
+            const codeCount = cells.reduce((acc, cell) => acc + (Array.isArray(cell.codes) ? cell.codes.length : 0), 0);
+            const years = collectLineCellsPatchYears(patch);
+            const patchCount = patch && patch.patchType === 'lineCellsMulti' && Array.isArray(patch.patches)
+                ? patch.patches.length
+                : (patch && patch.patchType === 'lineCells' ? 1 : 0);
+            return { years, cells, cellCount: cells.length, codeCount, patchCount };
+        }
+
+        function formatLineCellsYears(years) {
+            if (!Array.isArray(years) || years.length === 0) {
+                return 'Year —';
+            }
+            if (years.length === 1) {
+                return `Year ${years[0]}`;
+            }
+            return `Years ${years.join(', ')}`;
         }
 
         // ---------- JSON validator ----------
         function assertLineCellsPatch(obj) {
             if (!obj || typeof obj !== 'object') {
                 throw new Error('Patch must be an object');
+            }
+            if (obj.patchType === 'lineCellsMulti') {
+                if (!Array.isArray(obj.patches) || obj.patches.length === 0) {
+                    throw new Error('lineCellsMulti patch must include at least one patch');
+                }
+                if (obj.options && obj.options.touchAllocations) {
+                    throw new Error('touchAllocations is not allowed for lineCells patch');
+                }
+                obj.options = Object.assign({ touchAllocations: false }, obj.options || {});
+                obj.patches = obj.patches.map(assertLineCellsPatch);
+                obj.years = collectLineCellsPatchYears(obj);
+                return obj;
             }
             if (obj.patchType !== 'lineCells') {
                 throw new Error("patchType must be 'lineCells'");
@@ -3553,6 +3669,28 @@
             return { changes, allocationsTouched: 0 };
         }
 
+        function applyLineCellsPatchBundle(state, patch) {
+            if (!patch || typeof patch !== 'object') {
+                return { changes: [], allocationsTouched: 0 };
+            }
+            if (patch.patchType === 'lineCellsMulti') {
+                const combinedChanges = [];
+                let totalAllocations = 0;
+                const nested = Array.isArray(patch.patches) ? patch.patches : [];
+                nested.forEach(subPatch => {
+                    const result = applyLineCellsPatchBundle(state, subPatch);
+                    if (Array.isArray(result.changes)) {
+                        combinedChanges.push(...result.changes);
+                    }
+                    if (typeof result.allocationsTouched === 'number') {
+                        totalAllocations += result.allocationsTouched;
+                    }
+                });
+                return { changes: combinedChanges, allocationsTouched: totalAllocations };
+            }
+            return applyLineCellsPatch(state, patch);
+        }
+
         async function handleAdditionalInfoImport(file, appState) {
             const text = await file.text();
             const name = file.name.toLowerCase();
@@ -3566,17 +3704,19 @@
 
             if (name.endsWith('.csv')) {
                 const patch = csvToLineCellsPatch(text, { normalizeCodes: true });
-                const preview = applyLineCellsPatch(cloneState(), patch);
+                const summary = summarizeLineCellsPatch(patch);
+                const yearLabel = formatLineCellsYears(summary.years);
+                const preview = applyLineCellsPatchBundle(cloneState(), patch);
                 const ok = confirm(
                     `Line Cells Patch detected (CSV).\n` +
-                    `Year ${patch.year}\n` +
+                    `${yearLabel}\n` +
                     `Subjects added/updated: ${preview.changes.length}\n` +
-                    `Allocations changed: 0\n\nApply now?`
+                    `Allocations changed: ${preview.allocationsTouched}\n\nApply now?`
                 );
                 if (!ok) {
                     return;
                 }
-                const result = applyLineCellsPatch(appState, patch);
+                const result = applyLineCellsPatchBundle(appState, patch);
                 if (result.changes.length > 0) {
                     createSubjectPool();
                     renderAllAllocations();
@@ -3585,26 +3725,28 @@
                 } else {
                     updateStats();
                 }
-                alert(`Applied. Changes: ${result.changes.length}. Allocations touched: ${result.allocationsTouched}.`);
+                alert(`Applied. ${yearLabel}. Changes: ${result.changes.length}. Allocations touched: ${result.allocationsTouched}.`);
                 return;
             }
 
             if (name.endsWith('.json')) {
                 try {
                     const parsed = JSON.parse(text);
-                    if (parsed && parsed.patchType === 'lineCells') {
+                    if (parsed && (parsed.patchType === 'lineCells' || parsed.patchType === 'lineCellsMulti')) {
                         const patch = assertLineCellsPatch(parsed);
-                        const preview = applyLineCellsPatch(cloneState(), patch);
+                        const summary = summarizeLineCellsPatch(patch);
+                        const yearLabel = formatLineCellsYears(summary.years);
+                        const preview = applyLineCellsPatchBundle(cloneState(), patch);
                         const ok = confirm(
                             `Line Cells Patch detected (JSON).\n` +
-                            `Year ${patch.year}\n` +
+                            `${yearLabel}\n` +
                             `Subjects added/updated: ${preview.changes.length}\n` +
-                            `Allocations changed: 0\n\nApply now?`
+                            `Allocations changed: ${preview.allocationsTouched}\n\nApply now?`
                         );
                         if (!ok) {
                             return;
                         }
-                        const result = applyLineCellsPatch(appState, patch);
+                        const result = applyLineCellsPatchBundle(appState, patch);
                         if (result.changes.length > 0) {
                             createSubjectPool();
                             renderAllAllocations();
@@ -3613,7 +3755,7 @@
                         } else {
                             updateStats();
                         }
-                        alert(`Applied. Changes: ${result.changes.length}. Allocations touched: ${result.allocationsTouched}.`);
+                        alert(`Applied. ${yearLabel}. Changes: ${result.changes.length}. Allocations touched: ${result.allocationsTouched}.`);
                         return;
                     }
                 } catch (e) {
@@ -6893,26 +7035,38 @@
                 }
 
                 const max = 30;
-                const rowsHtml = cells.slice(0, max).map(cell => {
+                const hasYear = cells.some(cell => cell && cell.year !== undefined && cell.year !== null && cell.year !== '');
+                const previewCells = cells.slice(0, max);
+                const headerHtml = hasYear
+                    ? '<th>Year</th><th>Row</th><th>Line</th><th>Codes</th>'
+                    : '<th>Row</th><th>Line</th><th>Codes</th>';
+
+                const rowsHtml = previewCells.map(cell => {
                     const codes = Array.isArray(cell.codes) ? cell.codes : [];
                     const codesHtml = codes.length > 0
                         ? codes.map(code => `<span class="converter-pill">${escapeHtml(code)}</span>`).join('')
                         : '<span class="converter-muted">—</span>';
-                    return `<tr><td>${escapeHtml(cell.row)}</td><td>${escapeHtml(cell.line)}</td><td>${codesHtml}</td></tr>`;
+                    const rowValue = escapeHtml(cell.row ?? '—');
+                    const lineValue = escapeHtml(cell.line ?? '—');
+                    if (hasYear) {
+                        const yearValue = escapeHtml(cell.year ?? '—');
+                        return `<tr><td>${yearValue}</td><td>${rowValue}</td><td>${lineValue}</td><td>${codesHtml}</td></tr>`;
+                    }
+                    return `<tr><td>${rowValue}</td><td>${lineValue}</td><td>${codesHtml}</td></tr>`;
                 }).join('');
 
                 const moreText = cells.length > max
                     ? `<div class="converter-muted">…and ${cells.length - max} more</div>`
                     : '';
 
-                cellsEl.innerHTML = `<table class="converter-table"><thead><tr><th>Row</th><th>Line</th><th>Codes</th></tr></thead><tbody>${rowsHtml}</tbody></table>${moreText}`;
+                cellsEl.innerHTML = `<table class="converter-table"><thead><tr>${headerHtml}</tr></thead><tbody>${rowsHtml}</tbody></table>${moreText}`;
             };
 
-            const setSummary = ({ cells = 0, codes = 0, year = '—', normalize = true, inherit = true, remove = false }) => {
+            const setSummary = ({ cells = 0, codes = 0, yearLabel = '—', normalize = true, inherit = true, remove = false }) => {
                 summaryEl.innerHTML = `
                     <div>Cells: <strong>${cells}</strong></div>
                     <div>Total codes parsed: <strong>${codes}</strong></div>
-                    <div>Year: <strong>${year}</strong></div>
+                    <div>Year(s): <strong>${escapeHtml(yearLabel)}</strong></div>
                     <div class="converter-muted">Options: normalize=${normalize}, inheritLineForSplits=${inherit}${remove ? ', removeMissingInThisYear=true' : ''}</div>
                 `;
             };
@@ -6932,10 +7086,22 @@
                     return;
                 }
 
-                const options = patch.options || {};
-                const normalize = options.normalizeCodes !== false;
-                const inherit = options.inheritLineForSplits !== false;
-                const remove = options.removeMissingInThisYear === true;
+                const summary = summarizeLineCellsPatch(patch);
+                let options = (patch && typeof patch === 'object' && patch.options && typeof patch.options === 'object')
+                    ? patch.options
+                    : {};
+                if (patch.patchType === 'lineCellsMulti') {
+                    const firstWithOptions = Array.isArray(patch.patches)
+                        ? patch.patches.find(p => p && p.options && typeof p.options === 'object')
+                        : null;
+                    if (!options || Object.keys(options).length === 0) {
+                        options = firstWithOptions && firstWithOptions.options ? firstWithOptions.options : options;
+                    }
+                }
+
+                const normalize = options && options.normalizeCodes !== false;
+                const inherit = options && options.inheritLineForSplits !== false;
+                const remove = options && options.removeMissingInThisYear === true;
 
                 if (syncControls) {
                     if (normalizeCheckbox) {
@@ -6948,18 +7114,14 @@
                         removeCheckbox.checked = remove;
                     }
                     if (forceYearInput) {
-                        forceYearInput.value = patch.year ?? '';
+                        forceYearInput.value = patch.patchType === 'lineCells' ? (patch.year ?? '') : '';
                     }
                 }
 
-                const codeCount = Array.isArray(patch.cells)
-                    ? patch.cells.reduce((acc, cell) => acc + (Array.isArray(cell.codes) ? cell.codes.length : 0), 0)
-                    : 0;
+                const yearLabel = summary.years.length > 0 ? summary.years.join(', ') : '—';
 
-                const yearValue = patch.year ?? '—';
-
-                setSummary({ cells: Array.isArray(patch.cells) ? patch.cells.length : 0, codes: codeCount, year: yearValue, normalize, inherit, remove });
-                renderCells(Array.isArray(patch.cells) ? patch.cells : []);
+                setSummary({ cells: summary.cellCount, codes: summary.codeCount, yearLabel, normalize, inherit, remove });
+                renderCells(summary.cells);
 
                 if (updateText) {
                     jsonOutput.value = JSON.stringify(patch, null, 2);
@@ -6975,8 +7137,43 @@
             };
 
             const ensureOptionsShape = patch => {
+                if (!patch || typeof patch !== 'object') {
+                    return patch;
+                }
+                if (patch.patchType === 'lineCellsMulti') {
+                    patch.options = Object.assign({ touchAllocations: false }, patch.options);
+                    if (Array.isArray(patch.patches)) {
+                        patch.patches = patch.patches.map(child => ensureOptionsShape(child));
+                    }
+                    return patch;
+                }
                 patch.options = Object.assign({ touchAllocations: false }, patch.options);
                 return patch;
+            };
+
+            const setOptionOnPatch = (patch, key, value) => {
+                if (!patch || typeof patch !== 'object') {
+                    return;
+                }
+                if (!patch.options || typeof patch.options !== 'object') {
+                    patch.options = {};
+                }
+                patch.options[key] = value;
+                if (patch.patchType === 'lineCellsMulti' && Array.isArray(patch.patches)) {
+                    patch.patches.forEach(child => setOptionOnPatch(child, key, value));
+                }
+            };
+
+            const clearOptionOnPatch = (patch, key) => {
+                if (!patch || typeof patch !== 'object') {
+                    return;
+                }
+                if (patch.options && typeof patch.options === 'object') {
+                    delete patch.options[key];
+                }
+                if (patch.patchType === 'lineCellsMulti' && Array.isArray(patch.patches)) {
+                    patch.patches.forEach(child => clearOptionOnPatch(child, key));
+                }
             };
 
             resetDisplay();
@@ -6995,17 +7192,20 @@
                         const shouldNormalize = normalizeCheckbox ? normalizeCheckbox.checked : true;
                         let patch = csvToLineCellsPatch(text, { normalizeCodes: shouldNormalize });
                         const forcedYear = parseInt(forceYearInput && forceYearInput.value, 10);
-                        if (Number.isInteger(forcedYear) && forcedYear >= 7 && forcedYear <= 12) {
+                        if (Number.isInteger(forcedYear) && forcedYear >= 7 && forcedYear <= 12 && patch.patchType === 'lineCells') {
                             patch.year = forcedYear;
                         }
                         patch = ensureOptionsShape(patch);
-                        patch.options.normalizeCodes = shouldNormalize;
+                        setOptionOnPatch(patch, 'normalizeCodes', shouldNormalize);
                         const inherit = inheritCheckbox ? inheritCheckbox.checked : true;
-                        patch.options.inheritLineForSplits = inherit;
+                        setOptionOnPatch(patch, 'inheritLineForSplits', inherit);
                         if (removeCheckbox && removeCheckbox.checked) {
-                            patch.options.removeMissingInThisYear = true;
+                            setOptionOnPatch(patch, 'removeMissingInThisYear', true);
                         } else {
-                            delete patch.options.removeMissingInThisYear;
+                            clearOptionOnPatch(patch, 'removeMissingInThisYear');
+                        }
+                        if (patch.patchType === 'lineCellsMulti' && forceYearInput) {
+                            forceYearInput.value = '';
                         }
                         applyPatchToUi(patch, { detectedLabel: 'CSV detected' });
                     } else if (lowerName.endsWith('.json')) {
@@ -7035,7 +7235,9 @@
                     const parsed = JSON.parse(jsonOutput.value || '{}');
                     const patch = ensureOptionsShape(assertLineCellsPatch(parsed));
                     applyPatchToUi(patch, { detectedLabel: 'JSON validated', syncControls: true });
-                    alert(`Valid JSON patch ✅\nYear ${patch.year} with ${patch.cells.length} cells.`);
+                    const summary = summarizeLineCellsPatch(patch);
+                    const yearLabel = formatLineCellsYears(summary.years);
+                    alert(`Valid JSON patch ✅\n${yearLabel} with ${summary.cellCount} cells.`);
                 } catch (error) {
                     alert('Invalid JSON patch ❌\n' + error.message);
                 }
