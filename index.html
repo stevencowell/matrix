@@ -629,6 +629,7 @@
             gap: 18px;
             margin-top: 18px;
             align-items: flex-start;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         }
 
         .subject-pool-column {
@@ -665,6 +666,41 @@
             grid-column: 1 / -1;
             margin-top: 18px;
             border-style: dashed;
+        }
+
+        .subject-pool-section {
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .subject-pool-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .subject-pool-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .subject-pool-count {
+            font-size: 0.85rem;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .subject-pool-description {
+            font-size: 0.9rem;
+            color: #5d6d7e;
+        }
+
+        .subject-pool-empty {
+            color: #64748b;
+            font-style: italic;
         }
 
         .teacher-period-summary {
@@ -4351,6 +4387,185 @@
             return container.querySelector('.subject-pool-column[data-line="unassigned"] .subject-pool-column-body');
         }
 
+        function createSubjectPool() {
+            const container = document.querySelector('.timetable-container');
+            if (!container) {
+                return;
+            }
+
+            let subjectPoolSection = document.getElementById('subjectPool');
+            if (!subjectPoolSection) {
+                subjectPoolSection = document.createElement('div');
+                subjectPoolSection.id = 'subjectPool';
+                subjectPoolSection.className = 'subject-pool-section';
+
+                const header = document.createElement('div');
+                header.className = 'subject-pool-header';
+
+                const title = document.createElement('h3');
+                title.id = 'subjectPoolTitle';
+                title.textContent = 'Available Subject Pool';
+                header.appendChild(title);
+
+                const count = document.createElement('span');
+                count.id = 'subjectPoolCount';
+                count.className = 'subject-pool-count';
+                header.appendChild(count);
+
+                const description = document.createElement('p');
+                description.id = 'subjectPoolDescription';
+                description.className = 'subject-pool-description';
+                description.textContent = 'Drag a subject onto the matrix or click it to allocate quickly.';
+                header.appendChild(description);
+
+                subjectPoolSection.appendChild(header);
+
+                const grid = document.createElement('div');
+                grid.id = 'subjectPoolItems';
+                grid.className = 'subject-pool-grid';
+                subjectPoolSection.appendChild(grid);
+
+                container.appendChild(subjectPoolSection);
+            }
+
+            const grid = document.getElementById('subjectPoolItems');
+            if (!grid) {
+                return;
+            }
+
+            grid.innerHTML = '';
+
+            const sanitizedLines = Array.isArray(lines)
+                ? lines.map((line, index) => {
+                    if (typeof line === 'string' && line.trim().length > 0) {
+                        return line.trim();
+                    }
+                    return `Line ${index + 1}`;
+                })
+                : [];
+
+            const columnBodies = new Map();
+
+            sanitizedLines.forEach((lineLabel, lineIndex) => {
+                const column = document.createElement('div');
+                column.className = 'subject-pool-column';
+                column.dataset.line = String(lineIndex);
+
+                const heading = document.createElement('h4');
+                heading.textContent = lineLabel;
+                column.appendChild(heading);
+
+                const body = document.createElement('div');
+                body.className = 'subject-pool-column-body';
+                column.appendChild(body);
+
+                grid.appendChild(column);
+                columnBodies.set(String(lineIndex), body);
+            });
+
+            const unassignedColumn = document.createElement('div');
+            unassignedColumn.className = 'subject-pool-column subject-pool-column--unassigned';
+            unassignedColumn.dataset.line = 'unassigned';
+
+            const unassignedHeading = document.createElement('h4');
+            unassignedHeading.textContent = 'Unassigned';
+            unassignedColumn.appendChild(unassignedHeading);
+
+            const unassignedBody = document.createElement('div');
+            unassignedBody.className = 'subject-pool-column-body';
+            unassignedColumn.appendChild(unassignedBody);
+
+            grid.appendChild(unassignedColumn);
+            columnBodies.set('unassigned', unassignedBody);
+
+            const allocatedSubjects = new Set(flattenAllocatedSubjects().map(subject => {
+                return typeof subject === 'string' ? subject.trim() : subject;
+            }));
+
+            const seenSubjects = new Set();
+            const availableSubjects = [];
+
+            if (Array.isArray(subjects)) {
+                subjects.forEach(subject => {
+                    if (typeof subject !== 'string') {
+                        return;
+                    }
+
+                    const trimmed = subject.trim();
+                    if (trimmed.length === 0) {
+                        return;
+                    }
+
+                    if (allocatedSubjects.has(trimmed)) {
+                        return;
+                    }
+
+                    const comparisonKey = subjectComparisonKey(trimmed);
+                    if (!comparisonKey || seenSubjects.has(comparisonKey)) {
+                        return;
+                    }
+
+                    seenSubjects.add(comparisonKey);
+                    availableSubjects.push(trimmed);
+                });
+            }
+
+            const countElement = document.getElementById('subjectPoolCount');
+            if (countElement) {
+                const subjectLabel = availableSubjects.length === 1 ? 'subject' : 'subjects';
+                countElement.textContent = `${availableSubjects.length} ${subjectLabel} available`;
+            }
+
+            const groups = new Map();
+
+            availableSubjects.forEach(subject => {
+                let mappedLine = subjectLineMapping ? subjectLineMapping[subject] : undefined;
+
+                if (mappedLine === undefined) {
+                    const normalized = normalizeSubjectCode(subject);
+                    mappedLine = subjectLineMapping ? subjectLineMapping[normalized] : undefined;
+                }
+
+                const numericLine = Number.isInteger(mappedLine) ? mappedLine : null;
+
+                const key = numericLine !== null && numericLine >= 0 && numericLine < sanitizedLines.length
+                    ? String(numericLine)
+                    : 'unassigned';
+
+                if (!groups.has(key)) {
+                    groups.set(key, []);
+                }
+
+                groups.get(key).push(subject);
+            });
+
+            let hasSubjects = false;
+
+            groups.forEach((list, key) => {
+                list.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
+                const body = columnBodies.get(key) || columnBodies.get('unassigned');
+
+                if (!body) {
+                    return;
+                }
+
+                list.forEach(subject => {
+                    const element = createSubjectElement(subject);
+                    body.appendChild(element);
+                    hasSubjects = true;
+                });
+            });
+
+            if (!hasSubjects) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'subject-pool-empty';
+                emptyMessage.textContent = 'No available subjects. Import spreadsheet data or adjust allocations to add subjects back to the pool.';
+                unassignedBody.appendChild(emptyMessage);
+            }
+
+            ensureTeacherPeriodTotalsContainer();
+        }
+
         function createSubjectElement(subjectCode) {
             const subjectElement = document.createElement('div');
             subjectElement.className = 'subject-slot';
@@ -4507,6 +4722,98 @@
 
                 handleSubjectRemoval(lineIndex, teacherIndex, subjectCode);
             });
+        }
+
+        function initializeTimetable() {
+            const head = document.getElementById('timetableHead');
+            const body = document.getElementById('timetableBody');
+
+            if (!head || !body) {
+                return;
+            }
+
+            let headerRow = head.querySelector('tr');
+            if (!headerRow) {
+                headerRow = document.createElement('tr');
+                head.appendChild(headerRow);
+            }
+
+            headerRow.innerHTML = '';
+
+            const lineHeader = document.createElement('th');
+            lineHeader.textContent = 'Line';
+            lineHeader.setAttribute('scope', 'col');
+            headerRow.appendChild(lineHeader);
+
+            const teacherList = Array.isArray(teachers) ? teachers : [];
+
+            teacherList.forEach((teacherName, index) => {
+                const columnHeader = document.createElement('th');
+                columnHeader.className = 'teacher-column';
+                columnHeader.dataset.teacher = index;
+
+                const label = typeof teacherName === 'string' && teacherName.trim().length > 0
+                    ? teacherName.trim()
+                    : `Teacher ${index + 1}`;
+
+                columnHeader.textContent = label;
+                headerRow.appendChild(columnHeader);
+            });
+
+            body.innerHTML = '';
+
+            const lineList = Array.isArray(lines) ? lines : [];
+
+            lineList.forEach((lineLabel, lineIndex) => {
+                const row = document.createElement('tr');
+
+                const labelCell = document.createElement('td');
+                labelCell.className = 'period-row';
+                const lineText = typeof lineLabel === 'string' && lineLabel.trim().length > 0
+                    ? lineLabel.trim()
+                    : `Line ${lineIndex + 1}`;
+                labelCell.textContent = lineText;
+                row.appendChild(labelCell);
+
+                teacherList.forEach((teacherName, teacherIndex) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'drop-zone';
+                    cell.dataset.period = String(lineIndex);
+                    cell.dataset.teacher = String(teacherIndex);
+
+                    const teacherLabel = typeof teacherName === 'string' && teacherName.trim().length > 0
+                        ? teacherName.trim()
+                        : `Teacher ${teacherIndex + 1}`;
+
+                    cell.tabIndex = 0;
+                    cell.setAttribute('role', 'button');
+                    cell.setAttribute('aria-label', `Allocate subject to ${teacherLabel} on ${lineText}`);
+
+                    cell.addEventListener('click', function() {
+                        showAllocationPopup(lineIndex, teacherIndex);
+                    });
+
+                    cell.addEventListener('keydown', function(event) {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            showAllocationPopup(lineIndex, teacherIndex);
+                        }
+                    });
+
+                    cell.addEventListener('dragover', handleDragOver);
+                    cell.addEventListener('dragenter', handleDragEnter);
+                    cell.addEventListener('dragleave', handleDragLeave);
+                    cell.addEventListener('drop', handleDrop);
+
+                    row.appendChild(cell);
+                });
+
+                body.appendChild(row);
+            });
+
+            renderAllAllocations();
+            renderTlcPeriodsRow();
+            ensureTeacherPeriodTotalsContainer();
         }
 
         function renderCell(lineIndex, teacherIndex) {
