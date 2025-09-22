@@ -1919,7 +1919,7 @@
                             <span class="converter-intro__tag">How it works</span>
                             <p>Use this tool when you need to bulk update subjects. It translates CSV spreadsheets into JSON <code>lineCells</code> patches and can validate a patch that someone has shared with you.</p>
                             <ol class="converter-steps">
-                                <li>Download a long-form or wide-form CSV template and fill in your subjects, teachers and lines.</li>
+                                <li>Download the Allocation Data Template CSV and fill in your subjects, teachers and lines.</li>
                                 <li>Upload the completed CSV (or another exported CSV) to preview the first 30 cells and generate the JSON patch automatically.</li>
                                 <li>Optional: paste an existing JSON patch into the panel on the right to validate it and download a tidy copy.</li>
                             </ol>
@@ -1961,8 +1961,7 @@
                                 </div>
                                 <h3 class="converter-heading">CSV Templates</h3>
                                 <div class="converter-row">
-                                    <button class="btn btn-secondary btn-compact" id="converterDownloadLong">Download Long-form CSV</button>
-                                    <button class="btn btn-secondary btn-compact" id="converterDownloadWide">Download Wide-form CSV</button>
+                                    <button class="btn btn-secondary btn-compact" id="converterDownloadTemplate">Download Allocation Data Template</button>
                                 </div>
                             </div>
                         </div>
@@ -6825,33 +6824,22 @@
             const validateBtn = document.getElementById('converterValidate');
             const copyBtn = document.getElementById('converterCopy');
             const clearBtn = document.getElementById('converterClear');
-            const downloadLongBtn = document.getElementById('converterDownloadLong');
-            const downloadWideBtn = document.getElementById('converterDownloadWide');
+            const downloadTemplateBtn = document.getElementById('converterDownloadTemplate');
 
-            if (!fileInput || !detectedEl || !summaryEl || !jsonOutput || !cellsEl || !downloadBtn || !validateBtn || !copyBtn || !clearBtn || !downloadLongBtn || !downloadWideBtn) {
+            if (!fileInput || !detectedEl || !summaryEl || !jsonOutput || !cellsEl || !downloadBtn || !validateBtn || !copyBtn || !clearBtn || !downloadTemplateBtn) {
                 return;
             }
 
             let currentPatch = null;
 
-            const templates = {
-                long: `Year,Row,Line,Codes
-8,1,1,8TM1
-8,2,1,8TM2
-8,3,1,8TM3
-8,4,1,8TM4
-8,5,1,8TM5
-8,6,1,8TM6
-`,
-                wide: `Year,Row,Line1,Line2,Line3,Line4,Line5,Line6
+            const allocationTemplateCsv = `Year,Row,Line1,Line2,Line3,Line4,Line5,Line6
 8,1,8TM1,,,,,
 8,2,8TM2,,,,,
 8,3,8TM3,,,,,
 8,4,8TM4,,,,,
 8,5,8TM5,,,,,
 8,6,8TM6,,,,,
-`
-            };
+`;
 
             const escapeHtml = value => String(value ?? '')
                 .replace(/&/g, '&amp;')
@@ -7048,12 +7036,8 @@
                 resetDisplay();
             });
 
-            downloadLongBtn.addEventListener('click', () => {
-                downloadFile('line-cells-patch-long.csv', 'text/csv', templates.long);
-            });
-
-            downloadWideBtn.addEventListener('click', () => {
-                downloadFile('line-cells-patch-wide.csv', 'text/csv', templates.wide);
+            downloadTemplateBtn.addEventListener('click', () => {
+                downloadFile('allocation-data-template.csv', 'text/csv', allocationTemplateCsv);
             });
 
             renderCells([]);
