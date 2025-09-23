@@ -7852,6 +7852,7 @@
                 'Year,Row,Line1,Line2,Line3,Line4,Line5,Line6',
                 ...Array.from({ length: 12 }, () => ',,,,,,,')
             ].join('\n');
+            const allocationTemplateFilename = 'allocation-data-template.csv';
 
             const escapeHtml = value => String(value ?? '')
                 .replace(/&/g, '&amp;')
@@ -7860,8 +7861,8 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
 
-            const downloadFile = (filename, mimeType, text) => {
-                const blob = new Blob([text], { type: mimeType });
+            const downloadFile = (filename, mimeType, data) => {
+                const blob = data instanceof Blob ? data : new Blob([data ?? ''], { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 const anchor = document.createElement('a');
                 anchor.href = url;
@@ -8153,9 +8154,20 @@
                 resetDisplay();
             });
 
-            downloadTemplateBtn.addEventListener('click', () => {
-                downloadFile('allocation-data-template.csv', 'text/csv', allocationTemplateCsv);
-                setStatus('Template downloaded. Fill it in, then upload it here.', 'success');
+            downloadTemplateBtn.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(allocationTemplateFilename, { cache: 'no-cache' });
+                    if (!response.ok) {
+                        throw new Error(`Template request failed with status ${response.status}`);
+                    }
+                    const blob = await response.blob();
+                    downloadFile(allocationTemplateFilename, blob.type || 'text/csv', blob);
+                    setStatus('Template downloaded. Fill it in, then upload it here.', 'success');
+                } catch (error) {
+                    console.warn('Could not download template CSV from file system. Falling back to generated copy.', error);
+                    downloadFile(allocationTemplateFilename, 'text/csv', allocationTemplateCsv);
+                    setStatus('Template downloaded. Fill it in, then upload it here.', 'success');
+                }
             });
 
             applyBtn.addEventListener('click', () => {
