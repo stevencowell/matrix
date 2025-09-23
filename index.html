@@ -2600,19 +2600,68 @@
             return `${lineIndex}-${teacherIndex}`;
         }
 
+        function parseAllocationKey(rawKey) {
+            if (typeof rawKey !== 'string') {
+                return null;
+            }
+
+            const trimmed = rawKey.trim();
+            if (trimmed.length === 0) {
+                return null;
+            }
+
+            const parts = trimmed.split('-');
+            if (parts.length !== 2) {
+                return null;
+            }
+
+            const lineIndex = Number(parts[0]);
+            const teacherIndex = Number(parts[1]);
+
+            if (!Number.isFinite(lineIndex) || !Number.isFinite(teacherIndex)) {
+                return null;
+            }
+
+            if (!Number.isInteger(lineIndex) || !Number.isInteger(teacherIndex)) {
+                return null;
+            }
+
+            if (lineIndex < 0 || teacherIndex < 0) {
+                return null;
+            }
+
+            return {
+                key: `${lineIndex}-${teacherIndex}`,
+                lineIndex,
+                teacherIndex
+            };
+        }
+
         function getAllocationSubjects(key) {
-            const value = allocations[key];
+            const parsed = parseAllocationKey(key);
+            if (!parsed) {
+                return [];
+            }
+
+            const value = allocations[parsed.key];
             if (!value) {
                 return [];
             }
+
             return Array.isArray(value) ? [...value] : [value];
         }
 
         function setAllocationSubjects(key, subjects) {
+            const parsed = parseAllocationKey(key);
+            if (!parsed) {
+                console.warn('Ignoring allocation update for invalid key:', key);
+                return;
+            }
+
             if (!subjects || subjects.length === 0) {
-                delete allocations[key];
+                delete allocations[parsed.key];
             } else {
-                allocations[key] = [...subjects];
+                allocations[parsed.key] = [...subjects];
             }
         }
 
@@ -2630,14 +2679,19 @@
 
         function findSubjectLocation(subjectCode) {
             for (const [key, value] of Object.entries(allocations)) {
+                const parsed = parseAllocationKey(key);
+                if (!parsed) {
+                    delete allocations[key];
+                    continue;
+                }
+
                 const subjects = Array.isArray(value) ? value : [value];
                 const index = subjects.indexOf(subjectCode);
                 if (index !== -1) {
-                    const [lineIndex, teacherIndex] = key.split('-').map(Number);
                     return {
-                        key,
-                        lineIndex,
-                        teacherIndex,
+                        key: parsed.key,
+                        lineIndex: parsed.lineIndex,
+                        teacherIndex: parsed.teacherIndex,
                         index
                     };
                 }
@@ -2746,7 +2800,13 @@
             const updatedAllocations = {};
 
             Object.entries(allocations).forEach(([key, value]) => {
-                const [lineIndex, teacherIndex] = key.split('-').map(Number);
+                const parsed = parseAllocationKey(key);
+                if (!parsed) {
+                    delete allocations[key];
+                    return;
+                }
+
+                const { lineIndex, teacherIndex } = parsed;
 
                 if (teacherIndex === index) {
                     const subjectList = Array.isArray(value) ? value : [value];
@@ -2762,7 +2822,7 @@
                 const subjectList = Array.isArray(value) ? [...value] : [value];
 
                 if (subjectList.length > 0) {
-                    updatedAllocations[`${lineIndex}-${newTeacherIndex}`] = subjectList;
+                    updatedAllocations[getAllocationKey(lineIndex, newTeacherIndex)] = subjectList;
                 }
             });
 
@@ -2842,7 +2902,13 @@
             const updatedAllocations = {};
 
             Object.entries(allocations).forEach(([key, value]) => {
-                const [lineIndex, teacherIndex] = key.split('-').map(Number);
+                const parsed = parseAllocationKey(key);
+                if (!parsed) {
+                    delete allocations[key];
+                    return;
+                }
+
+                const { lineIndex, teacherIndex } = parsed;
 
                 if (lineIndex === index) {
                     const subjectList = Array.isArray(value) ? value : [value];
@@ -2858,7 +2924,7 @@
                 const subjectList = Array.isArray(value) ? [...value] : [value];
 
                 if (subjectList.length > 0) {
-                    updatedAllocations[`${newLineIndex}-${teacherIndex}`] = subjectList;
+                    updatedAllocations[getAllocationKey(newLineIndex, teacherIndex)] = subjectList;
                 }
             });
 
@@ -4444,13 +4510,14 @@
             const totals = new Array(teachers.length).fill(0);
 
             Object.entries(allocations).forEach(([key, value]) => {
-                const parts = key.split('-');
-                if (parts.length !== 2) {
+                const parsed = parseAllocationKey(key);
+                if (!parsed) {
+                    delete allocations[key];
                     return;
                 }
 
-                const teacherIndex = parseInt(parts[1], 10);
-                if (Number.isNaN(teacherIndex) || teacherIndex < 0 || teacherIndex >= teachers.length) {
+                const teacherIndex = parsed.teacherIndex;
+                if (teacherIndex < 0 || teacherIndex >= teachers.length) {
                     return;
                 }
 
@@ -5780,8 +5847,13 @@
             });
 
             Object.keys(allocations).forEach(key => {
-                const [lineIndex, teacherIndex] = key.split('-').map(Number);
-                renderCell(lineIndex, teacherIndex);
+                const parsed = parseAllocationKey(key);
+                if (!parsed) {
+                    delete allocations[key];
+                    return;
+                }
+
+                renderCell(parsed.lineIndex, parsed.teacherIndex);
             });
 
             syncSubjectPool();
@@ -5880,6 +5952,12 @@
                 const normalizedAllocations = {};
 
                 Object.entries(allocations).forEach(([key, value]) => {
+                    const parsed = parseAllocationKey(key);
+                    if (!parsed) {
+                        delete allocations[key];
+                        return;
+                    }
+
                     const subjectList = Array.isArray(value) ? value : [value];
                     const seenSubjects = new Set();
                     const normalizedSubjects = [];
@@ -5899,7 +5977,7 @@
                     });
 
                     if (normalizedSubjects.length > 0) {
-                        normalizedAllocations[key] = normalizedSubjects;
+                        normalizedAllocations[parsed.key] = normalizedSubjects;
                     }
                 });
 
@@ -6339,16 +6417,27 @@
         function getAllocatedSubjects() {
             const allocatedList = [];
             Object.entries(allocations).forEach(([key, value]) => {
-                const [lineIndex, teacherIndex] = key.split('-').map(Number);
+                const parsed = parseAllocationKey(key);
+                if (!parsed) {
+                    delete allocations[key];
+                    return;
+                }
+
                 const subjectList = Array.isArray(value) ? value : [value];
+                const teacherName = Array.isArray(teachers) && teachers[parsed.teacherIndex] !== undefined
+                    ? teachers[parsed.teacherIndex]
+                    : `Teacher ${parsed.teacherIndex + 1}`;
+                const lineLabel = Array.isArray(lines) && lines[parsed.lineIndex] !== undefined
+                    ? lines[parsed.lineIndex]
+                    : `Line ${parsed.lineIndex + 1}`;
 
                 subjectList.forEach(subject => {
                     allocatedList.push({
                         subject: subject,
-                        teacher: teachers[teacherIndex],
-                        teacherIndex: teacherIndex,
-                        line: lines[lineIndex],
-                        lineIndex: lineIndex
+                        teacher: teacherName,
+                        teacherIndex: parsed.teacherIndex,
+                        line: lineLabel,
+                        lineIndex: parsed.lineIndex
                     });
                 });
             });
