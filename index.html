@@ -2211,10 +2211,11 @@
                                 </div>
                                 <div class="converter-step__body">
                                     <div class="converter-upload-row">
-                                        <input id="converterFile" class="converter-file-input" type="file" accept=".csv,.json">
+                                        <input id="converterFile" class="converter-file-input" type="file" accept=".csv,.json" hidden>
+                                        <button class="btn btn-secondary btn-compact" id="converterFileButton" type="button" data-label-default="Choose File" data-label-active="Choose another file">Choose File</button>
                                         <button class="btn btn-secondary btn-compact" id="converterClear" type="button">Clear</button>
                                     </div>
-                                    <div id="converterFileInfo" class="converter-file-info">No file selected yet.</div>
+                                    <div id="converterFileInfo" class="converter-file-info" role="status" aria-live="polite">No file selected yet.</div>
                                     <details class="converter-advanced">
                                         <summary>Advanced options</summary>
                                         <div class="converter-advanced__content">
@@ -7928,6 +7929,7 @@
 
         function initializeLineCellsConverter() {
             const fileInput = document.getElementById('converterFile');
+            const fileButton = document.getElementById('converterFileButton');
             const detectedEl = document.getElementById('converterDetected');
             const summaryEl = document.getElementById('converterSummary');
             const jsonOutput = document.getElementById('converterJson');
@@ -7944,8 +7946,19 @@
             const statusEl = document.getElementById('converterStatus');
             const applyBtn = document.getElementById('converterApply');
             const fileInfo = document.getElementById('converterFileInfo');
+            const defaultFileInfoText = fileInfo && fileInfo.textContent
+                ? fileInfo.textContent.trim() || 'No file selected yet.'
+                : 'No file selected yet.';
+            const fallbackButtonDefaultLabel = 'Choose File';
+            const fallbackButtonActiveLabel = 'Choose another file';
+            const fileButtonDefaultLabel = fileButton
+                ? (fileButton.dataset.labelDefault || fileButton.textContent.trim() || fallbackButtonDefaultLabel)
+                : fallbackButtonDefaultLabel;
+            const fileButtonActiveLabel = fileButton
+                ? (fileButton.dataset.labelActive || fallbackButtonActiveLabel)
+                : fallbackButtonActiveLabel;
 
-            if (!fileInput || !detectedEl || !summaryEl || !jsonOutput || !cellsEl || !downloadBtn || !validateBtn || !copyBtn || !clearBtn || !downloadTemplateBtn || !statusEl || !applyBtn) {
+            if (!fileInput || !fileButton || !fileInfo || !detectedEl || !summaryEl || !jsonOutput || !cellsEl || !downloadBtn || !validateBtn || !copyBtn || !clearBtn || !downloadTemplateBtn || !statusEl || !applyBtn) {
                 return;
             }
 
@@ -8056,6 +8069,10 @@
                 if (fileInfo) {
                     fileInfo.textContent = text;
                 }
+                if (fileButton) {
+                    const isDefault = text === defaultFileInfoText;
+                    fileButton.textContent = isDefault ? fileButtonDefaultLabel : fileButtonActiveLabel;
+                }
             };
 
             const resetDisplay = () => {
@@ -8068,7 +8085,7 @@
                 copyBtn.disabled = true;
                 applyBtn.disabled = true;
                 setStatus(defaultStatusMessage);
-                setFileInfo('No file selected yet.');
+                setFileInfo(defaultFileInfoText);
             };
 
             const applyPatchToUi = (patch, { detectedLabel, syncControls = false, updateText = true } = {}) => {
@@ -8171,6 +8188,14 @@
 
             resetDisplay();
 
+            if (fileButton) {
+                fileButton.addEventListener('click', () => {
+                    if (fileInput) {
+                        fileInput.click();
+                    }
+                });
+            }
+
             fileInput.addEventListener('change', async event => {
                 const file = event.target.files && event.target.files[0];
                 if (!file) {
@@ -8214,7 +8239,7 @@
                     resetDisplay();
                     alert('Error: ' + (error && error.message ? error.message : error));
                     setStatus('Could not read that file. Please try again.', 'error');
-                    setFileInfo('No file selected yet.');
+                    setFileInfo(defaultFileInfoText);
                 } finally {
                     fileInput.value = '';
                 }
