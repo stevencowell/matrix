@@ -3592,6 +3592,85 @@
             return match ? Number(match[0]) : NaN;
         }
 
+        function deriveYearNumberFromCode(subjectCode) {
+            if (subjectCode === null || subjectCode === undefined) {
+                return null;
+            }
+
+            const label = deriveYearLabelFromCode(subjectCode);
+            if (!label) {
+                return null;
+            }
+
+            const match = label.match(/(\d{1,2})$/);
+            if (!match) {
+                return null;
+            }
+
+            const numeric = Number(match[1]);
+            if (!Number.isInteger(numeric) || numeric < 7 || numeric > 12) {
+                return null;
+            }
+
+            return numeric;
+        }
+
+        function resolveYearFromCounts(counts) {
+            if (!counts || typeof counts !== 'object') {
+                return null;
+            }
+
+            const entries = Array.from(counts.entries ? counts.entries() : []);
+            if (entries.length === 0) {
+                return null;
+            }
+
+            entries.sort((a, b) => {
+                if (b[1] === a[1]) {
+                    return a[0] - b[0];
+                }
+                return b[1] - a[1];
+            });
+
+            if (entries.length === 1) {
+                return entries[0][0];
+            }
+
+            if (entries[0][1] > entries[1][1]) {
+                return entries[0][0];
+            }
+
+            return null;
+        }
+
+        function inferYearFromCodes(codes) {
+            if (!Array.isArray(codes) || codes.length === 0) {
+                return null;
+            }
+
+            const counts = new Map();
+
+            codes.forEach(code => {
+                if (code === null || code === undefined) {
+                    return;
+                }
+
+                const text = String(code).trim();
+                if (text === '') {
+                    return;
+                }
+
+                const numeric = deriveYearNumberFromCode(text);
+                if (numeric === null) {
+                    return;
+                }
+
+                counts.set(numeric, (counts.get(numeric) ?? 0) + 1);
+            });
+
+            return resolveYearFromCounts(counts);
+        }
+
         function looksLong(headers) {
             const normalizedHeaders = new Set(headers.map(normalizeHeaderName));
             return ['year', 'row', 'line', 'codes'].every(h => normalizedHeaders.has(h));
@@ -3668,15 +3747,24 @@
                     if (yearText === '' && rowText === '' && lineText === '' && codesText === '') {
                         continue;
                     }
+                    const rawCodes = codesText === '' ? [] : codesText.split(';');
+                    const candidateCodes = rawCodes
+                        .map(code => String(code ?? '').trim())
+                        .filter(code => code !== '');
+                    const inferredYear = inferYearFromCodes(candidateCodes);
                     let year;
                     if (yearText === '') {
-                        if (!Number.isInteger(lastExplicitYear)) {
-                            if (codesText === '') {
+                        if (Number.isInteger(inferredYear)) {
+                            year = inferredYear;
+                            lastExplicitYear = year;
+                        } else if (Number.isInteger(lastExplicitYear)) {
+                            year = lastExplicitYear;
+                        } else {
+                            if (candidateCodes.length === 0) {
                                 continue;
                             }
                             throw new Error(`Bad Year @ row ${r + 1}`);
                         }
-                        year = lastExplicitYear;
                     } else {
                         year = extractFirstInteger(yearText);
                         if (!Number.isInteger(year) || !(year >= 7 && year <= 12)) {
@@ -3700,7 +3788,6 @@
                     }
                     lastRowByYear.set(year, rowIndex);
                     yearsEncountered.add(year);
-                    const rawCodes = codesText === '' ? [] : codesText.split(';');
                     const codes = rawCodes
                         .map(c => (shouldNormalize ? normalizeSubjectCode(c) : String(c).trim()))
                         .filter(Boolean);
@@ -3728,25 +3815,42 @@
                     const rawRow = row[rowIdx];
                     const yearText = rawYear == null ? '' : String(rawYear).trim();
                     const rowText = rawRow == null ? '' : String(rawRow).trim();
-                    const hasCodes = lineCols.some(col => {
+                    const rowCodes = [];
+                    lineCols.forEach(col => {
                         const value = row[col.i];
                         if (value === undefined || value === null) {
-                            return false;
+                            return;
                         }
-                        return String(value).trim() !== '';
+                        const textValue = String(value);
+                        if (textValue.trim() === '') {
+                            return;
+                        }
+                        const parts = textValue.split(/\n/);
+                        parts.forEach(part => {
+                            const trimmed = String(part ?? '').trim();
+                            if (trimmed !== '') {
+                                rowCodes.push(trimmed);
+                            }
+                        });
                     });
+                    const hasCodes = rowCodes.length > 0;
                     if (yearText === '' && rowText === '' && !hasCodes) {
                         continue;
                     }
+                    const inferredYear = hasCodes ? inferYearFromCodes(rowCodes) : null;
                     let year;
                     if (yearText === '') {
-                        if (!Number.isInteger(lastExplicitYear)) {
+                        if (Number.isInteger(inferredYear)) {
+                            year = inferredYear;
+                            lastExplicitYear = year;
+                        } else if (Number.isInteger(lastExplicitYear)) {
+                            year = lastExplicitYear;
+                        } else {
                             if (!hasCodes) {
                                 continue;
                             }
                             throw new Error(`Bad Year @ row ${r + 1}`);
                         }
-                        year = lastExplicitYear;
                     } else {
                         year = extractFirstInteger(yearText);
                         if (!Number.isInteger(year) || !(year >= 7 && year <= 12)) {
