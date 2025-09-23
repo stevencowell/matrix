@@ -4101,6 +4101,71 @@
             return `Years ${years.join(', ')}`;
         }
 
+        function summarizeSubjectsByYear(patch) {
+            const yearToCodes = new Map();
+
+            const ensureSet = yearLabel => {
+                if (!yearToCodes.has(yearLabel)) {
+                    yearToCodes.set(yearLabel, new Set());
+                }
+                return yearToCodes.get(yearLabel);
+            };
+
+            const visit = target => {
+                if (!target || typeof target !== 'object') {
+                    return;
+                }
+                if (target.patchType === 'lineCellsMulti') {
+                    const nested = Array.isArray(target.patches) ? target.patches : [];
+                    nested.forEach(visit);
+                    return;
+                }
+                if (target.patchType === 'lineCells') {
+                    const yearLabel = normalizeYearLabel(target.year) || 'Year —';
+                    const codes = ensureSet(yearLabel);
+                    const cells = Array.isArray(target.cells) ? target.cells : [];
+                    cells.forEach(cell => {
+                        if (!cell || !Array.isArray(cell.codes)) {
+                            return;
+                        }
+                        cell.codes.forEach(code => {
+                            const key = subjectComparisonKey(code);
+                            if (key) {
+                                codes.add(key);
+                            }
+                        });
+                    });
+                }
+            };
+
+            visit(patch);
+
+            return Array.from(yearToCodes.entries())
+                .map(([yearLabel, codes]) => {
+                    const match = yearLabel && yearLabel.match(/(\d+)/);
+                    const order = match ? parseInt(match[1], 10) : Number.POSITIVE_INFINITY;
+                    return { yearLabel, count: codes.size, order };
+                })
+                .sort((a, b) => {
+                    if (a.order !== b.order) {
+                        return a.order - b.order;
+                    }
+                    return a.yearLabel.localeCompare(b.yearLabel);
+                })
+                .map(({ yearLabel, count }) => ({ yearLabel, count }));
+        }
+
+        function formatSubjectUploadSummaryLines(subjectSummaries) {
+            if (!Array.isArray(subjectSummaries) || subjectSummaries.length === 0) {
+                return ['No subjects detected in upload.'];
+            }
+            return subjectSummaries.map(({ yearLabel, count }) => {
+                const baseLabel = typeof yearLabel === 'string' && yearLabel ? yearLabel : 'Subjects';
+                const prefix = baseLabel.replace(/^Year\b/i, 'Yr');
+                return `${prefix} subjects upload = ${count}`;
+            });
+        }
+
         // ---------- JSON validator ----------
         function assertLineCellsPatch(obj) {
             if (!obj || typeof obj !== 'object') {
@@ -4320,15 +4385,14 @@
 
             if (name.endsWith('.csv')) {
                 const patch = csvToLineCellsPatch(text, { normalizeCodes: true });
-                const summary = summarizeLineCellsPatch(patch);
-                const yearLabel = formatLineCellsYears(summary.years);
-                const preview = applyLineCellsPatchBundle(cloneState(), patch);
-                const ok = confirm(
-                    `Line Cells Patch detected (CSV).\n` +
-                    `${yearLabel}\n` +
-                    `Subjects added/updated: ${preview.changes.length}\n` +
-                    `Allocations changed: ${preview.allocationsTouched}\n\nApply now?`
-                );
+                const subjectSummaryLines = formatSubjectUploadSummaryLines(summarizeSubjectsByYear(patch));
+                applyLineCellsPatchBundle(cloneState(), patch);
+                const ok = confirm([
+                    'Line Cells Patch detected (CSV).',
+                    ...subjectSummaryLines,
+                    '',
+                    'Apply now?'
+                ].join('\n'));
                 if (!ok) {
                     return;
                 }
@@ -4341,7 +4405,11 @@
                 } else {
                     updateStats();
                 }
-                alert(`Applied. ${yearLabel}. Changes: ${result.changes.length}. Allocations touched: ${result.allocationsTouched}.`);
+                const appliedLines = ['Applied.', ...subjectSummaryLines];
+                if (typeof result.allocationsTouched === 'number') {
+                    appliedLines.push(`Allocations touched: ${result.allocationsTouched}`);
+                }
+                alert(appliedLines.join('\n'));
                 return;
             }
 
@@ -4350,15 +4418,14 @@
                     const parsed = JSON.parse(text);
                     if (parsed && (parsed.patchType === 'lineCells' || parsed.patchType === 'lineCellsMulti')) {
                         const patch = assertLineCellsPatch(parsed);
-                        const summary = summarizeLineCellsPatch(patch);
-                        const yearLabel = formatLineCellsYears(summary.years);
-                        const preview = applyLineCellsPatchBundle(cloneState(), patch);
-                        const ok = confirm(
-                            `Line Cells Patch detected (JSON).\n` +
-                            `${yearLabel}\n` +
-                            `Subjects added/updated: ${preview.changes.length}\n` +
-                            `Allocations changed: ${preview.allocationsTouched}\n\nApply now?`
-                        );
+                        const subjectSummaryLines = formatSubjectUploadSummaryLines(summarizeSubjectsByYear(patch));
+                        applyLineCellsPatchBundle(cloneState(), patch);
+                        const ok = confirm([
+                            'Line Cells Patch detected (JSON).',
+                            ...subjectSummaryLines,
+                            '',
+                            'Apply now?'
+                        ].join('\n'));
                         if (!ok) {
                             return;
                         }
@@ -4371,7 +4438,11 @@
                         } else {
                             updateStats();
                         }
-                        alert(`Applied. ${yearLabel}. Changes: ${result.changes.length}. Allocations touched: ${result.allocationsTouched}.`);
+                        const appliedLines = ['Applied.', ...subjectSummaryLines];
+                        if (typeof result.allocationsTouched === 'number') {
+                            appliedLines.push(`Allocations touched: ${result.allocationsTouched}`);
+                        }
+                        alert(appliedLines.join('\n'));
                         return;
                     }
                 } catch (e) {
@@ -8341,13 +8412,11 @@
                         return JSON.parse(JSON.stringify(appState));
                     };
 
-                    const preview = applyLineCellsPatchBundle(cloneState(), patch);
+                    applyLineCellsPatchBundle(cloneState(), patch);
+                    const subjectSummaryLines = formatSubjectUploadSummaryLines(summarizeSubjectsByYear(patch));
                     const confirmMessage = [
                         'Add this data to the matrix?',
-                        yearLabel,
-                        `Subjects added/updated: ${preview.changes.length}`,
-                        `Total cells: ${summary.cellCount}`,
-                        `Allocations changed: ${preview.allocationsTouched}`,
+                        ...subjectSummaryLines,
                         '',
                         'Choose OK to merge these updates.'
                     ].join('\n');
