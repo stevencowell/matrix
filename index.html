@@ -25,6 +25,148 @@
             display: none !important;
         }
 
+        .app-alert {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 10000;
+        }
+
+        .app-alert__overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(6px);
+        }
+
+        .app-alert__dialog {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            width: min(420px, 100%);
+            padding: 28px 32px;
+            border-radius: 20px;
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 30px 70px rgba(15, 23, 42, 0.32);
+        }
+
+        .app-alert__content {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .app-alert__icon {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            background: rgba(79, 70, 229, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.9rem;
+            line-height: 1;
+        }
+
+        .app-alert__text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .app-alert__title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .app-alert__message {
+            font-size: 0.95rem;
+            color: #334155;
+            white-space: pre-wrap;
+        }
+
+        .app-alert__input {
+            display: none;
+        }
+
+        .app-alert__input:not(.is-hidden) {
+            display: block;
+        }
+
+        .app-alert__field {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            color: #0f172a;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .app-alert__field:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
+        }
+
+        .app-alert__actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .app-alert__button {
+            padding: 10px 22px;
+            border-radius: 999px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+        }
+
+        .app-alert__button--primary {
+            background: linear-gradient(135deg, #4f46e5, #2563eb);
+            color: #ffffff;
+            box-shadow: 0 14px 28px rgba(79, 70, 229, 0.28);
+        }
+
+        .app-alert__button--primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 18px 36px rgba(79, 70, 229, 0.34);
+        }
+
+        .app-alert__button--primary:focus {
+            outline: 2px solid rgba(79, 70, 229, 0.45);
+            outline-offset: 3px;
+        }
+
+        .app-alert__button--secondary {
+            background: rgba(148, 163, 184, 0.18);
+            color: #0f172a;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .app-alert__button--secondary:hover {
+            transform: translateY(-1px);
+            background: rgba(148, 163, 184, 0.26);
+        }
+
+        .app-alert__button--secondary:focus {
+            outline: 2px solid rgba(148, 163, 184, 0.6);
+            outline-offset: 3px;
+        }
+
         .app-shell {
             min-height: 100vh;
             display: flex;
@@ -2065,6 +2207,25 @@
     </style>
 </head>
 <body>
+    <div class="app-alert is-hidden" id="appAlert" aria-hidden="true">
+        <div class="app-alert__overlay" data-alert-dismiss></div>
+        <div class="app-alert__dialog" role="alertdialog" aria-modal="true" aria-labelledby="appAlertTitle" aria-describedby="appAlertMessage" tabindex="-1">
+            <div class="app-alert__content">
+                <div class="app-alert__icon" id="appAlertIcon" aria-hidden="true">ℹ️</div>
+                <div class="app-alert__text">
+                    <h2 class="app-alert__title" id="appAlertTitle">Heads up</h2>
+                    <p class="app-alert__message" id="appAlertMessage"></p>
+                </div>
+            </div>
+            <div class="app-alert__input is-hidden" id="appAlertInputWrapper">
+                <input type="text" class="app-alert__field" id="appAlertInput" autocomplete="off">
+            </div>
+            <div class="app-alert__actions">
+                <button type="button" class="app-alert__button app-alert__button--secondary is-hidden" id="appAlertSecondary">Cancel</button>
+                <button type="button" class="app-alert__button app-alert__button--primary" id="appAlertPrimary">OK</button>
+            </div>
+        </div>
+    </div>
     <div class="app-shell">
         <header class="app-hero">
             <div class="app-hero__content">
@@ -2353,6 +2514,336 @@
     </div>
 
     <script>
+        (function() {
+            const originalAlert = window.alert ? window.alert.bind(window) : null;
+            let alertRoot = document.getElementById('appAlert');
+
+            const ensureAlertStructure = () => {
+                if (!alertRoot && document.body) {
+                    alertRoot = document.createElement('div');
+                    alertRoot.id = 'appAlert';
+                    alertRoot.className = 'app-alert is-hidden';
+                    alertRoot.setAttribute('aria-hidden', 'true');
+                    alertRoot.innerHTML = `
+                        <div class="app-alert__overlay" data-alert-dismiss></div>
+                        <div class="app-alert__dialog" role="alertdialog" aria-modal="true" aria-labelledby="appAlertTitle" aria-describedby="appAlertMessage" tabindex="-1">
+                            <div class="app-alert__content">
+                                <div class="app-alert__icon" id="appAlertIcon" aria-hidden="true">ℹ️</div>
+                                <div class="app-alert__text">
+                                    <h2 class="app-alert__title" id="appAlertTitle">Heads up</h2>
+                                    <p class="app-alert__message" id="appAlertMessage"></p>
+                                </div>
+                            </div>
+                            <div class="app-alert__input is-hidden" id="appAlertInputWrapper">
+                                <input type="text" class="app-alert__field" id="appAlertInput" autocomplete="off">
+                            </div>
+                            <div class="app-alert__actions">
+                                <button type="button" class="app-alert__button app-alert__button--secondary is-hidden" id="appAlertSecondary">Cancel</button>
+                                <button type="button" class="app-alert__button app-alert__button--primary" id="appAlertPrimary">OK</button>
+                            </div>
+                        </div>`;
+                    document.body.appendChild(alertRoot);
+                }
+            };
+
+            ensureAlertStructure();
+
+            if (!alertRoot) {
+                window.alert = message => {
+                    if (originalAlert) {
+                        originalAlert(message);
+                    }
+                };
+                return;
+            }
+
+            const overlay = alertRoot.querySelector('[data-alert-dismiss]');
+            const dialog = alertRoot.querySelector('.app-alert__dialog');
+            const titleEl = alertRoot.querySelector('#appAlertTitle');
+            const messageEl = alertRoot.querySelector('#appAlertMessage');
+            const iconEl = alertRoot.querySelector('#appAlertIcon');
+            const inputWrapper = alertRoot.querySelector('#appAlertInputWrapper');
+            const inputField = alertRoot.querySelector('#appAlertInput');
+            const primaryButton = alertRoot.querySelector('#appAlertPrimary');
+            const secondaryButton = alertRoot.querySelector('#appAlertSecondary');
+
+            const queue = [];
+            let isOpen = false;
+            let activeItem = null;
+            let previousActiveElement = null;
+
+            const inferPresentation = text => {
+                const normalized = text.toLowerCase();
+                if (/error|unable|invalid|fail|unsupported|could not|cannot|can't/.test(normalized)) {
+                    return { icon: '⚠️', title: 'Something needs attention' };
+                }
+                if (/success|saved|added|removed|imported|ready|restored|completed|allocated|✅|successfully/.test(normalized)) {
+                    return { icon: '✅', title: 'Success' };
+                }
+                if (/warning|caution|alert/.test(normalized)) {
+                    return { icon: '⚠️', title: 'Warning' };
+                }
+                return { icon: 'ℹ️', title: 'Heads up' };
+            };
+
+            const configureDialog = item => {
+                if (titleEl) {
+                    titleEl.textContent = item.title;
+                }
+                if (messageEl) {
+                    messageEl.textContent = item.message;
+                }
+                if (iconEl) {
+                    iconEl.textContent = item.icon;
+                }
+                if (primaryButton) {
+                    primaryButton.textContent = item.primaryLabel;
+                }
+                if (secondaryButton) {
+                    if (item.secondaryLabel) {
+                        secondaryButton.textContent = item.secondaryLabel;
+                        secondaryButton.classList.remove('is-hidden');
+                    } else {
+                        secondaryButton.classList.add('is-hidden');
+                    }
+                }
+                if (inputWrapper && inputField) {
+                    if (item.type === 'prompt') {
+                        inputWrapper.classList.remove('is-hidden');
+                        inputField.value = item.defaultValue || '';
+                        if (item.placeholder) {
+                            inputField.setAttribute('placeholder', item.placeholder);
+                        } else {
+                            inputField.removeAttribute('placeholder');
+                        }
+                    } else {
+                        inputWrapper.classList.add('is-hidden');
+                        inputField.value = '';
+                        inputField.removeAttribute('placeholder');
+                    }
+                }
+            };
+
+            const focusFirstElement = () => {
+                if (!isOpen) {
+                    return;
+                }
+                if (activeItem && activeItem.type === 'prompt' && inputField) {
+                    inputField.focus({ preventScroll: true });
+                    inputField.select();
+                    return;
+                }
+                if (primaryButton && typeof primaryButton.focus === 'function') {
+                    primaryButton.focus({ preventScroll: true });
+                } else if (dialog && typeof dialog.focus === 'function') {
+                    dialog.focus({ preventScroll: true });
+                }
+            };
+
+            const getFocusableElements = () => {
+                const focusable = [];
+                if (activeItem && activeItem.type === 'prompt' && inputField && inputWrapper && !inputWrapper.classList.contains('is-hidden')) {
+                    focusable.push(inputField);
+                }
+                if (secondaryButton && !secondaryButton.classList.contains('is-hidden')) {
+                    focusable.push(secondaryButton);
+                }
+                if (primaryButton) {
+                    focusable.push(primaryButton);
+                }
+                return focusable;
+            };
+
+            const finishDialog = result => {
+                if (!isOpen) {
+                    return;
+                }
+                alertRoot.classList.add('is-hidden');
+                alertRoot.setAttribute('aria-hidden', 'true');
+                isOpen = false;
+
+                const item = activeItem;
+                activeItem = null;
+
+                if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+                    previousActiveElement.focus({ preventScroll: true });
+                }
+                previousActiveElement = null;
+
+                if (item && typeof item.resolve === 'function') {
+                    item.resolve(result);
+                }
+
+                requestAnimationFrame(showNext);
+            };
+
+            const dismissDialog = () => {
+                const fallback = activeItem ? activeItem.dismissValue : undefined;
+                finishDialog(fallback);
+            };
+
+            const handlePrimary = () => {
+                if (!activeItem) {
+                    finishDialog(undefined);
+                    return;
+                }
+                if (activeItem.type === 'prompt') {
+                    const rawValue = inputField ? inputField.value : '';
+                    const result = typeof activeItem.transform === 'function'
+                        ? activeItem.transform(rawValue)
+                        : rawValue;
+                    finishDialog(result);
+                    return;
+                }
+                if (typeof activeItem.primaryValue !== 'undefined') {
+                    finishDialog(activeItem.primaryValue);
+                } else {
+                    finishDialog(undefined);
+                }
+            };
+
+            const handleSecondary = () => {
+                if (!activeItem) {
+                    finishDialog(undefined);
+                    return;
+                }
+                finishDialog(activeItem.dismissValue);
+            };
+
+            const showNext = () => {
+                if (isOpen) {
+                    return;
+                }
+                const next = queue.shift();
+                if (!next) {
+                    return;
+                }
+                activeItem = next;
+                previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+                configureDialog(next);
+                alertRoot.classList.remove('is-hidden');
+                alertRoot.setAttribute('aria-hidden', 'false');
+                isOpen = true;
+                requestAnimationFrame(focusFirstElement);
+            };
+
+            if (primaryButton) {
+                primaryButton.addEventListener('click', handlePrimary);
+            }
+            if (secondaryButton) {
+                secondaryButton.addEventListener('click', handleSecondary);
+            }
+            if (overlay) {
+                overlay.addEventListener('click', dismissDialog);
+            }
+
+            if (inputField) {
+                inputField.addEventListener('keydown', event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handlePrimary();
+                    }
+                });
+            }
+
+            alertRoot.addEventListener('keydown', event => {
+                if (!isOpen) {
+                    return;
+                }
+                if (event.key === 'Tab') {
+                    const focusable = getFocusableElements();
+                    if (focusable.length === 0) {
+                        event.preventDefault();
+                        return;
+                    }
+                    const currentIndex = focusable.indexOf(document.activeElement);
+                    let nextIndex;
+                    if (event.shiftKey) {
+                        nextIndex = currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1;
+                    } else {
+                        nextIndex = currentIndex === -1 || currentIndex >= focusable.length - 1 ? 0 : currentIndex + 1;
+                    }
+                    event.preventDefault();
+                    focusable[nextIndex].focus({ preventScroll: true });
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    dismissDialog();
+                }
+            });
+
+            document.addEventListener('focusin', event => {
+                if (!isOpen || !dialog) {
+                    return;
+                }
+                if (!dialog.contains(event.target)) {
+                    focusFirstElement();
+                }
+            });
+
+            document.addEventListener('keydown', event => {
+                if (!isOpen) {
+                    return;
+                }
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    dismissDialog();
+                }
+            });
+
+            const enqueue = (type, message, options = {}) => {
+                const text = String(message ?? '');
+                const inferred = inferPresentation(text);
+                const icon = typeof options.icon === 'string' && options.icon.trim() ? options.icon.trim() : inferred.icon;
+                const title = typeof options.title === 'string' && options.title.trim() ? options.title.trim() : inferred.title;
+
+                const item = {
+                    type,
+                    message: text,
+                    icon,
+                    title,
+                    primaryLabel: 'OK',
+                    secondaryLabel: null,
+                    primaryValue: undefined,
+                    dismissValue: undefined,
+                    defaultValue: '',
+                    placeholder: '',
+                    transform: null,
+                    resolve: () => {}
+                };
+
+                if (type === 'confirm') {
+                    item.primaryLabel = typeof options.confirmLabel === 'string' && options.confirmLabel.trim() ? options.confirmLabel.trim() : 'Confirm';
+                    item.secondaryLabel = typeof options.cancelLabel === 'string' && options.cancelLabel.trim() ? options.cancelLabel.trim() : 'Cancel';
+                    item.primaryValue = typeof options.primaryValue !== 'undefined' ? options.primaryValue : true;
+                    item.dismissValue = typeof options.dismissValue !== 'undefined' ? options.dismissValue : false;
+                } else if (type === 'prompt') {
+                    item.primaryLabel = typeof options.confirmLabel === 'string' && options.confirmLabel.trim() ? options.confirmLabel.trim() : 'Save';
+                    item.secondaryLabel = typeof options.cancelLabel === 'string' && options.cancelLabel.trim() ? options.cancelLabel.trim() : 'Cancel';
+                    item.defaultValue = typeof options.defaultValue === 'string' ? options.defaultValue : '';
+                    item.placeholder = typeof options.placeholder === 'string' ? options.placeholder : '';
+                    item.transform = typeof options.transform === 'function' ? options.transform : null;
+                    item.dismissValue = typeof options.dismissValue !== 'undefined' ? options.dismissValue : null;
+                } else {
+                    item.primaryLabel = typeof options.confirmLabel === 'string' && options.confirmLabel.trim() ? options.confirmLabel.trim() : 'OK';
+                    item.dismissValue = typeof options.dismissValue !== 'undefined' ? options.dismissValue : undefined;
+                }
+
+                return new Promise(resolve => {
+                    item.resolve = resolve;
+                    queue.push(item);
+                    showNext();
+                });
+            };
+
+            window.showAppAlert = (message, options) => enqueue('alert', message, options);
+            window.showAppConfirm = (message, options) => enqueue('confirm', message, options);
+            window.showAppPrompt = (message, options) => enqueue('prompt', message, options);
+
+            window.alert = message => {
+                enqueue('alert', message);
+            };
+        })();
+
         // Dynamic data loaded from spreadsheet
         let subjects = [];
         let teachers = [];
@@ -3470,8 +3961,12 @@
             }, 60);
         }
 
-        function promptAddTeacher() {
-            const name = prompt('Enter the name of the new teacher:');
+        async function promptAddTeacher() {
+            const name = await showAppPrompt('Enter the name of the new teacher:', {
+                confirmLabel: 'Add teacher',
+                cancelLabel: 'Cancel',
+                placeholder: 'e.g. Ms Thompson'
+            });
             if (name === null) {
                 return;
             }
@@ -3492,8 +3987,12 @@
                 .map(name => name.trim())
                 .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
-            showAutocomplete('Select teacher to remove', teacherOptions, function(selectedTeacher) {
-                if (!confirm(`Remove ${selectedTeacher} and return their allocations to the pool?`)) {
+            showAutocomplete('Select teacher to remove', teacherOptions, async function(selectedTeacher) {
+                const confirmed = await showAppConfirm(`Remove ${selectedTeacher} and return their allocations to the pool?`, {
+                    confirmLabel: 'Remove teacher',
+                    cancelLabel: 'Keep teacher'
+                });
+                if (!confirmed) {
                     return;
                 }
 
@@ -3513,8 +4012,12 @@
             });
         }
 
-        function promptAddSubject() {
-            const codeInput = prompt('Enter the new subject code:');
+        async function promptAddSubject() {
+            const codeInput = await showAppPrompt('Enter the new subject code:', {
+                confirmLabel: 'Add subject',
+                cancelLabel: 'Cancel',
+                placeholder: 'e.g. BIO12'
+            });
             if (codeInput === null) {
                 return;
             }
@@ -3558,7 +4061,7 @@
             }, 150);
         }
 
-        function promptRemoveSubject() {
+        async function promptRemoveSubject() {
             const removalOptions = new Set(subjects);
             Object.keys(subjectSplits).forEach(baseSubject => removalOptions.add(baseSubject));
 
@@ -3572,8 +4075,12 @@
                 .map(subject => subject.trim())
                 .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
-            showAutocomplete('Select subject to remove', options, function(selectedSubject) {
-                if (!confirm(`Remove ${selectedSubject} from the subject pool? Allocations will be cleared.`)) {
+            showAutocomplete('Select subject to remove', options, async function(selectedSubject) {
+                const confirmed = await showAppConfirm(`Remove ${selectedSubject} from the subject pool? Allocations will be cleared.`, {
+                    confirmLabel: 'Remove subject',
+                    cancelLabel: 'Keep subject'
+                });
+                if (!confirmed) {
                     return;
                 }
 
@@ -3593,8 +4100,12 @@
             });
         }
 
-        function promptAddLine() {
-            const label = prompt('Enter a name for the new line:');
+        async function promptAddLine() {
+            const label = await showAppPrompt('Enter a name for the new line:', {
+                confirmLabel: 'Add line',
+                cancelLabel: 'Cancel',
+                placeholder: 'e.g. Line 7'
+            });
             if (label === null) {
                 return;
             }
@@ -3617,8 +4128,12 @@
 
             const options = [...lines];
 
-            showAutocomplete('Select line to remove', options, function(selectedLine) {
-                if (!confirm(`Remove ${selectedLine}? Subjects allocated on this line will return to the pool.`)) {
+            showAutocomplete('Select line to remove', options, async function(selectedLine) {
+                const confirmed = await showAppConfirm(`Remove ${selectedLine}? Subjects allocated on this line will return to the pool.`, {
+                    confirmLabel: 'Remove line',
+                    cancelLabel: 'Keep line'
+                });
+                if (!confirmed) {
                     return;
                 }
 
@@ -4400,12 +4915,15 @@
                 const patch = csvToLineCellsPatch(text, { normalizeCodes: true });
                 const subjectSummaryLines = formatSubjectUploadSummaryLines(summarizeSubjectsByYear(patch));
                 applyLineCellsPatchBundle(cloneState(), patch);
-                const ok = confirm([
+                const ok = await showAppConfirm([
                     'Line Cells Patch detected (CSV).',
                     ...subjectSummaryLines,
                     '',
                     'Apply now?'
-                ].join('\n'));
+                ].join('\n'), {
+                    confirmLabel: 'Apply patch',
+                    cancelLabel: 'Cancel'
+                });
                 if (!ok) {
                     return;
                 }
@@ -4433,13 +4951,16 @@
                         const patch = assertLineCellsPatch(parsed);
                         const subjectSummaryLines = formatSubjectUploadSummaryLines(summarizeSubjectsByYear(patch));
                         applyLineCellsPatchBundle(cloneState(), patch);
-                        const ok = confirm([
-                            'Line Cells Patch detected (JSON).',
-                            ...subjectSummaryLines,
-                            '',
-                            'Apply now?'
-                        ].join('\n'));
-                        if (!ok) {
+                const ok = await showAppConfirm([
+                    'Line Cells Patch detected (JSON).',
+                    ...subjectSummaryLines,
+                    '',
+                    'Apply now?'
+                ].join('\n'), {
+                    confirmLabel: 'Apply patch',
+                    cancelLabel: 'Cancel'
+                });
+                if (!ok) {
                             return;
                         }
                         const result = applyLineCellsPatchBundle(appState, patch);
@@ -5941,12 +6462,18 @@
             }
         }
 
-        function handleSubjectRemoval(lineIndex, teacherIndex, subjectCode) {
-            if (confirm('Remove ' + subjectCode + ' from ' + teachers[teacherIndex] + '?')) {
-                removeSubjectFromCell(lineIndex, teacherIndex, subjectCode, true);
-                renderCell(lineIndex, teacherIndex);
-                updateStats();
+        async function handleSubjectRemoval(lineIndex, teacherIndex, subjectCode) {
+            const confirmed = await showAppConfirm('Remove ' + subjectCode + ' from ' + teachers[teacherIndex] + '?', {
+                confirmLabel: 'Remove',
+                cancelLabel: 'Cancel'
+            });
+            if (!confirmed) {
+                return;
             }
+
+            removeSubjectFromCell(lineIndex, teacherIndex, subjectCode, true);
+            renderCell(lineIndex, teacherIndex);
+            updateStats();
         }
 
         function enhanceAllocatedSubjectElement(element, subjectCode, lineIndex, teacherIndex) {
@@ -6831,8 +7358,12 @@
                     return;
                 }
 
-                setTimeout(() => {
-                    const input = prompt(`Enter the number of periods for each portion of ${baseSubject} (total ${totalPeriods} periods). Separate values with commas, e.g. 4,3.`);
+                setTimeout(async () => {
+                    const input = await showAppPrompt(`Enter the number of periods for each portion of ${baseSubject} (total ${totalPeriods} periods). Separate values with commas, e.g. 4,3.`, {
+                        confirmLabel: 'Split subject',
+                        cancelLabel: 'Cancel',
+                        placeholder: 'e.g. 4,3'
+                    });
                     if (input === null) {
                         return;
                     }
@@ -7048,13 +7579,18 @@
                     ? lines[config.lineIndex]
                     : `Line ${config.lineIndex + 1}`;
                 const confirmationMessage = `Allocating ${config.subjectCode} to ${teacherName} on ${lineName} will clash with an existing subject. Continue?`;
-                if (window.confirm(confirmationMessage)) {
-                    if (typeof config.onProceed === 'function') {
-                        config.onProceed();
+                showAppConfirm(confirmationMessage, {
+                    confirmLabel: 'Continue',
+                    cancelLabel: 'Cancel'
+                }).then(confirmed => {
+                    if (confirmed) {
+                        if (typeof config.onProceed === 'function') {
+                            config.onProceed();
+                        }
+                    } else if (typeof config.onCancel === 'function') {
+                        config.onCancel();
                     }
-                } else if (typeof config.onCancel === 'function') {
-                    config.onCancel();
-                }
+                });
                 return;
             }
 
@@ -7476,33 +8012,42 @@
             alert('Allocations saved successfully!');
         }
 
-        function resetAllocations() {
-            if (confirm('Are you sure you want to reset all allocations? This action cannot be undone.')) {
-                allocations = {};
-                actionHistory = []; // Clear undo history
-                redoStack = [];
-
-                renderAllAllocations();
-
-                // Disable undo button
-                const undoBtn = document.getElementById('undoBtn');
-                if (undoBtn) {
-                    undoBtn.disabled = true;
-                }
-
-                const redoBtn = document.getElementById('redoBtn');
-                if (redoBtn) {
-                    redoBtn.disabled = true;
-                }
-
-                // Recreate subject pool
-                createSubjectPool();
-                updateStats();
+        async function resetAllocations() {
+            const confirmed = await showAppConfirm('Are you sure you want to reset all allocations? This action cannot be undone.', {
+                confirmLabel: 'Reset allocations',
+                cancelLabel: 'Cancel'
+            });
+            if (!confirmed) {
+                return;
             }
+
+            allocations = {};
+            actionHistory = []; // Clear undo history
+            redoStack = [];
+
+            renderAllAllocations();
+
+            // Disable undo button
+            const undoBtn = document.getElementById('undoBtn');
+            if (undoBtn) {
+                undoBtn.disabled = true;
+            }
+
+            const redoBtn = document.getElementById('redoBtn');
+            if (redoBtn) {
+                redoBtn.disabled = true;
+            }
+
+            // Recreate subject pool
+            createSubjectPool();
+            updateStats();
         }
 
-        function clearAllData() {
-            const confirmed = confirm('This will remove all imported teachers, subjects, allocations and saved settings. Continue?');
+        async function clearAllData() {
+            const confirmed = await showAppConfirm('This will remove all imported teachers, subjects, allocations and saved settings. Continue?', {
+                confirmLabel: 'Clear everything',
+                cancelLabel: 'Cancel'
+            });
             if (!confirmed) {
                 return;
             }
@@ -7796,9 +8341,12 @@
             showDownloadNotification('Allocation data exported as JSON file.', { icon: '💾' });
         }
 
-        function importData() {
+        async function importData() {
             if (hasExistingData()) {
-                const confirmImport = confirm('Importing saved data will replace your current teachers, subjects and allocations. Continue?');
+                const confirmImport = await showAppConfirm('Importing saved data will replace your current teachers, subjects and allocations. Continue?', {
+                    confirmLabel: 'Replace data',
+                    cancelLabel: 'Cancel'
+                });
                 if (!confirmImport) {
                     return;
                 }
@@ -8395,7 +8943,7 @@
                 }
             });
 
-            applyBtn.addEventListener('click', () => {
+            applyBtn.addEventListener('click', async () => {
                 if (!jsonOutput.value || jsonOutput.value.trim() === '') {
                     alert('Load a CSV or JSON patch before adding it to the matrix.');
                     setStatus('Upload a CSV or JSON patch before adding it to the matrix.', 'error');
@@ -8434,7 +8982,12 @@
                         'Choose OK to merge these updates.'
                     ].join('\n');
 
-                    if (!confirm(confirmMessage)) {
+                    const confirmed = await showAppConfirm(confirmMessage, {
+                        confirmLabel: 'Add to matrix',
+                        cancelLabel: 'Cancel'
+                    });
+
+                    if (!confirmed) {
                         return;
                     }
 
