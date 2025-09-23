@@ -4101,25 +4101,35 @@
 
                 const existingCode = findExistingSubject(normalizedCode);
                 const codeKey = existingCode || normalizedCode;
+                const canonicalCode = normalizedCode;
 
                 if (!existingCode) {
-                    state.subjects.push(codeKey);
-                    addChange({ kind: 'addSubject', code: codeKey, year: patchYearLabel, line: lineIndex });
+                    state.subjects.push(canonicalCode);
+                    addChange({ kind: 'addSubject', code: canonicalCode, year: patchYearLabel, line: lineIndex });
                 }
 
-                if (state.subjectYearMapping[codeKey] !== patchYearLabel) {
-                    const fromYear = state.subjectYearMapping[codeKey];
+                const previousCanonicalYear = state.subjectYearMapping[canonicalCode];
+                if (previousCanonicalYear !== patchYearLabel) {
+                    state.subjectYearMapping[canonicalCode] = patchYearLabel;
+                    addChange({ kind: 'setYear', code: canonicalCode, from: previousCanonicalYear, to: patchYearLabel });
+                }
+                if (codeKey !== canonicalCode && state.subjectYearMapping[codeKey] !== patchYearLabel) {
                     state.subjectYearMapping[codeKey] = patchYearLabel;
-                    addChange({ kind: 'setYear', code: codeKey, from: fromYear, to: patchYearLabel });
                 }
 
-                const previousLine = state.subjectLineMapping[codeKey];
-                if (previousLine !== lineIndex) {
+                const previousCanonicalLine = state.subjectLineMapping[canonicalCode];
+                if (previousCanonicalLine !== lineIndex) {
+                    state.subjectLineMapping[canonicalCode] = lineIndex;
+                    addChange({ kind: 'updateMapping', code: canonicalCode, from: previousCanonicalLine, to: lineIndex });
+                }
+                if (codeKey !== canonicalCode && state.subjectLineMapping[codeKey] !== lineIndex) {
                     state.subjectLineMapping[codeKey] = lineIndex;
-                    addChange({ kind: 'updateMapping', code: codeKey, from: previousLine, to: lineIndex });
                 }
 
-                seenThisYear.add(codeKey);
+                seenThisYear.add(canonicalCode);
+                if (codeKey !== canonicalCode) {
+                    seenThisYear.add(codeKey);
+                }
 
                 if (patch.options?.inheritLineForSplits && state.subjectSplits && typeof state.subjectSplits === 'object') {
                     Object.entries(state.subjectSplits).forEach(([base, splits]) => {
