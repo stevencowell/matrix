@@ -2278,7 +2278,7 @@
                             <button class="btn btn-primary" onclick="allocateNewSubject()" title="Allocate an available subject to a teacher">Allocate New Subject</button>
                             <button class="btn btn-primary" onclick="splitSubject()" title="Divide a subject into multiple allocations">Split Subject</button>
                             <button class="btn btn-primary" onclick="moveExistingAllocation()" title="Reassign a subject that is already allocated">Move Existing Allocation</button>
-                            <button class="btn btn-primary" onclick="openManagementHub()" title="Open tools to manage teachers, subjects, lines and supplemental data">Management Hub</button>
+                            <button class="btn btn-primary" onclick="openManagementHub()" title="Open tools to add or remove teachers, subjects, lines and supplemental data">Add / Remove Data</button>
                         </div>
                     </section>
 
@@ -3731,7 +3731,7 @@
             const input = document.getElementById('autocompleteInput');
 
             if (!modal || !modalTitle || !managementContainer) {
-                alert('Management hub is currently unavailable.');
+                alert('Add / Remove Data tools are currently unavailable.');
                 return;
             }
 
@@ -3765,11 +3765,11 @@
             }
 
             if (modalTitle) {
-                modalTitle.textContent = 'Management Hub';
+                modalTitle.textContent = 'Add / Remove Data';
             }
 
             if (modalDescription) {
-                modalDescription.textContent = 'Choose a task to manage teachers, subjects, timetable lines or supplemental data.';
+                modalDescription.textContent = 'Choose a task to add or remove teachers, subjects, timetable lines or supplemental data.';
                 modalDescription.style.display = 'block';
             }
 
