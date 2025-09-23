@@ -6333,6 +6333,45 @@
             ensureTeacherPeriodTotalsContainer();
         }
 
+        function focusSubjectPool() {
+            requestAnimationFrame(() => {
+                const subjectPoolSection = document.getElementById('subjectPool');
+                if (!subjectPoolSection) {
+                    return;
+                }
+
+                try {
+                    subjectPoolSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } catch (error) {
+                    subjectPoolSection.scrollIntoView(true);
+                }
+
+                const focusTarget = document.getElementById('subjectPoolTitle') || subjectPoolSection;
+                let shouldRemoveTabIndex = false;
+
+                if (!focusTarget.hasAttribute('tabindex')) {
+                    focusTarget.setAttribute('tabindex', '-1');
+                    shouldRemoveTabIndex = true;
+                }
+
+                try {
+                    focusTarget.focus({ preventScroll: true });
+                } catch (error) {
+                    try {
+                        focusTarget.focus();
+                    } catch (focusError) {
+                        // Element could not be focused; ignore.
+                    }
+                }
+
+                if (shouldRemoveTabIndex) {
+                    focusTarget.addEventListener('blur', () => {
+                        focusTarget.removeAttribute('tabindex');
+                    }, { once: true });
+                }
+            });
+        }
+
         function createSubjectElement(subjectCode) {
             const subjectElement = document.createElement('div');
             subjectElement.className = 'subject-slot';
@@ -9000,6 +9039,8 @@
                     } else {
                         updateStats();
                     }
+
+                    focusSubjectPool();
 
                     showDownloadNotification(`Added ${summary.cellCount} cells for ${yearLabel}.`, { icon: '✅', duration: 5000 });
                     resetDisplay();
