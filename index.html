@@ -412,21 +412,125 @@
             gap: 24px;
         }
 
-        .converter-grid {
+        .converter-flow {
             display: grid;
-            gap: 24px;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
         }
 
-        .converter-column {
+        .converter-step {
             display: flex;
             flex-direction: column;
             gap: 16px;
-            padding: 18px;
-            border-radius: 18px;
+            padding: 20px;
+            border-radius: 20px;
             background: linear-gradient(135deg, rgba(248, 250, 255, 0.95), rgba(226, 232, 240, 0.55));
             border: 1px solid rgba(148, 163, 184, 0.35);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .converter-step__header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .converter-step__number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #2563eb);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            box-shadow: 0 6px 12px rgba(79, 70, 229, 0.25);
+        }
+
+        .converter-step__title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .converter-step__description {
+            font-size: 0.88rem;
+            color: #475569;
+            margin-top: 4px;
+        }
+
+        .converter-step__body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .converter-upload-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .converter-file-input {
+            flex: 1 1 260px;
+            min-width: 200px;
+            background: rgba(248, 250, 255, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: #0f172a;
+        }
+
+        .converter-file-input::-webkit-file-upload-button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #6366f1, #3b82f6);
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .converter-file-input::file-selector-button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #6366f1, #3b82f6);
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .converter-file-info {
+            font-size: 0.83rem;
+            color: #475569;
+        }
+
+        .converter-summary-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        @media (min-width: 680px) {
+            .converter-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .converter-summary-card {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 14px;
+            border-radius: 14px;
+            background: rgba(248, 250, 255, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
         }
 
         .converter-heading {
@@ -446,11 +550,6 @@
             flex-wrap: wrap;
             gap: 12px;
             align-items: center;
-        }
-
-        .converter-file-input {
-            flex: 1 1 260px;
-            min-width: 200px;
         }
 
         .converter-options {
@@ -587,32 +686,13 @@
             font-size: 0.78rem;
         }
 
-        .converter-quick-guide {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding: 12px;
-            border-radius: 16px;
-            border: 1px solid rgba(79, 70, 229, 0.2);
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(14, 165, 233, 0.08));
-        }
-
-        .converter-quick-guide p {
-            font-size: 0.85rem;
-            color: #334155;
-        }
-
-        .converter-status { 
+        .converter-status {
             padding: 12px 14px;
             border-radius: 16px;
             border: 1px solid rgba(148, 163, 184, 0.4);
             background: rgba(248, 250, 255, 0.92);
             font-size: 0.85rem;
             color: #1e293b;
-        }
-
-        .converter-upload {
-            align-self: flex-start;
         }
 
         .converter-status + .converter-row {
@@ -717,8 +797,9 @@
         }
 
         @media (max-width: 900px) {
-            .converter-grid {
-                grid-template-columns: 1fr;
+            .converter-upload-row {
+                flex-direction: column;
+                align-items: stretch;
             }
 
             .converter-row {
@@ -2107,64 +2188,87 @@
                                 <li>Press <strong>Add to Matrix</strong> to merge the data instantly. Downloading the JSON remains optional for sharing or backups.</li>
                             </ol>
                         </div>
-                        <div class="converter-grid">
-                            <div class="converter-column">
-                                <h3 class="converter-heading">Upload CSV or JSON</h3>
-                                <div class="converter-quick-guide">
+                        <div class="converter-flow">
+                            <section class="converter-step">
+                                <div class="converter-step__header">
+                                    <span class="converter-step__number">1</span>
                                     <div>
-                                        <strong>Need the template?</strong>
-                                        <p>Download a fresh copy before you upload your completed spreadsheet.</p>
+                                        <h3 class="converter-step__title">Prepare your template</h3>
+                                        <p class="converter-step__description">Download a fresh copy or reuse an existing export before filling in your subjects.</p>
                                     </div>
+                                </div>
+                                <div class="converter-step__body">
                                     <a class="btn btn-secondary btn-compact" id="converterDownloadTemplate" href="allocation-data-template.csv" download>Download CSV Template</a>
                                 </div>
-                                <div class="converter-row">
-                                    <input id="converterFile" class="converter-file-input" type="file" accept=".csv,.json">
-                                    <button class="btn btn-secondary btn-compact" id="converterClear">Clear</button>
+                            </section>
+                            <section class="converter-step">
+                                <div class="converter-step__header">
+                                    <span class="converter-step__number">2</span>
+                                    <div>
+                                        <h3 class="converter-step__title">Upload &amp; configure</h3>
+                                        <p class="converter-step__description">Choose a CSV or JSON file, then adjust optional cleanup rules before importing.</p>
+                                    </div>
                                 </div>
-                                <details class="converter-advanced">
-                                    <summary>Advanced options</summary>
-                                    <div class="converter-advanced__content">
-                                        <p class="converter-advanced__description converter-muted">Tweak how your data is cleaned or set a fallback year before importing.</p>
-                                        <div class="converter-options">
-                                            <label><input type="checkbox" id="converterNormalize" checked> Normalize codes</label>
-                                            <label><input type="checkbox" id="converterInherit" checked> Inherit line for splits</label>
-                                            <label><input type="checkbox" id="converterRemove"> Add <code>removeMissingInThisYear</code></label>
+                                <div class="converter-step__body">
+                                    <div class="converter-upload-row">
+                                        <input id="converterFile" class="converter-file-input" type="file" accept=".csv,.json">
+                                        <button class="btn btn-secondary btn-compact" id="converterClear" type="button">Clear</button>
+                                    </div>
+                                    <div id="converterFileInfo" class="converter-file-info">No file selected yet.</div>
+                                    <details class="converter-advanced">
+                                        <summary>Advanced options</summary>
+                                        <div class="converter-advanced__content">
+                                            <p class="converter-advanced__description converter-muted">Tweak how your data is cleaned or set a fallback year before importing.</p>
+                                            <div class="converter-options">
+                                                <label><input type="checkbox" id="converterNormalize" checked> Normalize codes</label>
+                                                <label><input type="checkbox" id="converterInherit" checked> Inherit line for splits</label>
+                                                <label><input type="checkbox" id="converterRemove"> Add <code>removeMissingInThisYear</code></label>
+                                            </div>
+                                            <div class="converter-force">
+                                                <label>Force Year (optional)
+                                                    <input id="converterForceYear" class="converter-force-input" type="number" min="7" max="12" placeholder="7-12">
+                                                </label>
+                                                <div class="converter-muted converter-force-note">Use this if your CSV doesn't include a Year column.</div>
+                                            </div>
                                         </div>
-                                        <div class="converter-force">
-                                            <label>Force Year (optional)
-                                                <input id="converterForceYear" class="converter-force-input" type="number" min="7" max="12" placeholder="7-12">
-                                            </label>
-                                            <div class="converter-muted converter-force-note">Use this if your CSV doesn't include a Year column.</div>
+                                    </details>
+                                    <div class="converter-summary-grid">
+                                        <div class="converter-summary-card">
+                                            <h4 class="converter-subheading">Detected</h4>
+                                            <div id="converterDetected" class="converter-muted">—</div>
+                                        </div>
+                                        <div class="converter-summary-card">
+                                            <h4 class="converter-subheading">Summary</h4>
+                                            <div id="converterSummary" class="converter-summary">—</div>
                                         </div>
                                     </div>
-                                </details>
-                                <div>
-                                    <h4 class="converter-subheading">Detected</h4>
-                                    <div id="converterDetected" class="converter-muted">—</div>
                                 </div>
-                                <div>
-                                    <h4 class="converter-subheading">Summary</h4>
-                                    <div id="converterSummary" class="converter-summary">—</div>
-                                </div>
-                            </div>
-                            <div class="converter-column">
-                                <h3 class="converter-heading">Review &amp; export JSON</h3>
-                                <textarea id="converterJson" class="converter-textarea" spellcheck="false" placeholder="Your JSON lineCells patch appears here, or paste an existing patch to validate it."></textarea>
-                                <div id="converterStatus" class="converter-status">Load a CSV or JSON patch to enable <strong>Add to Matrix</strong>.</div>
-                                <button type="button" class="btn btn-secondary btn-compact converter-upload" id="converterUploadCsv">Upload CSV File</button>
-                                <div class="converter-row converter-actions">
-                                    <button class="btn btn-success btn-compact" id="converterApply" disabled>Add to Matrix</button>
-                                    <button class="btn btn-primary btn-compact" id="converterDownloadJson" disabled>Download JSON</button>
-                                    <button class="btn btn-warning btn-compact" id="converterCopy" disabled>Copy</button>
-                                </div>
-                                <details class="converter-advanced converter-advanced--actions">
-                                    <summary>Advanced tools</summary>
-                                    <div class="converter-advanced__content">
-                                        <p class="converter-advanced__description converter-muted">Validate a manual JSON edit before applying it to the matrix.</p>
-                                        <button class="btn btn-secondary btn-compact" id="converterValidate">Validate JSON</button>
+                            </section>
+                            <section class="converter-step converter-step--review">
+                                <div class="converter-step__header">
+                                    <span class="converter-step__number">3</span>
+                                    <div>
+                                        <h3 class="converter-step__title">Review &amp; export JSON</h3>
+                                        <p class="converter-step__description">Inspect the generated patch, apply it to the matrix, or download a copy for reference.</p>
                                     </div>
-                                </details>
-                            </div>
+                                </div>
+                                <div class="converter-step__body">
+                                    <textarea id="converterJson" class="converter-textarea" spellcheck="false" placeholder="Your JSON lineCells patch appears here, or paste an existing patch to validate it."></textarea>
+                                    <div id="converterStatus" class="converter-status">Load a CSV or JSON patch to enable <strong>Add to Matrix</strong>.</div>
+                                    <div class="converter-row converter-actions">
+                                        <button class="btn btn-success btn-compact" id="converterApply" disabled>Add to Matrix</button>
+                                        <button class="btn btn-primary btn-compact" id="converterDownloadJson" disabled>Download JSON</button>
+                                        <button class="btn btn-warning btn-compact" id="converterCopy" disabled>Copy</button>
+                                    </div>
+                                    <details class="converter-advanced converter-advanced--actions">
+                                        <summary>Advanced tools</summary>
+                                        <div class="converter-advanced__content">
+                                            <p class="converter-advanced__description converter-muted">Validate a manual JSON edit before applying it to the matrix.</p>
+                                            <button class="btn btn-secondary btn-compact" id="converterValidate">Validate JSON</button>
+                                        </div>
+                                    </details>
+                                </div>
+                            </section>
                         </div>
                         <div class="converter-preview">
                             <h3 class="converter-heading">Parsed Cells (first 30)</h3>
@@ -7833,13 +7937,13 @@
             const removeCheckbox = document.getElementById('converterRemove');
             const forceYearInput = document.getElementById('converterForceYear');
             const downloadBtn = document.getElementById('converterDownloadJson');
-            const uploadCsvBtn = document.getElementById('converterUploadCsv');
             const validateBtn = document.getElementById('converterValidate');
             const copyBtn = document.getElementById('converterCopy');
             const clearBtn = document.getElementById('converterClear');
             const downloadTemplateBtn = document.getElementById('converterDownloadTemplate');
             const statusEl = document.getElementById('converterStatus');
             const applyBtn = document.getElementById('converterApply');
+            const fileInfo = document.getElementById('converterFileInfo');
 
             if (!fileInput || !detectedEl || !summaryEl || !jsonOutput || !cellsEl || !downloadBtn || !validateBtn || !copyBtn || !clearBtn || !downloadTemplateBtn || !statusEl || !applyBtn) {
                 return;
@@ -7948,6 +8052,12 @@
                 summaryEl.innerHTML = summaryParts.join('');
             };
 
+            const setFileInfo = text => {
+                if (fileInfo) {
+                    fileInfo.textContent = text;
+                }
+            };
+
             const resetDisplay = () => {
                 currentPatch = null;
                 setDetected('—');
@@ -7958,6 +8068,7 @@
                 copyBtn.disabled = true;
                 applyBtn.disabled = true;
                 setStatus(defaultStatusMessage);
+                setFileInfo('No file selected yet.');
             };
 
             const applyPatchToUi = (patch, { detectedLabel, syncControls = false, updateText = true } = {}) => {
@@ -8060,12 +8171,6 @@
 
             resetDisplay();
 
-            if (uploadCsvBtn) {
-                uploadCsvBtn.addEventListener('click', () => {
-                    fileInput.click();
-                });
-            }
-
             fileInput.addEventListener('change', async event => {
                 const file = event.target.files && event.target.files[0];
                 if (!file) {
@@ -8075,6 +8180,8 @@
                 try {
                     const text = await file.text();
                     const lowerName = file.name.toLowerCase();
+
+                    setFileInfo(`Loaded: ${file.name}`);
 
                     if (lowerName.endsWith('.csv')) {
                         const shouldNormalize = normalizeCheckbox ? normalizeCheckbox.checked : true;
@@ -8107,6 +8214,7 @@
                     resetDisplay();
                     alert('Error: ' + (error && error.message ? error.message : error));
                     setStatus('Could not read that file. Please try again.', 'error');
+                    setFileInfo('No file selected yet.');
                 } finally {
                     fileInput.value = '';
                 }
