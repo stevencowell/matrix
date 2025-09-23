@@ -2115,7 +2115,7 @@
                                         <strong>Need the template?</strong>
                                         <p>Download a fresh copy before you upload your completed spreadsheet.</p>
                                     </div>
-                                    <button class="btn btn-secondary btn-compact" id="converterDownloadTemplate">Download Allocation Data Template</button>
+                                    <a class="btn btn-secondary btn-compact" id="converterDownloadTemplate" href="allocation-data-template.csv" download>Download Allocation Data Template</a>
                                 </div>
                                 <div class="converter-row">
                                     <input id="converterFile" class="converter-file-input" type="file" accept=".csv,.json">
@@ -8154,7 +8154,15 @@
                 resetDisplay();
             });
 
-            downloadTemplateBtn.addEventListener('click', async () => {
+            downloadTemplateBtn.addEventListener('click', async event => {
+                const hasDirectDownload = downloadTemplateBtn.tagName === 'A' && downloadTemplateBtn.hasAttribute('href');
+                if (hasDirectDownload) {
+                    setStatus('Template downloaded. Fill it in, then upload it here.', 'success');
+                    return;
+                }
+
+                event.preventDefault();
+
                 try {
                     const response = await fetch(allocationTemplateFilename, { cache: 'no-cache' });
                     if (!response.ok) {
