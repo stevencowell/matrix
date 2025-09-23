@@ -178,6 +178,11 @@
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 12px 28px rgba(15, 23, 42, 0.12);
         }
 
+        .control-group--start {
+            border-left: 4px solid #4f46e5;
+            background: linear-gradient(145deg, rgba(79, 70, 229, 0.18), rgba(79, 70, 229, 0.05));
+        }
+
         .control-group--workflow {
             border-left: 4px solid #6366f1;
             background: linear-gradient(145deg, rgba(99, 102, 241, 0.16), rgba(99, 102, 241, 0.04));
@@ -2094,6 +2099,15 @@
                     <p>Choose an action to allocate subjects, manage data or adjust supporting resources.</p>
                 </div>
                 <div class="control-groups">
+                    <section class="control-group control-group--start">
+                        <div class="control-group-header">
+                            <div class="control-group-label">Start Here</div>
+                            <p class="control-group-description">Begin by converting your timetable file into the matrix-ready format.</p>
+                        </div>
+                        <div class="control-group-buttons">
+                            <button class="btn btn-secondary" id="togglePatchConverterBtn" type="button" onclick="togglePatchConverter()" aria-expanded="false" aria-controls="patchConverterPanel" title="Convert CSVs into JSON lineCells patches or validate a patch in the File Converter">Open File Converter</button>
+                        </div>
+                    </section>
                     <section class="control-group control-group--workflow">
                         <div class="control-group-header">
                             <div class="control-group-label">Allocation Workflow</div>
@@ -2118,7 +2132,6 @@
                             <button class="btn btn-primary" onclick="exportData()" title="Export allocations for sharing or backup">Export Data</button>
                             <button class="btn btn-warning" onclick="resetAllocations()" title="Clear all current allocations and start fresh">Reset Allocations</button>
                             <button class="btn btn-danger" onclick="clearAllData()" title="Remove all imported data, allocations and saved settings to start from scratch">Clear All Data</button>
-                            <button class="btn btn-secondary" id="togglePatchConverterBtn" type="button" onclick="togglePatchConverter()" aria-expanded="false" aria-controls="patchConverterPanel" title="Convert CSVs into JSON lineCells patches or validate a patch in the File Converter">Open File Converter</button>
                         </div>
                     </section>
 
