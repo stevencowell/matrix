@@ -167,6 +167,22 @@
             outline-offset: 3px;
         }
 
+        .app-alert__button--danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #ffffff;
+            box-shadow: 0 14px 28px rgba(220, 38, 38, 0.28);
+        }
+
+        .app-alert__button--danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 18px 36px rgba(220, 38, 38, 0.34);
+        }
+
+        .app-alert__button--danger:focus {
+            outline: 2px solid rgba(248, 113, 113, 0.6);
+            outline-offset: 3px;
+        }
+
         .app-shell {
             min-height: 100vh;
             display: flex;
@@ -2765,10 +2781,7 @@
                             <div class="app-alert__input is-hidden" id="appAlertInputWrapper">
                                 <input type="text" class="app-alert__field" id="appAlertInput" autocomplete="off">
                             </div>
-                            <div class="app-alert__actions">
-                                <button type="button" class="app-alert__button app-alert__button--secondary is-hidden" id="appAlertSecondary">Cancel</button>
-                                <button type="button" class="app-alert__button app-alert__button--primary" id="appAlertPrimary">OK</button>
-                            </div>
+                            <div class="app-alert__actions" id="appAlertActions"></div>
                         </div>`;
                     document.body.appendChild(alertRoot);
                 }
@@ -2792,13 +2805,13 @@
             const iconEl = alertRoot.querySelector('#appAlertIcon');
             const inputWrapper = alertRoot.querySelector('#appAlertInputWrapper');
             const inputField = alertRoot.querySelector('#appAlertInput');
-            const primaryButton = alertRoot.querySelector('#appAlertPrimary');
-            const secondaryButton = alertRoot.querySelector('#appAlertSecondary');
+            const actionsContainer = alertRoot.querySelector('#appAlertActions');
 
             const queue = [];
             let isOpen = false;
             let activeItem = null;
             let previousActiveElement = null;
+            let currentActionButtons = [];
 
             const inferPresentation = text => {
                 const normalized = text.toLowerCase();
@@ -2814,6 +2827,110 @@
                 return { icon: 'ℹ️', title: 'Heads up' };
             };
 
+            const buildActionsForItem = item => {
+                if (item.type === 'dialog') {
+                    const provided = Array.isArray(item.actions) ? item.actions : [];
+                    const normalized = provided
+                        .map((action, index) => {
+                            if (!action || typeof action.label !== 'string') {
+                                return null;
+                            }
+                            const label = action.label.trim();
+                            if (!label) {
+                                return null;
+                            }
+                            const variant = ['primary', 'secondary', 'danger'].includes(action.variant)
+                                ? action.variant
+                                : (index === 0 ? 'primary' : 'secondary');
+                            const allowedRoles = ['primary', 'cancel', 'submit', 'option'];
+                            const role = allowedRoles.includes(action.role)
+                                ? action.role
+                                : (variant === 'primary' ? 'primary' : 'option');
+                            const value = typeof action.value !== 'undefined' ? action.value : index;
+                            const focus = Boolean(action.focus);
+                            return { label, variant, role, value, focus };
+                        })
+                        .filter(Boolean);
+
+                    if (normalized.length === 0) {
+                        normalized.push({
+                            label: 'OK',
+                            variant: 'primary',
+                            role: 'primary',
+                            value: undefined,
+                            focus: true
+                        });
+                    }
+
+                    if (typeof item.dismissValue !== 'undefined' && !normalized.some(action => action.role === 'cancel')) {
+                        normalized.push({
+                            label: 'Cancel',
+                            variant: 'secondary',
+                            role: 'cancel',
+                            value: item.dismissValue
+                        });
+                    }
+
+                    return normalized;
+                }
+
+                const actions = [];
+                if ((item.type === 'confirm' || item.type === 'prompt') && item.secondaryLabel) {
+                    actions.push({
+                        label: item.secondaryLabel,
+                        variant: 'secondary',
+                        role: 'cancel',
+                        value: item.dismissValue
+                    });
+                }
+
+                actions.push({
+                    label: item.primaryLabel,
+                    variant: 'primary',
+                    role: item.type === 'prompt' ? 'submit' : 'primary',
+                    value: item.type === 'prompt' ? undefined : item.primaryValue,
+                    focus: true
+                });
+
+                return actions;
+            };
+
+            const renderActions = item => {
+                if (!actionsContainer) {
+                    currentActionButtons = [];
+                    return;
+                }
+
+                const actions = buildActionsForItem(item);
+
+                actionsContainer.innerHTML = '';
+                currentActionButtons = [];
+
+                if (!actions || actions.length === 0) {
+                    actionsContainer.classList.add('is-hidden');
+                    return;
+                }
+
+                actionsContainer.classList.remove('is-hidden');
+
+                actions.forEach(action => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'app-alert__button';
+                    if (action.variant === 'primary') {
+                        button.classList.add('app-alert__button--primary');
+                    } else if (action.variant === 'danger') {
+                        button.classList.add('app-alert__button--danger');
+                    } else {
+                        button.classList.add('app-alert__button--secondary');
+                    }
+                    button.textContent = action.label;
+                    button.addEventListener('click', () => handleAction(action));
+                    actionsContainer.appendChild(button);
+                    currentActionButtons.push({ element: button, action });
+                });
+            };
+
             const configureDialog = item => {
                 if (titleEl) {
                     titleEl.textContent = item.title;
@@ -2823,17 +2940,6 @@
                 }
                 if (iconEl) {
                     iconEl.textContent = item.icon;
-                }
-                if (primaryButton) {
-                    primaryButton.textContent = item.primaryLabel;
-                }
-                if (secondaryButton) {
-                    if (item.secondaryLabel) {
-                        secondaryButton.textContent = item.secondaryLabel;
-                        secondaryButton.classList.remove('is-hidden');
-                    } else {
-                        secondaryButton.classList.add('is-hidden');
-                    }
                 }
                 if (inputWrapper && inputField) {
                     if (item.type === 'prompt') {
@@ -2850,19 +2956,27 @@
                         inputField.removeAttribute('placeholder');
                     }
                 }
+
+                renderActions(item);
             };
 
             const focusFirstElement = () => {
                 if (!isOpen) {
                     return;
                 }
-                if (activeItem && activeItem.type === 'prompt' && inputField) {
+
+                if (activeItem && activeItem.type === 'prompt' && inputField && inputWrapper && !inputWrapper.classList.contains('is-hidden')) {
                     inputField.focus({ preventScroll: true });
                     inputField.select();
                     return;
                 }
-                if (primaryButton && typeof primaryButton.focus === 'function') {
-                    primaryButton.focus({ preventScroll: true });
+
+                const preferred = currentActionButtons.find(btn => btn.action.focus)
+                    || currentActionButtons.find(btn => btn.action.role === 'primary')
+                    || currentActionButtons[currentActionButtons.length - 1];
+
+                if (preferred && preferred.element) {
+                    preferred.element.focus({ preventScroll: true });
                 } else if (dialog && typeof dialog.focus === 'function') {
                     dialog.focus({ preventScroll: true });
                 }
@@ -2873,12 +2987,11 @@
                 if (activeItem && activeItem.type === 'prompt' && inputField && inputWrapper && !inputWrapper.classList.contains('is-hidden')) {
                     focusable.push(inputField);
                 }
-                if (secondaryButton && !secondaryButton.classList.contains('is-hidden')) {
-                    focusable.push(secondaryButton);
-                }
-                if (primaryButton) {
-                    focusable.push(primaryButton);
-                }
+                currentActionButtons.forEach(({ element }) => {
+                    if (element) {
+                        focusable.push(element);
+                    }
+                });
                 return focusable;
             };
 
@@ -2892,6 +3005,7 @@
 
                 const item = activeItem;
                 activeItem = null;
+                currentActionButtons = [];
 
                 if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
                     previousActiveElement.focus({ preventScroll: true });
@@ -2910,12 +3024,13 @@
                 finishDialog(fallback);
             };
 
-            const handlePrimary = () => {
+            const handleAction = action => {
                 if (!activeItem) {
                     finishDialog(undefined);
                     return;
                 }
-                if (activeItem.type === 'prompt') {
+
+                if (activeItem.type === 'prompt' && action.role === 'submit') {
                     const rawValue = inputField ? inputField.value : '';
                     const result = typeof activeItem.transform === 'function'
                         ? activeItem.transform(rawValue)
@@ -2923,19 +3038,41 @@
                     finishDialog(result);
                     return;
                 }
-                if (typeof activeItem.primaryValue !== 'undefined') {
-                    finishDialog(activeItem.primaryValue);
-                } else {
-                    finishDialog(undefined);
+
+                if (action.role === 'cancel') {
+                    const fallback = typeof action.value !== 'undefined' ? action.value : activeItem.dismissValue;
+                    finishDialog(fallback);
+                    return;
                 }
+
+                if (typeof action.value !== 'undefined') {
+                    finishDialog(action.value);
+                    return;
+                }
+
+                if (typeof activeItem.primaryValue !== 'undefined' && action.role === 'primary') {
+                    finishDialog(activeItem.primaryValue);
+                    return;
+                }
+
+                finishDialog(undefined);
             };
 
-            const handleSecondary = () => {
-                if (!activeItem) {
+            const invokeDefaultAction = () => {
+                if (currentActionButtons.length === 0) {
                     finishDialog(undefined);
                     return;
                 }
-                finishDialog(activeItem.dismissValue);
+
+                const preferred = currentActionButtons.find(btn => btn.action.role === 'submit')
+                    || currentActionButtons.find(btn => btn.action.role === 'primary')
+                    || currentActionButtons[currentActionButtons.length - 1];
+
+                if (preferred) {
+                    handleAction(preferred.action);
+                } else {
+                    finishDialog(undefined);
+                }
             };
 
             const showNext = () => {
@@ -2955,12 +3092,6 @@
                 requestAnimationFrame(focusFirstElement);
             };
 
-            if (primaryButton) {
-                primaryButton.addEventListener('click', handlePrimary);
-            }
-            if (secondaryButton) {
-                secondaryButton.addEventListener('click', handleSecondary);
-            }
             if (overlay) {
                 overlay.addEventListener('click', dismissDialog);
             }
@@ -2969,7 +3100,7 @@
                 inputField.addEventListener('keydown', event => {
                     if (event.key === 'Enter') {
                         event.preventDefault();
-                        handlePrimary();
+                        invokeDefaultAction();
                     }
                 });
             }
@@ -3024,36 +3155,49 @@
                 const icon = typeof options.icon === 'string' && options.icon.trim() ? options.icon.trim() : inferred.icon;
                 const title = typeof options.title === 'string' && options.title.trim() ? options.title.trim() : inferred.title;
 
+                const providedActions = Array.isArray(options.actions)
+                    ? options.actions.filter(action => action && typeof action === 'object')
+                    : [];
+
+                const normalizedType = providedActions.length > 0 ? 'dialog' : type;
+
                 const item = {
-                    type,
+                    type: normalizedType,
                     message: text,
                     icon,
                     title,
                     primaryLabel: 'OK',
                     secondaryLabel: null,
                     primaryValue: undefined,
-                    dismissValue: undefined,
+                    dismissValue: typeof options.dismissValue !== 'undefined' ? options.dismissValue : undefined,
                     defaultValue: '',
                     placeholder: '',
                     transform: null,
+                    actions: providedActions,
                     resolve: () => {}
                 };
 
-                if (type === 'confirm') {
+                if (normalizedType === 'confirm') {
                     item.primaryLabel = typeof options.confirmLabel === 'string' && options.confirmLabel.trim() ? options.confirmLabel.trim() : 'Confirm';
                     item.secondaryLabel = typeof options.cancelLabel === 'string' && options.cancelLabel.trim() ? options.cancelLabel.trim() : 'Cancel';
                     item.primaryValue = typeof options.primaryValue !== 'undefined' ? options.primaryValue : true;
                     item.dismissValue = typeof options.dismissValue !== 'undefined' ? options.dismissValue : false;
-                } else if (type === 'prompt') {
+                } else if (normalizedType === 'prompt') {
                     item.primaryLabel = typeof options.confirmLabel === 'string' && options.confirmLabel.trim() ? options.confirmLabel.trim() : 'Save';
                     item.secondaryLabel = typeof options.cancelLabel === 'string' && options.cancelLabel.trim() ? options.cancelLabel.trim() : 'Cancel';
                     item.defaultValue = typeof options.defaultValue === 'string' ? options.defaultValue : '';
                     item.placeholder = typeof options.placeholder === 'string' ? options.placeholder : '';
                     item.transform = typeof options.transform === 'function' ? options.transform : null;
                     item.dismissValue = typeof options.dismissValue !== 'undefined' ? options.dismissValue : null;
+                } else if (normalizedType === 'dialog') {
+                    if (typeof item.dismissValue === 'undefined') {
+                        item.dismissValue = 'dismissed';
+                    }
                 } else {
                     item.primaryLabel = typeof options.confirmLabel === 'string' && options.confirmLabel.trim() ? options.confirmLabel.trim() : 'OK';
-                    item.dismissValue = typeof options.dismissValue !== 'undefined' ? options.dismissValue : undefined;
+                    if (typeof options.primaryValue !== 'undefined') {
+                        item.primaryValue = options.primaryValue;
+                    }
                 }
 
                 return new Promise(resolve => {
@@ -3066,6 +3210,7 @@
             window.showAppAlert = (message, options) => enqueue('alert', message, options);
             window.showAppConfirm = (message, options) => enqueue('confirm', message, options);
             window.showAppPrompt = (message, options) => enqueue('prompt', message, options);
+            window.showAppDialog = (message, options) => enqueue('dialog', message, options);
 
             window.alert = message => {
                 enqueue('alert', message);
@@ -8471,6 +8616,140 @@
             const lineName = typeof lines[lineIndex] === 'string' && lines[lineIndex].trim().length > 0
                 ? lines[lineIndex].trim()
                 : `Line ${lineIndex + 1}`;
+
+            if (typeof window.showAppDialog === 'function') {
+                const existingSubjectsList = Array.isArray(config.existingSubjects)
+                    ? config.existingSubjects
+                    : [];
+                const rooms = Array.isArray(config.rooms) ? config.rooms : [];
+                const conflicts = Array.isArray(config.conflicts) ? config.conflicts : [];
+
+                const messageParts = [];
+
+                if (variant === 'room') {
+                    if (rooms.length > 0) {
+                        messageParts.push(`Adding ${subjectCode} to ${teacherName} on ${lineName} will reuse room${rooms.length === 1 ? '' : 's'} ${rooms.join(', ')} already allocated on this line.`);
+                    } else {
+                        messageParts.push(`Adding ${subjectCode} to ${teacherName} on ${lineName} will reuse rooms already allocated on this line.`);
+                    }
+
+                    if (conflicts.length > 0) {
+                        const conflictLines = conflicts.map(conflict => {
+                            const conflictRooms = Array.isArray(conflict.rooms) && conflict.rooms.length > 0
+                                ? ` (${conflict.rooms.join(', ')})`
+                                : '';
+                            return `• ${conflict.teacherName}: ${conflict.subjectCode}${conflictRooms}`;
+                        });
+                        messageParts.push('Current allocations using these rooms:\n' + conflictLines.join('\n'));
+                    }
+
+                    messageParts.push('Select an option to continue. Continue keeps the shared rooms. Change rooms lets you adjust the allocation now. Divide subject configures a split allocation. Cancel will stop this allocation.');
+                } else {
+                    messageParts.push(`Allocating ${subjectCode} to ${teacherName} on ${lineName} will clash with an existing allocation.`);
+
+                    if (existingSubjectsList.length > 0) {
+                        const subjectLines = existingSubjectsList.map(subject => `• ${subject}`);
+                        messageParts.push('Existing subject(s) in this cell:\n' + subjectLines.join('\n'));
+                    }
+
+                    messageParts.push('Proceed keeps all subjects and records the clash. Replace removes the existing subject(s) before allocating the new one. Cancel will stop this allocation.');
+                }
+
+                const message = messageParts.join('\n\n');
+
+                const actions = [];
+                actions.push({
+                    label: variant === 'room'
+                        ? (config.proceedLabel || 'Continue')
+                        : (config.proceedLabel || 'Proceed'),
+                    value: 'proceed',
+                    variant: 'primary',
+                    role: 'primary',
+                    focus: true
+                });
+
+                if (variant === 'room') {
+                    if (typeof config.onChange === 'function') {
+                        actions.push({
+                            label: config.changeLabel || 'Change rooms',
+                            value: 'change',
+                            variant: 'secondary',
+                            role: 'option'
+                        });
+                    }
+
+                    if (typeof config.onDivide === 'function') {
+                        actions.push({
+                            label: config.divideLabel || 'Divide subject',
+                            value: 'divide',
+                            variant: 'secondary',
+                            role: 'option'
+                        });
+                    }
+                } else if (typeof config.onReplace === 'function') {
+                    actions.push({
+                        label: config.replaceLabel || 'Replace',
+                        value: 'replace',
+                        variant: 'danger',
+                        role: 'option'
+                    });
+                }
+
+                actions.push({
+                    label: config.cancelLabel || 'Cancel',
+                    value: 'cancel',
+                    variant: 'secondary',
+                    role: 'cancel'
+                });
+
+                window.showAppDialog(message, {
+                    title: variant === 'room' ? 'Room clash detected' : 'Allocation clash detected',
+                    icon: '⚠️',
+                    actions: actions,
+                    dismissValue: 'cancel'
+                }).then(choice => {
+                    const callSafely = (callback, errorLabel) => {
+                        if (typeof callback !== 'function') {
+                            return;
+                        }
+                        try {
+                            callback();
+                        } catch (error) {
+                            console.error(errorLabel, error);
+                        }
+                    };
+
+                    switch (choice) {
+                        case 'proceed':
+                            callSafely(config.onProceed, 'Error handling clash proceed callback:');
+                            break;
+                        case 'replace':
+                            callSafely(config.onReplace, 'Error handling clash replace callback:');
+                            break;
+                        case 'change':
+                            callSafely(config.onChange, 'Error handling room clash change callback:');
+                            break;
+                        case 'divide':
+                            callSafely(config.onDivide, 'Error handling room clash divide callback:');
+                            break;
+                        default:
+                            callSafely(config.onCancel, 'Error handling clash cancel callback:');
+                            break;
+                    }
+                }).catch(error => {
+                    console.error('Unable to present clash dialog:', error);
+                    if (typeof config.onCancel === 'function') {
+                        try {
+                            config.onCancel();
+                        } catch (cancelError) {
+                            console.error('Error handling clash cancel callback:', cancelError);
+                        }
+                    }
+                });
+
+                pendingClashContext = null;
+                return;
+            }
 
             const modal = document.getElementById('clashModal');
             const title = document.getElementById('clashModalTitle');
