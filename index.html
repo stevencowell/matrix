@@ -9038,20 +9038,30 @@
             }
 
             const roomSet = new Set(rooms);
+            const normalizedTargetSubject = normalizeSubjectCode(subjectCode);
             const conflicts = [];
 
-            teachers.forEach((_, otherTeacherIndex) => {
-                if (otherTeacherIndex === teacherIndex) {
+            const addConflictsForTeacher = (lineIdx, targetTeacherIndex) => {
+                if (!Number.isInteger(targetTeacherIndex) || targetTeacherIndex < 0 || targetTeacherIndex >= teachers.length) {
                     return;
                 }
 
-                const otherSubjects = getAllocationSubjects(getAllocationKey(lineIndex, otherTeacherIndex));
+                const otherSubjects = getAllocationSubjects(getAllocationKey(lineIdx, targetTeacherIndex));
                 if (!Array.isArray(otherSubjects) || otherSubjects.length === 0) {
                     return;
                 }
 
                 otherSubjects.forEach(existingSubject => {
-                    const entries = getEffectiveRoomAssignmentsForCell(existingSubject, lineIndex, otherTeacherIndex);
+                    if (!existingSubject) {
+                        return;
+                    }
+
+                    const normalizedExisting = normalizeSubjectCode(existingSubject);
+                    if (targetTeacherIndex === teacherIndex && normalizedExisting === normalizedTargetSubject) {
+                        return;
+                    }
+
+                    const entries = getEffectiveRoomAssignmentsForCell(existingSubject, lineIdx, targetTeacherIndex);
                     const otherRooms = getUniqueRoomsFromEntries(entries);
                     const overlap = otherRooms.filter(room => roomSet.has(room));
 
@@ -9059,17 +9069,26 @@
                         return;
                     }
 
-                    const teacherName = typeof teachers[otherTeacherIndex] === 'string' && teachers[otherTeacherIndex].trim().length > 0
-                        ? teachers[otherTeacherIndex].trim()
-                        : `Teacher ${otherTeacherIndex + 1}`;
+                    const teacherName = typeof teachers[targetTeacherIndex] === 'string' && teachers[targetTeacherIndex].trim().length > 0
+                        ? teachers[targetTeacherIndex].trim()
+                        : `Teacher ${targetTeacherIndex + 1}`;
 
                     conflicts.push({
-                        teacherIndex: otherTeacherIndex,
+                        teacherIndex: targetTeacherIndex,
                         teacherName: teacherName,
                         subjectCode: existingSubject,
                         rooms: Array.from(new Set(overlap))
                     });
                 });
+            };
+
+            addConflictsForTeacher(lineIndex, teacherIndex);
+
+            teachers.forEach((_, otherTeacherIndex) => {
+                if (otherTeacherIndex === teacherIndex) {
+                    return;
+                }
+                addConflictsForTeacher(lineIndex, otherTeacherIndex);
             });
 
             return { rooms, conflicts };
