@@ -1285,9 +1285,18 @@
         .subject-slot.semester-pair .semester-pair-item {
             background: rgba(5, 150, 105, 0.12);
             border-radius: 6px;
-            padding: 2px 4px;
+            padding: 6px 8px;
             font-size: 11px;
             cursor: move;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: stretch;
+            text-align: left;
+        }
+
+        .subject-slot.semester-pair .semester-pair-item .subject-room-footer {
+            margin-top: 4px;
         }
 
         .subject-slot.semester-pair .semester-pair-label {
@@ -7579,6 +7588,11 @@
                     const subjectRow = document.createElement('div');
                     subjectRow.className = 'semester-pair-item';
                     subjectRow.textContent = subject;
+                    appendSubjectRoomDetails(subjectRow, subject, {
+                        context: 'cell',
+                        lineIndex: lineIndex,
+                        teacherIndex: teacherIndex
+                    });
                     enhanceAllocatedSubjectElement(subjectRow, subject, lineIndex, teacherIndex);
                     wrapper.appendChild(subjectRow);
                 });
