@@ -1274,6 +1274,94 @@
             margin-top: 4px;
         }
 
+        .subject-room-footer {
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .subject-slot.split-subject .subject-room-footer,
+        .subject-slot.split-segment .subject-room-footer {
+            align-items: flex-start;
+        }
+
+        .subject-room-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .subject-room-tag,
+        .subject-room-empty {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(30, 64, 175, 0.08);
+            color: #1e3a8a;
+            white-space: nowrap;
+        }
+
+        .subject-slot.allocated .subject-room-tag {
+            background: rgba(239, 68, 68, 0.15);
+            color: #b91c1c;
+        }
+
+        .subject-room-tag--override {
+            background: rgba(34, 197, 94, 0.2);
+            color: #047857;
+        }
+
+        .subject-room-empty {
+            background: rgba(148, 163, 184, 0.16);
+            color: #475569;
+            font-style: italic;
+        }
+
+        .subject-room-edit {
+            border: none;
+            background: rgba(79, 70, 229, 0.18);
+            color: #312e81;
+            border-radius: 999px;
+            padding: 4px 12px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .subject-room-edit:hover,
+        .subject-room-edit:focus {
+            background: rgba(79, 70, 229, 0.3);
+            color: #1e1b4b;
+            outline: none;
+        }
+
+        .subject-room-edit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .subject-slot.subject-slot--with-rooms {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            text-align: center;
+            gap: 4px;
+        }
+
+        .subject-slot.split-subject.subject-slot--with-rooms,
+        .subject-slot.split-segment.subject-slot--with-rooms {
+            align-items: flex-start;
+            text-align: left;
+        }
+
         .subject-pool-grid {
             display: grid;
             gap: 18px;
@@ -1913,6 +2001,109 @@
             color: #475569;
         }
 
+        .modal-content.modal-content--room {
+            width: 520px;
+            max-width: 95%;
+        }
+
+        .room-modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .room-modal-summary {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .room-modal-info {
+            font-size: 0.85rem;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        .room-modal-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .room-modal-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .room-modal-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 1fr) minmax(80px, 90px) minmax(120px, 1fr) auto;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .room-modal-room,
+        .room-modal-periods,
+        .room-modal-note {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            color: #1f2937;
+            background: rgba(255, 255, 255, 0.92);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .room-modal-room:focus,
+        .room-modal-periods:focus,
+        .room-modal-note:focus {
+            outline: none;
+            border-color: rgba(79, 70, 229, 0.6);
+            box-shadow: 0 0 0 2px rgba(165, 180, 252, 0.45);
+        }
+
+        .room-modal-periods {
+            -moz-appearance: textfield;
+        }
+
+        .room-modal-periods::-webkit-outer-spin-button,
+        .room-modal-periods::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .room-modal-remove {
+            border: none;
+            background: rgba(239, 68, 68, 0.18);
+            color: #b91c1c;
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .room-modal-remove:hover,
+        .room-modal-remove:focus {
+            background: rgba(239, 68, 68, 0.3);
+            color: #7f1d1d;
+            outline: none;
+        }
+
+        .room-modal-empty {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        .room-modal-hint {
+            font-size: 0.8rem;
+            color: #475569;
+        }
+
         .management-actions {
             display: none;
             flex-direction: column;
@@ -2277,6 +2468,7 @@
                         <div class="control-group-buttons">
                             <button class="btn btn-primary" onclick="allocateNewSubject()" title="Allocate an available subject to a teacher">Allocate New Subject</button>
                             <button class="btn btn-primary" onclick="splitSubject()" title="Divide a subject into multiple allocations">Split Subject</button>
+                            <button class="btn btn-secondary" onclick="openRoomAllocationManager()" title="Assign default rooms to subjects and manage overrides">Manage Room Allocations</button>
                             <button class="btn btn-primary" onclick="moveExistingAllocation()" title="Reassign a subject that is already allocated">Move Existing Allocation</button>
                             <button class="btn btn-primary" onclick="openManagementHub()" title="Open tools to add or remove teachers, subjects, lines and supplemental data">Add / Remove Data</button>
                         </div>
@@ -2509,6 +2701,29 @@
                 <button class="btn btn-primary" id="clashProceedBtn">Proceed</button>
                 <button class="btn btn-warning" id="clashCancelBtn">Cancel</button>
                 <button class="btn btn-danger" id="clashReplaceBtn">Replace</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="roomModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="roomModalTitle" aria-hidden="true">
+        <div class="modal-content modal-content--room">
+            <div class="modal-header">
+                <span class="modal-title" id="roomModalTitle">Manage Rooms</span>
+                <span class="close" id="roomModalClose">&times;</span>
+            </div>
+            <div class="room-modal-body">
+                <div class="room-modal-summary" id="roomModalSummary"></div>
+                <div class="room-modal-info" id="roomModalInfo"></div>
+                <div class="room-modal-actions" id="roomModalContextActions" hidden>
+                    <button type="button" class="btn btn-secondary btn-compact" id="roomModalCopyDefaults">Copy defaults</button>
+                </div>
+                <div class="room-modal-list" id="roomModalList"></div>
+                <div class="room-modal-hint" id="roomModalHint"></div>
+                <button type="button" class="btn btn-secondary btn-compact" id="roomModalAddRoom">Add Room</button>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-warning" id="roomModalClearRooms">Clear Rooms</button>
+                    <button type="button" class="btn btn-primary" id="roomModalSaveRooms">Save Rooms</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2864,6 +3079,21 @@
         let pendingClashContext = null;
         let lastAllocationOutcome = { status: 'idle', reason: null };
 
+        const AVAILABLE_ROOMS = [
+            'A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'AMP', 'ANX',
+            'B01', 'B02', 'B03', 'B04', 'B05', 'B07', 'B09', 'B10', 'B11', 'B12', 'B13', 'B14', 'B15', 'B16', 'B17', 'B18', 'B19', 'B20', 'B21', 'B22',
+            'C01', 'C02', 'C03', 'C04', 'C05', 'C06', 'C07', 'C08', 'C09', 'C10', 'C12',
+            'D01', 'D02', 'D03', 'D04', 'D05', 'D06', 'D07', 'D08', 'D09',
+            'E01', 'E02', 'E03', 'E04',
+            'F01', 'F02', 'F03',
+            'GY01', 'GY02', 'GY03', 'GY04',
+            'H01', 'H02', 'H03', 'HAL', 'LIB', 'TDR'
+        ];
+
+        let subjectRoomAssignments = {};
+        let allocationRoomOverrides = {};
+        let currentRoomModalContext = null;
+
         const FTE_OPTIONS = ['1.0', '0.8', '0.6', '0.4', '0.2'];
         // Base load expressed in 59-minute period equivalents for each FTE value
         const FTE_BASE_PERIODS_MAPPING = {
@@ -3205,6 +3435,368 @@
             element.title = `${baseSubject} – ${periods} period${periods === 1 ? '' : 's'} (Split ${index + 1}/${totalSplits})`;
         }
 
+        function cloneRoomEntries(entries) {
+            if (!Array.isArray(entries)) {
+                return [];
+            }
+            return entries.map(entry => ({ ...entry }));
+        }
+
+        function sanitizeRoomEntry(entry) {
+            if (!entry || typeof entry !== 'object') {
+                return null;
+            }
+
+            const rawRoom = typeof entry.room === 'string' ? entry.room.trim().toUpperCase() : '';
+            if (!rawRoom || !AVAILABLE_ROOMS.includes(rawRoom)) {
+                return null;
+            }
+
+            let periodsValue = entry.periods;
+            if (typeof periodsValue === 'string') {
+                periodsValue = periodsValue.trim();
+            }
+
+            let periods = null;
+            if (periodsValue !== null && periodsValue !== undefined && periodsValue !== '') {
+                const numeric = Number(periodsValue);
+                if (Number.isFinite(numeric) && numeric >= 0) {
+                    periods = Number.isInteger(numeric) ? numeric : parseFloat(numeric.toFixed(2));
+                }
+            }
+
+            let label = '';
+            if (typeof entry.label === 'string') {
+                label = entry.label.trim();
+            } else if (typeof entry.note === 'string') {
+                label = entry.note.trim();
+            }
+
+            return {
+                room: rawRoom,
+                periods: periods,
+                label: label
+            };
+        }
+
+        function normalizeRoomEntries(entries) {
+            if (!Array.isArray(entries)) {
+                return [];
+            }
+
+            const seen = new Set();
+            const normalized = [];
+
+            entries.forEach(entry => {
+                const sanitized = sanitizeRoomEntry(entry);
+                if (!sanitized) {
+                    return;
+                }
+
+                const key = `${sanitized.room}|${sanitized.periods !== null && sanitized.periods !== undefined ? sanitized.periods : ''}|${sanitized.label || ''}`;
+                if (seen.has(key)) {
+                    return;
+                }
+                seen.add(key);
+                normalized.push(sanitized);
+            });
+
+            return normalized;
+        }
+
+        function getDirectSubjectRoomAssignments(subjectCode) {
+            const normalized = normalizeSubjectCode(subjectCode);
+            if (!normalized) {
+                return [];
+            }
+            const entries = subjectRoomAssignments[normalized];
+            return Array.isArray(entries) ? cloneRoomEntries(entries) : [];
+        }
+
+        function getSubjectRoomAssignments(subjectCode, options = {}) {
+            const direct = getDirectSubjectRoomAssignments(subjectCode);
+            if (direct.length > 0) {
+                return direct;
+            }
+
+            if (options.ignoreBase === true) {
+                return [];
+            }
+
+            const metadata = getSplitMetadata(subjectCode);
+            if (metadata && metadata.baseSubject && metadata.baseSubject !== subjectCode) {
+                return getSubjectRoomAssignments(metadata.baseSubject, { ignoreBase: false });
+            }
+
+            return [];
+        }
+
+        function getInheritedSubjectRoomAssignments(subjectCode) {
+            const metadata = getSplitMetadata(subjectCode);
+            if (metadata && metadata.baseSubject && metadata.baseSubject !== subjectCode) {
+                return getSubjectRoomAssignments(metadata.baseSubject);
+            }
+            return [];
+        }
+
+        function setSubjectRoomAssignments(subjectCode, entries) {
+            const normalized = normalizeSubjectCode(subjectCode);
+            if (!normalized) {
+                return;
+            }
+
+            const sanitized = normalizeRoomEntries(entries);
+            if (sanitized.length === 0) {
+                delete subjectRoomAssignments[normalized];
+            } else {
+                subjectRoomAssignments[normalized] = sanitized;
+            }
+        }
+
+        function clearSubjectRoomAssignments(subjectCode) {
+            const normalized = normalizeSubjectCode(subjectCode);
+            if (!normalized) {
+                return;
+            }
+            delete subjectRoomAssignments[normalized];
+        }
+
+        function getAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode) {
+            const key = getAllocationKey(lineIndex, teacherIndex);
+            const normalized = normalizeSubjectCode(subjectCode);
+            if (!normalized) {
+                return [];
+            }
+            const overrides = allocationRoomOverrides && allocationRoomOverrides[key];
+            if (!overrides || typeof overrides !== 'object') {
+                return [];
+            }
+            const entries = overrides[normalized];
+            return Array.isArray(entries) ? cloneRoomEntries(entries) : [];
+        }
+
+        function setAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode, entries) {
+            const key = getAllocationKey(lineIndex, teacherIndex);
+            const parsed = parseAllocationKey(key);
+            const normalized = normalizeSubjectCode(subjectCode);
+
+            if (!parsed || !normalized) {
+                return;
+            }
+
+            const sanitized = normalizeRoomEntries(entries);
+            if (!allocationRoomOverrides || typeof allocationRoomOverrides !== 'object') {
+                allocationRoomOverrides = {};
+            }
+
+            if (sanitized.length === 0) {
+                if (allocationRoomOverrides[key]) {
+                    delete allocationRoomOverrides[key][normalized];
+                    if (Object.keys(allocationRoomOverrides[key]).length === 0) {
+                        delete allocationRoomOverrides[key];
+                    }
+                }
+                return;
+            }
+
+            if (!allocationRoomOverrides[key] || typeof allocationRoomOverrides[key] !== 'object') {
+                allocationRoomOverrides[key] = {};
+            }
+
+            allocationRoomOverrides[key][normalized] = sanitized;
+        }
+
+        function clearAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode) {
+            setAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode, []);
+        }
+
+        function getEffectiveRoomAssignmentsForCell(subjectCode, lineIndex, teacherIndex) {
+            const override = getAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode);
+            if (override.length > 0) {
+                return override;
+            }
+            return getSubjectRoomAssignments(subjectCode);
+        }
+
+        function hasAllocationRoomOverride(lineIndex, teacherIndex, subjectCode) {
+            const key = getAllocationKey(lineIndex, teacherIndex);
+            const normalized = normalizeSubjectCode(subjectCode);
+            if (!normalized || !allocationRoomOverrides || typeof allocationRoomOverrides !== 'object') {
+                return false;
+            }
+            const mapping = allocationRoomOverrides[key];
+            if (!mapping || typeof mapping !== 'object') {
+                return false;
+            }
+            const entries = mapping[normalized];
+            return Array.isArray(entries) && entries.length > 0;
+        }
+
+        function removeRoomOverridesForSubject(subjectCode) {
+            const normalized = normalizeSubjectCode(subjectCode);
+            if (!normalized || !allocationRoomOverrides || typeof allocationRoomOverrides !== 'object') {
+                return;
+            }
+
+            Object.entries({ ...allocationRoomOverrides }).forEach(([key, mapping]) => {
+                if (!mapping || typeof mapping !== 'object') {
+                    delete allocationRoomOverrides[key];
+                    return;
+                }
+
+                if (mapping[normalized]) {
+                    delete mapping[normalized];
+                }
+
+                if (Object.keys(mapping).length === 0) {
+                    delete allocationRoomOverrides[key];
+                }
+            });
+        }
+
+        function cleanupCellRoomAssignments(allocationKey, subjectsInCell) {
+            if (!allocationRoomOverrides || typeof allocationRoomOverrides !== 'object') {
+                return;
+            }
+
+            const overrides = allocationRoomOverrides[allocationKey];
+            if (!overrides || typeof overrides !== 'object') {
+                return;
+            }
+
+            const currentSubjects = Array.isArray(subjectsInCell)
+                ? subjectsInCell.map(subject => normalizeSubjectCode(subject))
+                : getAllocationSubjects(allocationKey).map(subject => normalizeSubjectCode(subject));
+
+            const subjectSet = new Set(currentSubjects.filter(Boolean));
+
+            Object.keys(overrides).forEach(subjectCode => {
+                if (!subjectSet.has(subjectCode)) {
+                    delete overrides[subjectCode];
+                }
+            });
+
+            if (Object.keys(overrides).length === 0) {
+                delete allocationRoomOverrides[allocationKey];
+            }
+        }
+
+        function formatRoomEntryLabel(entry) {
+            if (!entry || typeof entry !== 'object') {
+                return '';
+            }
+
+            const parts = [entry.room];
+            if (entry.periods !== null && entry.periods !== undefined && entry.periods !== '') {
+                parts.push(`×${entry.periods}`);
+            }
+            if (entry.label) {
+                parts.push(`(${entry.label})`);
+            }
+            return parts.join(' ');
+        }
+
+        function areRoomEntriesEqual(first, second) {
+            if (!Array.isArray(first) || !Array.isArray(second)) {
+                return false;
+            }
+            if (first.length !== second.length) {
+                return false;
+            }
+            for (let index = 0; index < first.length; index++) {
+                const a = first[index];
+                const b = second[index];
+                if (!a || !b) {
+                    return false;
+                }
+                const periodsA = a.periods === undefined ? null : a.periods;
+                const periodsB = b.periods === undefined ? null : b.periods;
+                const labelA = (a.label || '').trim();
+                const labelB = (b.label || '').trim();
+                if (a.room !== b.room || periodsA !== periodsB || labelA !== labelB) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function appendSubjectRoomDetails(element, subjectCode, context = {}) {
+            if (!element || !subjectCode) {
+                return;
+            }
+
+            element.querySelectorAll('.subject-room-footer').forEach(footer => footer.remove());
+            element.classList.remove('subject-slot--with-rooms');
+
+            const contextType = context.context || context.mode || 'pool';
+            const lineIndex = context.lineIndex;
+            const teacherIndex = context.teacherIndex;
+
+            let entries = [];
+            let isOverride = false;
+
+            if (contextType === 'cell') {
+                entries = getEffectiveRoomAssignmentsForCell(subjectCode, lineIndex, teacherIndex);
+                isOverride = hasAllocationRoomOverride(lineIndex, teacherIndex, subjectCode);
+            } else {
+                entries = getSubjectRoomAssignments(subjectCode);
+            }
+
+            const shouldShowButton = contextType === 'cell';
+            const hasEntries = entries.length > 0;
+
+            if (!shouldShowButton && !hasEntries) {
+                return;
+            }
+
+            const footer = document.createElement('div');
+            footer.className = 'subject-room-footer';
+
+            const tags = document.createElement('div');
+            tags.className = 'subject-room-tags';
+
+            if (hasEntries) {
+                entries.forEach(entry => {
+                    const tag = document.createElement('span');
+                    tag.className = 'subject-room-tag';
+                    if (isOverride) {
+                        tag.classList.add('subject-room-tag--override');
+                    }
+                    tag.textContent = formatRoomEntryLabel(entry);
+                    tags.appendChild(tag);
+                });
+            } else {
+                const empty = document.createElement('span');
+                empty.className = 'subject-room-empty';
+                empty.textContent = 'No room set';
+                tags.appendChild(empty);
+            }
+
+            footer.appendChild(tags);
+
+            if (shouldShowButton) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'subject-room-edit';
+                button.textContent = 'Rooms';
+                button.title = 'Manage room allocation for this subject';
+                button.addEventListener('click', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openRoomModal({
+                        subjectCode: subjectCode,
+                        lineIndex: lineIndex,
+                        teacherIndex: teacherIndex,
+                        mode: 'allocation'
+                    });
+                });
+                footer.appendChild(button);
+            }
+
+            element.classList.add('subject-slot--with-rooms');
+            element.appendChild(footer);
+        }
+
         function getAllocationKey(lineIndex, teacherIndex) {
             return `${lineIndex}-${teacherIndex}`;
         }
@@ -3269,8 +3861,10 @@
 
             if (!subjects || subjects.length === 0) {
                 delete allocations[parsed.key];
+                cleanupCellRoomAssignments(parsed.key, []);
             } else {
                 allocations[parsed.key] = [...subjects];
+                cleanupCellRoomAssignments(parsed.key, subjects);
             }
         }
 
@@ -3703,6 +4297,11 @@
                 removeAllocationsForSubject(normalizedCode);
                 removeCodeFromLists(normalizedCode);
             }
+
+            removedCodes.forEach(code => {
+                clearSubjectRoomAssignments(code);
+                removeRoomOverridesForSubject(code);
+            });
 
             clearActionHistory();
 
@@ -6382,6 +6981,7 @@
             subjectElement.dataset.line = mappedLine !== undefined ? mappedLine : 'unassigned';
 
             applySubjectDisplay(subjectElement, subjectCode);
+            appendSubjectRoomDetails(subjectElement, subjectCode, { context: 'pool' });
 
             subjectElement.addEventListener('dragstart', handleDragStart);
             subjectElement.addEventListener('dragend', handleDragEnd);
@@ -6499,6 +7099,8 @@
             if (addBackToPool) {
                 addSubjectToPool(subjectCode);
             }
+
+            clearAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode);
         }
 
         async function handleSubjectRemoval(lineIndex, teacherIndex, subjectCode) {
@@ -6704,6 +7306,12 @@
                     forceSegmentStyle: shouldForceSegment
                 });
 
+                appendSubjectRoomDetails(subjectElement, subject, {
+                    context: 'cell',
+                    lineIndex: lineIndex,
+                    teacherIndex: teacherIndex
+                });
+
                 enhanceAllocatedSubjectElement(subjectElement, subject, lineIndex, teacherIndex);
                 cell.appendChild(subjectElement);
             });
@@ -6894,6 +7502,61 @@
                 subjectSplits = normalizedSplits;
                 rebuildSplitLookup();
             }
+        }
+
+        function canonicalizeRoomAssignments() {
+            if (!subjectRoomAssignments || typeof subjectRoomAssignments !== 'object') {
+                subjectRoomAssignments = {};
+            } else {
+                const normalizedRooms = {};
+                Object.entries(subjectRoomAssignments).forEach(([subjectCode, entries]) => {
+                    const normalizedCode = normalizeSubjectCode(subjectCode);
+                    if (!normalizedCode) {
+                        return;
+                    }
+                    const sanitizedEntries = normalizeRoomEntries(entries);
+                    if (sanitizedEntries.length > 0) {
+                        normalizedRooms[normalizedCode] = sanitizedEntries;
+                    }
+                });
+                subjectRoomAssignments = normalizedRooms;
+            }
+
+            if (!allocationRoomOverrides || typeof allocationRoomOverrides !== 'object') {
+                allocationRoomOverrides = {};
+                return;
+            }
+
+            const normalizedOverrides = {};
+            Object.entries(allocationRoomOverrides).forEach(([key, mapping]) => {
+                const parsed = parseAllocationKey(key);
+                if (!parsed) {
+                    return;
+                }
+
+                const subjectsInCell = new Set(getAllocationSubjects(parsed.key).map(code => normalizeSubjectCode(code)));
+                if (!mapping || typeof mapping !== 'object') {
+                    return;
+                }
+
+                const sanitizedMapping = {};
+                Object.entries(mapping).forEach(([subjectCode, entries]) => {
+                    const normalizedCode = normalizeSubjectCode(subjectCode);
+                    if (!normalizedCode || !subjectsInCell.has(normalizedCode)) {
+                        return;
+                    }
+                    const sanitizedEntries = normalizeRoomEntries(entries);
+                    if (sanitizedEntries.length > 0) {
+                        sanitizedMapping[normalizedCode] = sanitizedEntries;
+                    }
+                });
+
+                if (Object.keys(sanitizedMapping).length > 0) {
+                    normalizedOverrides[parsed.key] = sanitizedMapping;
+                }
+            });
+
+            allocationRoomOverrides = normalizedOverrides;
         }
 
         // Drag and drop event handlers
@@ -8033,6 +8696,451 @@
             });
         }
 
+        function openRoomAllocationManager() {
+            const subjectSet = new Set();
+
+            if (Array.isArray(subjects)) {
+                subjects.forEach(subject => {
+                    const normalized = normalizeSubjectCode(subject);
+                    if (normalized) {
+                        subjectSet.add(normalized);
+                    }
+                });
+            }
+
+            if (subjectSplits && typeof subjectSplits === 'object') {
+                Object.keys(subjectSplits).forEach(baseSubject => {
+                    const normalized = normalizeSubjectCode(baseSubject);
+                    if (normalized) {
+                        subjectSet.add(normalized);
+                    }
+                });
+            }
+
+            if (subjectRoomAssignments && typeof subjectRoomAssignments === 'object') {
+                Object.keys(subjectRoomAssignments).forEach(subjectCode => {
+                    const normalized = normalizeSubjectCode(subjectCode);
+                    if (normalized) {
+                        subjectSet.add(normalized);
+                    }
+                });
+            }
+
+            const options = Array.from(subjectSet).sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+
+            if (options.length === 0) {
+                alert('No subjects are available to manage rooms.');
+                return;
+            }
+
+            showAutocomplete('Select subject to manage rooms', options, function(selectedSubject) {
+                if (!selectedSubject) {
+                    return;
+                }
+
+                setTimeout(() => {
+                    openRoomModal({ subjectCode: selectedSubject, mode: 'subject' });
+                }, 200);
+            }, {
+                showListOnOpen: true,
+                description: 'Choose a subject to assign default rooms or adjust existing room sets.',
+                confirmLabel: 'Manage rooms',
+                cancelLabel: 'Close'
+            });
+        }
+
+        function closeRoomModal() {
+            const modal = document.getElementById('roomModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.setAttribute('aria-hidden', 'true');
+            }
+            currentRoomModalContext = null;
+        }
+
+        function openRoomModal(config = {}) {
+            const subjectCode = normalizeSubjectCode(config.subjectCode);
+            if (!subjectCode) {
+                alert('Invalid subject selected.');
+                return;
+            }
+
+            const mode = config.mode === 'allocation' ? 'allocation' : 'subject';
+            const lineIndex = Number.isInteger(config.lineIndex) ? config.lineIndex : null;
+            const teacherIndex = Number.isInteger(config.teacherIndex) ? config.teacherIndex : null;
+            const teacherName = Number.isInteger(teacherIndex) && teachers[teacherIndex]
+                ? teachers[teacherIndex]
+                : null;
+            const lineName = Number.isInteger(lineIndex) && lines[lineIndex]
+                ? lines[lineIndex]
+                : null;
+
+            const directEntries = getDirectSubjectRoomAssignments(subjectCode);
+            const inheritedEntries = getInheritedSubjectRoomAssignments(subjectCode);
+            const defaultEntries = getSubjectRoomAssignments(subjectCode);
+            const overrideEntries = mode === 'allocation'
+                ? getAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode)
+                : [];
+
+            let editEntries = [];
+            if (mode === 'allocation') {
+                if (overrideEntries.length > 0) {
+                    editEntries = cloneRoomEntries(overrideEntries);
+                } else if (defaultEntries.length > 0) {
+                    editEntries = cloneRoomEntries(defaultEntries);
+                }
+            } else if (directEntries.length > 0) {
+                editEntries = cloneRoomEntries(directEntries);
+            } else if (inheritedEntries.length > 0) {
+                editEntries = cloneRoomEntries(inheritedEntries);
+            }
+
+            currentRoomModalContext = {
+                subjectCode,
+                mode,
+                lineIndex,
+                teacherIndex,
+                teacherName,
+                lineName,
+                directEntries,
+                inheritedEntries,
+                defaultEntries,
+                overrideEntries,
+                editEntries: Array.isArray(editEntries) ? editEntries : []
+            };
+
+            renderRoomModal();
+
+            const modal = document.getElementById('roomModal');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.setAttribute('aria-hidden', 'false');
+                const modalContent = modal.querySelector('.modal-content');
+                if (modalContent) {
+                    modalContent.setAttribute('tabindex', '-1');
+                    try {
+                        modalContent.focus();
+                    } catch (error) {
+                        // Unable to focus; safe to ignore.
+                    }
+                }
+            }
+        }
+
+        function renderRoomModal() {
+            const context = currentRoomModalContext;
+            const modal = document.getElementById('roomModal');
+            if (!context || !modal) {
+                return;
+            }
+
+            const { subjectCode, mode, teacherIndex, lineIndex, teacherName, lineName } = context;
+            const titleEl = document.getElementById('roomModalTitle');
+            if (titleEl) {
+                titleEl.textContent = mode === 'allocation'
+                    ? `Rooms – ${subjectCode}`
+                    : `Rooms for ${subjectCode}`;
+            }
+
+            const summaryEl = document.getElementById('roomModalSummary');
+            if (summaryEl) {
+                const parts = [`Subject: ${subjectCode}`];
+                const totalPeriods = getSubjectPeriodValue(subjectCode);
+                if (Number.isFinite(totalPeriods) && totalPeriods > 0) {
+                    parts.push(`${totalPeriods} period${totalPeriods === 1 ? '' : 's'}`);
+                }
+                if (mode === 'allocation') {
+                    const teacherLabel = teacherName || (Number.isInteger(teacherIndex) ? `Teacher ${teacherIndex + 1}` : 'Teacher not set');
+                    const lineLabel = lineName || (Number.isInteger(lineIndex) ? `Line ${lineIndex + 1}` : 'Line not set');
+                    parts.push(`Teacher: ${teacherLabel}`);
+                    parts.push(`Line: ${lineLabel}`);
+                }
+                summaryEl.textContent = parts.join(' • ');
+            }
+
+            const infoEl = document.getElementById('roomModalInfo');
+            if (infoEl) {
+                let message = '';
+                if (mode === 'allocation') {
+                    if (context.overrideEntries.length > 0) {
+                        message = 'This allocation currently uses custom rooms.';
+                    } else if (context.defaultEntries.length > 0) {
+                        message = 'This allocation inherits the subject default rooms.';
+                    } else {
+                        message = 'No rooms are defined for this subject yet.';
+                    }
+                } else if (context.directEntries.length > 0) {
+                    message = 'These rooms apply directly to this subject.';
+                } else if (context.inheritedEntries.length > 0) {
+                    const metadata = getSplitMetadata(subjectCode);
+                    const baseSubject = metadata && metadata.baseSubject ? metadata.baseSubject : null;
+                    message = baseSubject
+                        ? `Currently inheriting rooms from ${baseSubject}.`
+                        : 'Currently inheriting rooms from a parent subject.';
+                } else {
+                    message = 'No rooms are stored for this subject yet.';
+                }
+                infoEl.textContent = message;
+            }
+
+            const hintEl = document.getElementById('roomModalHint');
+            if (hintEl) {
+                const totalPeriods = getSubjectPeriodValue(subjectCode);
+                hintEl.textContent = Number.isFinite(totalPeriods) && totalPeriods > 0
+                    ? `Subject total: ${totalPeriods} period${totalPeriods === 1 ? '' : 's'}.`
+                    : '';
+            }
+
+            const contextActions = document.getElementById('roomModalContextActions');
+            const copyBtn = document.getElementById('roomModalCopyDefaults');
+            const shouldShowCopy = mode === 'allocation'
+                ? (context.overrideEntries.length === 0 && context.defaultEntries.length > 0)
+                : (context.directEntries.length === 0 && context.inheritedEntries.length > 0);
+            if (contextActions && copyBtn) {
+                contextActions.hidden = !shouldShowCopy;
+                copyBtn.disabled = !shouldShowCopy;
+            }
+
+            const listEl = document.getElementById('roomModalList');
+            if (listEl) {
+                listEl.innerHTML = '';
+
+                const entries = Array.isArray(context.editEntries) ? context.editEntries : [];
+                if (entries.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'room-modal-empty';
+                    empty.textContent = 'No rooms added yet. Use “Add Room” to begin.';
+                    listEl.appendChild(empty);
+                } else {
+                    entries.forEach((entry, index) => {
+                        if (!context.editEntries[index] || typeof context.editEntries[index] !== 'object') {
+                            context.editEntries[index] = { room: '', periods: '', label: '' };
+                        }
+
+                        const row = document.createElement('div');
+                        row.className = 'room-modal-row';
+
+                        const roomSelect = document.createElement('select');
+                        roomSelect.className = 'room-modal-room';
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = 'Choose room';
+                        roomSelect.appendChild(defaultOption);
+                        AVAILABLE_ROOMS.forEach(room => {
+                            const option = document.createElement('option');
+                            option.value = room;
+                            option.textContent = room;
+                            roomSelect.appendChild(option);
+                        });
+                        roomSelect.value = typeof entry.room === 'string' ? entry.room : '';
+                        roomSelect.addEventListener('change', event => {
+                            context.editEntries[index].room = event.target.value;
+                        });
+                        row.appendChild(roomSelect);
+
+                        const periodsInput = document.createElement('input');
+                        periodsInput.type = 'number';
+                        periodsInput.min = '0';
+                        periodsInput.step = '1';
+                        periodsInput.className = 'room-modal-periods';
+                        periodsInput.placeholder = 'Periods';
+                        periodsInput.value = entry && entry.periods !== undefined && entry.periods !== null && entry.periods !== ''
+                            ? entry.periods
+                            : '';
+                        periodsInput.addEventListener('input', event => {
+                            context.editEntries[index].periods = event.target.value;
+                        });
+                        row.appendChild(periodsInput);
+
+                        const noteInput = document.createElement('input');
+                        noteInput.type = 'text';
+                        noteInput.className = 'room-modal-note';
+                        noteInput.placeholder = 'Note (optional)';
+                        noteInput.value = entry && typeof entry.label === 'string' ? entry.label : '';
+                        noteInput.addEventListener('input', event => {
+                            context.editEntries[index].label = event.target.value;
+                        });
+                        row.appendChild(noteInput);
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'room-modal-remove';
+                        removeBtn.textContent = 'Remove';
+                        removeBtn.addEventListener('click', () => {
+                            context.editEntries.splice(index, 1);
+                            renderRoomModal();
+                        });
+                        row.appendChild(removeBtn);
+
+                        listEl.appendChild(row);
+                    });
+                }
+            }
+
+            const clearBtn = document.getElementById('roomModalClearRooms');
+            if (clearBtn) {
+                if (mode === 'allocation') {
+                    clearBtn.textContent = 'Clear Override';
+                    clearBtn.disabled = context.overrideEntries.length === 0;
+                } else {
+                    clearBtn.textContent = 'Remove Rooms';
+                    clearBtn.disabled = context.directEntries.length === 0;
+                }
+            }
+        }
+
+        function handleRoomModalAddRoom() {
+            if (!currentRoomModalContext) {
+                return;
+            }
+            currentRoomModalContext.editEntries.push({ room: '', periods: '', label: '' });
+            renderRoomModal();
+        }
+
+        async function handleRoomModalClear() {
+            if (!currentRoomModalContext) {
+                return;
+            }
+
+            const { subjectCode, mode, lineIndex, teacherIndex } = currentRoomModalContext;
+
+            if (mode === 'allocation') {
+                if (currentRoomModalContext.overrideEntries.length === 0) {
+                    return;
+                }
+                const confirmed = await showAppConfirm('Remove the custom room override for this allocation?', {
+                    confirmLabel: 'Remove override',
+                    cancelLabel: 'Cancel'
+                });
+                if (!confirmed) {
+                    return;
+                }
+                clearAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode);
+                canonicalizeRoomAssignments();
+                closeRoomModal();
+                renderCell(lineIndex, teacherIndex);
+                showAppAlert(`Room override removed for ${subjectCode}.`, { icon: '📍' });
+            } else {
+                if (currentRoomModalContext.directEntries.length === 0) {
+                    return;
+                }
+                const confirmed = await showAppConfirm(`Remove stored rooms for ${subjectCode}?`, {
+                    confirmLabel: 'Remove rooms',
+                    cancelLabel: 'Keep rooms'
+                });
+                if (!confirmed) {
+                    return;
+                }
+                clearSubjectRoomAssignments(subjectCode);
+                canonicalizeRoomAssignments();
+                closeRoomModal();
+                renderAllAllocations();
+                createSubjectPool();
+                showAppAlert(`Rooms cleared for ${subjectCode}.`, { icon: '📍' });
+            }
+        }
+
+        async function handleRoomModalSave() {
+            if (!currentRoomModalContext) {
+                return;
+            }
+
+            const { subjectCode, mode, lineIndex, teacherIndex } = currentRoomModalContext;
+            const sanitizedEntries = normalizeRoomEntries(currentRoomModalContext.editEntries);
+
+            if (mode === 'allocation') {
+                const defaultEntries = getSubjectRoomAssignments(subjectCode);
+                if (sanitizedEntries.length === 0 || (defaultEntries.length > 0 && areRoomEntriesEqual(sanitizedEntries, defaultEntries))) {
+                    clearAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode);
+                } else {
+                    setAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode, sanitizedEntries);
+                }
+                canonicalizeRoomAssignments();
+                closeRoomModal();
+                renderCell(lineIndex, teacherIndex);
+                showAppAlert(`Rooms updated for ${subjectCode}.`, { icon: '📍' });
+            } else {
+                const inheritedEntries = getInheritedSubjectRoomAssignments(subjectCode);
+                if (sanitizedEntries.length === 0 || (inheritedEntries.length > 0 && areRoomEntriesEqual(sanitizedEntries, inheritedEntries))) {
+                    clearSubjectRoomAssignments(subjectCode);
+                } else {
+                    setSubjectRoomAssignments(subjectCode, sanitizedEntries);
+                }
+                canonicalizeRoomAssignments();
+                closeRoomModal();
+                renderAllAllocations();
+                createSubjectPool();
+                showAppAlert(`Rooms updated for ${subjectCode}.`, { icon: '📍' });
+            }
+        }
+
+        function handleRoomModalCopyDefaults() {
+            if (!currentRoomModalContext) {
+                return;
+            }
+
+            if (currentRoomModalContext.mode === 'allocation') {
+                currentRoomModalContext.editEntries = cloneRoomEntries(currentRoomModalContext.defaultEntries);
+            } else {
+                currentRoomModalContext.editEntries = cloneRoomEntries(currentRoomModalContext.inheritedEntries);
+            }
+
+            renderRoomModal();
+        }
+
+        function setupRoomModal() {
+            const modal = document.getElementById('roomModal');
+            if (!modal) {
+                return;
+            }
+
+            const closeBtn = document.getElementById('roomModalClose');
+            const addBtn = document.getElementById('roomModalAddRoom');
+            const saveBtn = document.getElementById('roomModalSaveRooms');
+            const clearBtn = document.getElementById('roomModalClearRooms');
+            const copyBtn = document.getElementById('roomModalCopyDefaults');
+            const modalContent = modal.querySelector('.modal-content');
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeRoomModal);
+            }
+
+            if (addBtn) {
+                addBtn.addEventListener('click', () => handleRoomModalAddRoom());
+            }
+
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    handleRoomModalSave();
+                });
+            }
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    handleRoomModalClear();
+                });
+            }
+
+            if (copyBtn) {
+                copyBtn.addEventListener('click', () => handleRoomModalCopyDefaults());
+            }
+
+            window.addEventListener('click', event => {
+                if (event.target === modal) {
+                    closeRoomModal();
+                }
+            });
+
+            if (modalContent) {
+                modalContent.addEventListener('keydown', event => {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        closeRoomModal();
+                    }
+                });
+            }
+        }
+
         function saveAllocations() {
             const data = {
                 allocations: allocations,
@@ -8044,7 +9152,9 @@
                 subjectLineMapping: subjectLineMapping,
                 subjectSplits: subjectSplits,
                 subjectYearMapping: subjectYearMapping,
-                teacherLoadSettings: teacherLoadSettings
+                teacherLoadSettings: teacherLoadSettings,
+                subjectRoomAssignments: subjectRoomAssignments,
+                allocationRoomOverrides: allocationRoomOverrides
             };
 
             localStorage.setItem('facultyAllocations', JSON.stringify(data));
@@ -8061,6 +9171,7 @@
             }
 
             allocations = {};
+            allocationRoomOverrides = {};
             actionHistory = []; // Clear undo history
             redoStack = [];
 
@@ -8101,6 +9212,8 @@
             teachers = [];
             lines = [...DEFAULT_LINES];
             allocations = {};
+            subjectRoomAssignments = {};
+            allocationRoomOverrides = {};
             teacherAllocations = {};
             subjectLineMapping = {};
             subjectYearMapping = {};
@@ -8363,7 +9476,9 @@
                 subjectLineMapping: subjectLineMapping,
                 subjectSplits: subjectSplits,
                 subjectYearMapping: subjectYearMapping,
-                teacherLoadSettings: teacherLoadSettings
+                teacherLoadSettings: teacherLoadSettings,
+                subjectRoomAssignments: subjectRoomAssignments,
+                allocationRoomOverrides: allocationRoomOverrides
             };
 
             const jsonContent = JSON.stringify(payload, null, 2);
@@ -8548,6 +9663,26 @@
                 subjectYearMapping = {};
             }
 
+            if (data.subjectRoomAssignments && typeof data.subjectRoomAssignments === 'object') {
+                try {
+                    subjectRoomAssignments = JSON.parse(JSON.stringify(data.subjectRoomAssignments));
+                } catch (error) {
+                    subjectRoomAssignments = { ...data.subjectRoomAssignments };
+                }
+            } else {
+                subjectRoomAssignments = {};
+            }
+
+            if (data.allocationRoomOverrides && typeof data.allocationRoomOverrides === 'object') {
+                try {
+                    allocationRoomOverrides = JSON.parse(JSON.stringify(data.allocationRoomOverrides));
+                } catch (error) {
+                    allocationRoomOverrides = { ...data.allocationRoomOverrides };
+                }
+            } else {
+                allocationRoomOverrides = {};
+            }
+
             if (!Array.isArray(subjects)) {
                 subjects = [];
             }
@@ -8577,6 +9712,7 @@
             }
 
             canonicalizeSubjectData();
+            canonicalizeRoomAssignments();
             populateYearMappingFromSubjects();
 
             initializeTimetable();
@@ -9074,6 +10210,7 @@
                 loadSavedData();
                 setupModalEventListeners();
                 setupClashModalEventListeners();
+                setupRoomModal();
                 initializeLineCellsConverter();
             } catch (error) {
                 console.error('Error during initialization:', error);
