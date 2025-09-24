@@ -1234,12 +1234,23 @@
             border-color: rgba(37, 99, 235, 0.75);
         }
 
+        .drop-zone.room-clash-cell {
+            background: rgba(59, 130, 246, 0.18);
+            border-color: rgba(37, 99, 235, 0.75);
+        }
+
         .drop-zone.semester-pair-cell {
             background: rgba(16, 185, 129, 0.18);
             border-color: rgba(5, 150, 105, 0.75);
         }
 
         .subject-slot.clash {
+            background: rgba(59, 130, 246, 0.18);
+            border: 1.5px solid rgba(37, 99, 235, 0.65);
+            color: #1d4ed8;
+        }
+
+        .subject-slot.room-clash {
             background: rgba(59, 130, 246, 0.18);
             border: 1.5px solid rgba(37, 99, 235, 0.65);
             color: #1d4ed8;
@@ -2699,6 +2710,8 @@
             <div id="clashModalMessage" class="modal-message"></div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" id="clashProceedBtn">Proceed</button>
+                <button class="btn btn-secondary is-hidden" id="clashChangeBtn">Change</button>
+                <button class="btn btn-secondary is-hidden" id="clashDivideBtn">Divide</button>
                 <button class="btn btn-warning" id="clashCancelBtn">Cancel</button>
                 <button class="btn btn-danger" id="clashReplaceBtn">Replace</button>
             </div>
@@ -3093,6 +3106,8 @@
         let subjectRoomAssignments = {};
         let allocationRoomOverrides = {};
         let currentRoomModalContext = null;
+        let activeRoomClashMap = new Map();
+        let roomClashRefreshScheduled = false;
 
         const FTE_OPTIONS = ['1.0', '0.8', '0.6', '0.4', '0.2'];
         // Base load expressed in 59-minute period equivalents for each FTE value
@@ -3504,6 +3519,27 @@
             return normalized;
         }
 
+        function getUniqueRoomsFromEntries(entries) {
+            if (!Array.isArray(entries)) {
+                return [];
+            }
+
+            const seenRooms = new Set();
+
+            entries.forEach(entry => {
+                if (!entry || typeof entry !== 'object') {
+                    return;
+                }
+
+                const room = typeof entry.room === 'string' ? entry.room.trim().toUpperCase() : '';
+                if (room) {
+                    seenRooms.add(room);
+                }
+            });
+
+            return Array.from(seenRooms);
+        }
+
         function getDirectSubjectRoomAssignments(subjectCode) {
             const normalized = normalizeSubjectCode(subjectCode);
             if (!normalized) {
@@ -3795,6 +3831,144 @@
 
             element.classList.add('subject-slot--with-rooms');
             element.appendChild(footer);
+        }
+
+        function computeRoomClashMap() {
+            const map = new Map();
+
+            if (!Array.isArray(lines) || lines.length === 0 || !Array.isArray(teachers) || teachers.length === 0) {
+                return map;
+            }
+
+            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                const roomAllocationMap = new Map();
+
+                teachers.forEach((_, teacherIndex) => {
+                    const subjects = getAllocationSubjects(getAllocationKey(lineIndex, teacherIndex));
+                    if (!Array.isArray(subjects) || subjects.length === 0) {
+                        return;
+                    }
+
+                    subjects.forEach(subjectCode => {
+                        const entries = getEffectiveRoomAssignmentsForCell(subjectCode, lineIndex, teacherIndex);
+                        const rooms = getUniqueRoomsFromEntries(entries);
+                        if (rooms.length === 0) {
+                            return;
+                        }
+
+                        rooms.forEach(room => {
+                            if (!roomAllocationMap.has(room)) {
+                                roomAllocationMap.set(room, []);
+                            }
+                            roomAllocationMap.get(room).push({
+                                cellKey: getAllocationKey(lineIndex, teacherIndex),
+                                subjectCode: subjectCode
+                            });
+                        });
+                    });
+                });
+
+                roomAllocationMap.forEach(allocationsForRoom => {
+                    const cellToSubjects = new Map();
+
+                    allocationsForRoom.forEach(entry => {
+                        if (!cellToSubjects.has(entry.cellKey)) {
+                            cellToSubjects.set(entry.cellKey, new Set());
+                        }
+                        cellToSubjects.get(entry.cellKey).add(entry.subjectCode);
+                    });
+
+                    if (cellToSubjects.size <= 1) {
+                        return;
+                    }
+
+                    cellToSubjects.forEach((subjectCodes, cellKey) => {
+                        if (!map.has(cellKey)) {
+                            map.set(cellKey, new Set());
+                        }
+                        subjectCodes.forEach(code => map.get(cellKey).add(code));
+                    });
+                });
+            }
+
+            return map;
+        }
+
+        function refreshRoomClashHighlights() {
+            const newMap = computeRoomClashMap();
+
+            if (typeof document === 'undefined') {
+                activeRoomClashMap = newMap;
+                return;
+            }
+
+            document.querySelectorAll('.drop-zone[data-room-clash="true"]').forEach(cell => {
+                cell.removeAttribute('data-room-clash');
+                cell.classList.remove('room-clash-cell');
+            });
+
+            document.querySelectorAll('.subject-slot[data-room-clash="true"]').forEach(slot => {
+                slot.removeAttribute('data-room-clash');
+                slot.classList.remove('room-clash');
+            });
+
+            newMap.forEach((subjectSet, cellKey) => {
+                const parsed = parseAllocationKey(cellKey);
+                if (!parsed) {
+                    return;
+                }
+
+                const cell = document.querySelector(`[data-period="${parsed.lineIndex}"][data-teacher="${parsed.teacherIndex}"]`);
+                if (!cell) {
+                    return;
+                }
+
+                cell.dataset.roomClash = 'true';
+                cell.classList.add('room-clash-cell');
+
+                subjectSet.forEach(subjectCode => {
+                    const elements = cell.querySelectorAll('[data-subject]');
+                    elements.forEach(element => {
+                        if (element.dataset.subject !== subjectCode) {
+                            return;
+                        }
+
+                        const slot = element.classList.contains('subject-slot')
+                            ? element
+                            : element.closest('.subject-slot');
+
+                        if (!slot) {
+                            return;
+                        }
+
+                        slot.dataset.roomClash = 'true';
+                        slot.classList.add('room-clash');
+                    });
+                });
+            });
+
+            activeRoomClashMap = newMap;
+        }
+
+        function scheduleRoomClashRefresh() {
+            if (roomClashRefreshScheduled) {
+                return;
+            }
+
+            roomClashRefreshScheduled = true;
+
+            const scheduler = typeof requestAnimationFrame === 'function'
+                ? requestAnimationFrame
+                : callback => setTimeout(callback, 16);
+
+            scheduler(() => {
+                roomClashRefreshScheduled = false;
+                try {
+                    refreshRoomClashHighlights();
+                } catch (error) {
+                    console.error('Unable to refresh room clash highlights:', error);
+                }
+            });
         }
 
         function getAllocationKey(lineIndex, teacherIndex) {
@@ -7248,6 +7422,7 @@
             const status = determineCellStatus(subjects);
 
             if (status === 'empty') {
+                scheduleRoomClashRefresh();
                 return;
             }
 
@@ -7272,6 +7447,7 @@
                 wrapper.appendChild(label);
 
                 cell.appendChild(wrapper);
+                scheduleRoomClashRefresh();
                 return;
             }
 
@@ -7315,6 +7491,8 @@
                 enhanceAllocatedSubjectElement(subjectElement, subject, lineIndex, teacherIndex);
                 cell.appendChild(subjectElement);
             });
+
+            scheduleRoomClashRefresh();
         }
 
         function renderAllAllocations() {
@@ -7334,6 +7512,7 @@
             });
 
             syncSubjectPool();
+            scheduleRoomClashRefresh();
         }
 
         function syncSubjectPool() {
@@ -7557,6 +7736,8 @@
             });
 
             allocationRoomOverrides = normalizedOverrides;
+
+            scheduleRoomClashRefresh();
         }
 
         // Drag and drop event handlers
@@ -8007,6 +8188,141 @@
             });
         }
 
+        async function configureSplitForSubject(baseSubject) {
+            if (!baseSubject) {
+                alert('Invalid subject selection.');
+                return;
+            }
+
+            const existingLocation = findSubjectLocation(baseSubject);
+            if (existingLocation) {
+                alert('Please remove this subject from the timetable before splitting it.');
+                return;
+            }
+
+            const existingSplits = subjectSplits[baseSubject] || [];
+            const activeSplit = existingSplits.find(split => findSubjectLocation(split.code));
+            if (activeSplit) {
+                alert('Please remove all allocated split portions for this subject before changing the split.');
+                return;
+            }
+
+            const totalPeriods = getSubjectPeriodValue(baseSubject);
+            if (!Number.isFinite(totalPeriods) || totalPeriods <= 0) {
+                alert('Unable to determine the period value for the selected subject.');
+                return;
+            }
+
+            const input = await showAppPrompt(`Enter the number of periods for each portion of ${baseSubject} (total ${totalPeriods} periods). Separate values with commas, e.g. 4,3.`, {
+                confirmLabel: 'Split subject',
+                cancelLabel: 'Cancel',
+                placeholder: 'e.g. 4,3'
+            });
+            if (input === null) {
+                return;
+            }
+
+            const sanitized = input.replace(/\+/g, ',');
+            const splitValues = sanitized
+                .split(',')
+                .map(value => parseInt(value.trim(), 10))
+                .filter(value => Number.isFinite(value) && value > 0);
+
+            if (splitValues.length === 0) {
+                alert('Please enter at least one positive number.');
+                return;
+            }
+
+            const sum = splitValues.reduce((acc, value) => acc + value, 0);
+            if (sum !== totalPeriods) {
+                alert(`The split values must add up to ${totalPeriods} periods. Currently they add up to ${sum}.`);
+                return;
+            }
+
+            const existingSplitCodes = new Set(existingSplits.map(split => split.code));
+            const removalSet = new Set(existingSplitCodes);
+            removalSet.add(baseSubject);
+
+            let insertIndex = subjects.findIndex(subject => removalSet.has(subject));
+            if (insertIndex === -1 && existingSplits.length > 0) {
+                const firstExistingSplitIndex = subjects.findIndex(subject => existingSplitCodes.has(subject));
+                if (firstExistingSplitIndex !== -1) {
+                    insertIndex = firstExistingSplitIndex;
+                }
+            }
+            if (insertIndex === -1) {
+                insertIndex = subjects.length;
+            }
+
+            subjects = subjects.filter(subject => !removalSet.has(subject));
+
+            existingSplits.forEach(split => {
+                if (split && typeof split.code === 'string') {
+                    delete subjectLineMapping[split.code];
+                    delete subjectYearMapping[split.code];
+                }
+            });
+
+            const mappedLine = subjectLineMapping[baseSubject];
+
+            if (splitValues.length === 1 && splitValues[0] === totalPeriods) {
+                delete subjectSplits[baseSubject];
+                rebuildSplitLookup();
+
+                subjects.splice(insertIndex, 0, baseSubject);
+
+                if (mappedLine !== undefined) {
+                    applyLineMappingToSubject(baseSubject, mappedLine);
+                }
+
+                removalSet.forEach(subject => removeSubjectFromPool(subject));
+
+                createSubjectPool();
+                updateStats();
+
+                const restoredYear = subjectYearMapping[baseSubject] || deriveYearLabelFromCode(baseSubject);
+                if (restoredYear) {
+                    applyYearMappingToSubject(baseSubject, restoredYear);
+                }
+
+                alert(`${baseSubject} has been restored to a single ${totalPeriods}-period allocation.`);
+                return;
+            }
+
+            const totalSplits = splitValues.length;
+            const newSplits = splitValues.map((periods, index) => {
+                const code = `${baseSubject} ▸ ${periods}p (Split ${index + 1}/${totalSplits})`;
+                return {
+                    code: code,
+                    periods: periods,
+                    index: index,
+                    totalSplits: totalSplits
+                };
+            });
+
+            subjectSplits[baseSubject] = newSplits;
+            rebuildSplitLookup();
+
+            const newCodes = newSplits.map(split => split.code);
+            subjects.splice(insertIndex, 0, ...newCodes);
+
+            if (mappedLine !== undefined) {
+                applyLineMappingToSubject(baseSubject, mappedLine);
+            }
+
+            const baseYearLabel = subjectYearMapping[baseSubject] || deriveYearLabelFromCode(baseSubject);
+            if (baseYearLabel) {
+                applyYearMappingToSubject(baseSubject, baseYearLabel);
+            }
+
+            removalSet.forEach(subject => removeSubjectFromPool(subject));
+
+            createSubjectPool();
+            updateStats();
+
+            alert(`Created ${newSplits.length} split allocation${newSplits.length === 1 ? '' : 's'} for ${baseSubject}.`);
+        }
+
         function splitSubject() {
             if (subjects.length === 0) {
                 alert('Please import spreadsheet data first!');
@@ -8041,133 +8357,10 @@
                     return;
                 }
 
-                const existingLocation = findSubjectLocation(baseSubject);
-                if (existingLocation) {
-                    alert('Please remove this subject from the timetable before splitting it.');
-                    return;
-                }
-
-                const existingSplits = subjectSplits[baseSubject] || [];
-                const activeSplit = existingSplits.find(split => findSubjectLocation(split.code));
-                if (activeSplit) {
-                    alert('Please remove all allocated split portions for this subject before changing the split.');
-                    return;
-                }
-
-                const totalPeriods = getSubjectPeriodValue(baseSubject);
-                if (!Number.isFinite(totalPeriods) || totalPeriods <= 0) {
-                    alert('Unable to determine the period value for the selected subject.');
-                    return;
-                }
-
-                setTimeout(async () => {
-                    const input = await showAppPrompt(`Enter the number of periods for each portion of ${baseSubject} (total ${totalPeriods} periods). Separate values with commas, e.g. 4,3.`, {
-                        confirmLabel: 'Split subject',
-                        cancelLabel: 'Cancel',
-                        placeholder: 'e.g. 4,3'
+                setTimeout(() => {
+                    configureSplitForSubject(baseSubject).catch(error => {
+                        console.error('Error configuring split for subject:', error);
                     });
-                    if (input === null) {
-                        return;
-                    }
-
-                    const sanitized = input.replace(/\+/g, ',');
-                    const splitValues = sanitized
-                        .split(',')
-                        .map(value => parseInt(value.trim(), 10))
-                        .filter(value => Number.isFinite(value) && value > 0);
-
-                    if (splitValues.length === 0) {
-                        alert('Please enter at least one positive number.');
-                        return;
-                    }
-
-                    const sum = splitValues.reduce((acc, value) => acc + value, 0);
-                    if (sum !== totalPeriods) {
-                        alert(`The split values must add up to ${totalPeriods} periods. Currently they add up to ${sum}.`);
-                        return;
-                    }
-
-                    const existingSplitCodes = new Set(existingSplits.map(split => split.code));
-                    const removalSet = new Set(existingSplitCodes);
-                    removalSet.add(baseSubject);
-
-                    let insertIndex = subjects.findIndex(subject => removalSet.has(subject));
-                    if (insertIndex === -1 && existingSplits.length > 0) {
-                        const firstExistingSplitIndex = subjects.findIndex(subject => existingSplitCodes.has(subject));
-                        if (firstExistingSplitIndex !== -1) {
-                            insertIndex = firstExistingSplitIndex;
-                        }
-                    }
-                    if (insertIndex === -1) {
-                        insertIndex = subjects.length;
-                    }
-
-                    subjects = subjects.filter(subject => !removalSet.has(subject));
-
-                    existingSplits.forEach(split => {
-                        if (split && typeof split.code === 'string') {
-                            delete subjectLineMapping[split.code];
-                            delete subjectYearMapping[split.code];
-                        }
-                    });
-
-                    if (splitValues.length === 1 && splitValues[0] === totalPeriods) {
-                        delete subjectSplits[baseSubject];
-                        rebuildSplitLookup();
-
-                        subjects.splice(insertIndex, 0, baseSubject);
-
-                        if (mappedLine !== undefined) {
-                            applyLineMappingToSubject(baseSubject, mappedLine);
-                        }
-
-                        removalSet.forEach(subject => removeSubjectFromPool(subject));
-
-                        createSubjectPool();
-                        updateStats();
-
-                        const restoredYear = subjectYearMapping[baseSubject] || deriveYearLabelFromCode(baseSubject);
-                        if (restoredYear) {
-                            applyYearMappingToSubject(baseSubject, restoredYear);
-                        }
-
-                        alert(`${baseSubject} has been restored to a single ${totalPeriods}-period allocation.`);
-                        return;
-                    }
-
-                    const mappedLine = subjectLineMapping[baseSubject];
-                    const totalSplits = splitValues.length;
-                    const newSplits = splitValues.map((periods, index) => {
-                        const code = `${baseSubject} ▸ ${periods}p (Split ${index + 1}/${totalSplits})`;
-                        return {
-                            code: code,
-                            periods: periods,
-                            index: index,
-                            totalSplits: totalSplits
-                        };
-                    });
-
-                    subjectSplits[baseSubject] = newSplits;
-                    rebuildSplitLookup();
-
-                    const newCodes = newSplits.map(split => split.code);
-                    subjects.splice(insertIndex, 0, ...newCodes);
-
-                    if (mappedLine !== undefined) {
-                        applyLineMappingToSubject(baseSubject, mappedLine);
-                    }
-
-                    const baseYearLabel = subjectYearMapping[baseSubject] || deriveYearLabelFromCode(baseSubject);
-                    if (baseYearLabel) {
-                        applyYearMappingToSubject(baseSubject, baseYearLabel);
-                    }
-
-                    removalSet.forEach(subject => removeSubjectFromPool(subject));
-
-                    createSubjectPool();
-                    updateStats();
-
-                    alert(`Created ${newSplits.length} split allocation${newSplits.length === 1 ? '' : 's'} for ${baseSubject}.`);
                 }, 200);
             });
         }
@@ -8266,21 +8459,38 @@
         }
 
         function showClashResolutionDialog(config) {
+            const variant = config && config.variant === 'room' ? 'room' : 'subject';
+            const teacherIndex = config.teacherIndex;
+            const lineIndex = config.lineIndex;
+            const subjectCode = config.subjectCode;
+
+            const teacherName = typeof teachers[teacherIndex] === 'string' && teachers[teacherIndex].trim().length > 0
+                ? teachers[teacherIndex].trim()
+                : `Teacher ${teacherIndex + 1}`;
+
+            const lineName = typeof lines[lineIndex] === 'string' && lines[lineIndex].trim().length > 0
+                ? lines[lineIndex].trim()
+                : `Line ${lineIndex + 1}`;
+
             const modal = document.getElementById('clashModal');
             const title = document.getElementById('clashModalTitle');
             const messageContainer = document.getElementById('clashModalMessage');
             const proceedBtn = document.getElementById('clashProceedBtn');
             const cancelBtn = document.getElementById('clashCancelBtn');
             const replaceBtn = document.getElementById('clashReplaceBtn');
+            const changeBtn = document.getElementById('clashChangeBtn');
+            const divideBtn = document.getElementById('clashDivideBtn');
 
-            if (!modal || !title || !messageContainer || !proceedBtn || !cancelBtn || !replaceBtn) {
-                const teacherName = typeof teachers[config.teacherIndex] === 'string'
-                    ? teachers[config.teacherIndex]
-                    : `Teacher ${config.teacherIndex + 1}`;
-                const lineName = typeof lines[config.lineIndex] === 'string'
-                    ? lines[config.lineIndex]
-                    : `Line ${config.lineIndex + 1}`;
-                const confirmationMessage = `Allocating ${config.subjectCode} to ${teacherName} on ${lineName} will clash with an existing subject. Continue?`;
+            if (!modal || !title || !messageContainer || !proceedBtn || !cancelBtn || !replaceBtn || (variant === 'room' && (!changeBtn || !divideBtn))) {
+                const rooms = Array.isArray(config.rooms) && config.rooms.length > 0
+                    ? config.rooms.join(', ')
+                    : null;
+                const continuationText = variant === 'room'
+                    ? rooms
+                        ? ` will reuse room${config.rooms.length === 1 ? '' : 's'} ${rooms} already allocated on this line. Continue?`
+                        : ' will reuse rooms already allocated on this line. Continue?'
+                    : ' will clash with an existing subject. Continue?';
+                const confirmationMessage = `Allocating ${subjectCode} to ${teacherName} on ${lineName}${continuationText}`;
                 showAppConfirm(confirmationMessage, {
                     confirmLabel: 'Continue',
                     cancelLabel: 'Cancel'
@@ -8296,66 +8506,147 @@
                 return;
             }
 
-            const teacherIndex = config.teacherIndex;
-            const lineIndex = config.lineIndex;
-            const subjectCode = config.subjectCode;
             const existingSubjects = Array.isArray(config.existingSubjects)
                 ? config.existingSubjects
                 : [];
 
-            const teacherName = typeof teachers[teacherIndex] === 'string' && teachers[teacherIndex].trim().length > 0
-                ? teachers[teacherIndex].trim()
-                : `Teacher ${teacherIndex + 1}`;
-
-            const lineName = typeof lines[lineIndex] === 'string' && lines[lineIndex].trim().length > 0
-                ? lines[lineIndex].trim()
-                : `Line ${lineIndex + 1}`;
-
-            title.textContent = 'Allocation clash detected';
-
             messageContainer.innerHTML = '';
 
-            const lead = document.createElement('p');
-            lead.className = 'modal-message__lead';
-            lead.append('Adding ');
-            const subjectStrong = document.createElement('strong');
-            subjectStrong.textContent = subjectCode;
-            lead.appendChild(subjectStrong);
-            lead.append(' to ');
-            const teacherStrong = document.createElement('strong');
-            teacherStrong.textContent = teacherName;
-            lead.appendChild(teacherStrong);
-            lead.append(' on ');
-            const lineStrong = document.createElement('strong');
-            lineStrong.textContent = lineName;
-            lead.appendChild(lineStrong);
-            lead.append(' will clash with an existing allocation.');
-            messageContainer.appendChild(lead);
+            if (variant === 'room') {
+                title.textContent = 'Room clash detected';
 
-            if (existingSubjects.length > 0) {
-                const intro = document.createElement('p');
-                intro.textContent = 'Existing subject(s) in this cell:';
-                messageContainer.appendChild(intro);
+                const lead = document.createElement('p');
+                lead.className = 'modal-message__lead';
+                lead.append('Adding ');
+                const subjectStrong = document.createElement('strong');
+                subjectStrong.textContent = subjectCode;
+                lead.appendChild(subjectStrong);
+                lead.append(' to ');
+                const teacherStrong = document.createElement('strong');
+                teacherStrong.textContent = teacherName;
+                lead.appendChild(teacherStrong);
+                lead.append(' on ');
+                const lineStrong = document.createElement('strong');
+                lineStrong.textContent = lineName;
+                lead.appendChild(lineStrong);
 
-                const list = document.createElement('ul');
-                existingSubjects.forEach(subject => {
-                    const item = document.createElement('li');
-                    item.textContent = subject;
-                    list.appendChild(item);
-                });
-                messageContainer.appendChild(list);
+                const rooms = Array.isArray(config.rooms) ? config.rooms.filter(room => typeof room === 'string' && room.trim().length > 0) : [];
+                if (rooms.length > 0) {
+                    lead.append(' uses room');
+                    if (rooms.length > 1) {
+                        lead.append('s ');
+                    } else {
+                        lead.append(' ');
+                    }
+                    const roomsStrong = document.createElement('strong');
+                    roomsStrong.textContent = rooms.join(', ');
+                    lead.appendChild(roomsStrong);
+                    lead.append(' already allocated on this line.');
+                } else {
+                    lead.append(' will clash with existing room allocations on this line.');
+                }
+                messageContainer.appendChild(lead);
+
+                const conflicts = Array.isArray(config.conflicts) ? config.conflicts : [];
+                if (conflicts.length > 0) {
+                    const intro = document.createElement('p');
+                    intro.textContent = 'Conflicting allocations:';
+                    messageContainer.appendChild(intro);
+
+                    const list = document.createElement('ul');
+                    conflicts.forEach(conflict => {
+                        const item = document.createElement('li');
+                        const conflictRooms = Array.isArray(conflict.rooms) && conflict.rooms.length > 0
+                            ? conflict.rooms.join(', ')
+                            : 'No room set';
+                        item.textContent = `${conflictRooms} – ${conflict.subjectCode} (${conflict.teacherName})`;
+                        list.appendChild(item);
+                    });
+                    messageContainer.appendChild(list);
+                }
+
+                const note = document.createElement('p');
+                note.className = 'modal-message__note';
+                note.textContent = 'Continue keeps the current rooms. Change opens the room editor. Divide opens the split tool for this subject. Cancel stops this allocation.';
+                messageContainer.appendChild(note);
+            } else {
+                title.textContent = 'Allocation clash detected';
+
+                const lead = document.createElement('p');
+                lead.className = 'modal-message__lead';
+                lead.append('Adding ');
+                const subjectStrong = document.createElement('strong');
+                subjectStrong.textContent = subjectCode;
+                lead.appendChild(subjectStrong);
+                lead.append(' to ');
+                const teacherStrong = document.createElement('strong');
+                teacherStrong.textContent = teacherName;
+                lead.appendChild(teacherStrong);
+                lead.append(' on ');
+                const lineStrong = document.createElement('strong');
+                lineStrong.textContent = lineName;
+                lead.appendChild(lineStrong);
+                lead.append(' will clash with an existing allocation.');
+                messageContainer.appendChild(lead);
+
+                if (existingSubjects.length > 0) {
+                    const intro = document.createElement('p');
+                    intro.textContent = 'Existing subject(s) in this cell:';
+                    messageContainer.appendChild(intro);
+
+                    const list = document.createElement('ul');
+                    existingSubjects.forEach(subject => {
+                        const item = document.createElement('li');
+                        item.textContent = subject;
+                        list.appendChild(item);
+                    });
+                    messageContainer.appendChild(list);
+                }
+
+                const note = document.createElement('p');
+                note.className = 'modal-message__note';
+                note.textContent = 'Proceed keeps all subjects and records the clash. Replace removes the existing subject(s) before allocating the new one. Cancel will stop this allocation.';
+                messageContainer.appendChild(note);
             }
 
-            const note = document.createElement('p');
-            note.className = 'modal-message__note';
-            note.textContent = 'Proceed keeps all subjects and records the clash. Replace removes the existing subject(s) before allocating the new one. Cancel will stop this allocation.';
-            messageContainer.appendChild(note);
+            proceedBtn.textContent = variant === 'room'
+                ? (config.proceedLabel || 'Continue')
+                : (config.proceedLabel || 'Proceed');
+            cancelBtn.textContent = config.cancelLabel || 'Cancel';
+
+            if (variant === 'room') {
+                replaceBtn.classList.add('is-hidden');
+                if (changeBtn) {
+                    changeBtn.classList.remove('is-hidden');
+                    changeBtn.textContent = config.changeLabel || 'Change rooms';
+                }
+                if (divideBtn) {
+                    divideBtn.classList.remove('is-hidden');
+                    divideBtn.textContent = config.divideLabel || 'Divide subject';
+                }
+            } else {
+                replaceBtn.classList.remove('is-hidden');
+                replaceBtn.textContent = config.replaceLabel || 'Replace';
+                if (changeBtn) {
+                    changeBtn.classList.add('is-hidden');
+                }
+                if (divideBtn) {
+                    divideBtn.classList.add('is-hidden');
+                }
+            }
 
             pendingClashContext = {
+                variant: variant,
                 onProceed: config.onProceed,
-                onReplace: config.onReplace,
                 onCancel: config.onCancel
             };
+
+            if (variant === 'room') {
+                pendingClashContext.onChange = config.onChange;
+                pendingClashContext.onDivide = config.onDivide;
+            } else {
+                pendingClashContext.onReplace = config.onReplace;
+            }
 
             modal.style.display = 'block';
 
@@ -8377,6 +8668,8 @@
             const proceedBtn = document.getElementById('clashProceedBtn');
             const cancelBtn = document.getElementById('clashCancelBtn');
             const replaceBtn = document.getElementById('clashReplaceBtn');
+            const changeBtn = document.getElementById('clashChangeBtn');
+            const divideBtn = document.getElementById('clashDivideBtn');
             const closeBtn = document.getElementById('clashModalClose');
             const modalContent = modal.querySelector('.modal-content');
 
@@ -8408,6 +8701,34 @@
                 });
             }
 
+            if (changeBtn) {
+                changeBtn.addEventListener('click', function() {
+                    const context = pendingClashContext;
+                    closeClashModal();
+                    if (context && typeof context.onChange === 'function') {
+                        try {
+                            context.onChange();
+                        } catch (error) {
+                            console.error('Error handling clash change callback:', error);
+                        }
+                    }
+                });
+            }
+
+            if (divideBtn) {
+                divideBtn.addEventListener('click', function() {
+                    const context = pendingClashContext;
+                    closeClashModal();
+                    if (context && typeof context.onDivide === 'function') {
+                        try {
+                            context.onDivide();
+                        } catch (error) {
+                            console.error('Error handling clash divide callback:', error);
+                        }
+                    }
+                });
+            }
+
             if (cancelBtn) {
                 cancelBtn.addEventListener('click', handleClashCancel);
             }
@@ -8430,6 +8751,52 @@
                     }
                 });
             }
+        }
+
+        function evaluateRoomClashForAllocation(subjectCode, lineIndex, teacherIndex) {
+            const defaultRooms = getSubjectRoomAssignments(subjectCode);
+            const rooms = getUniqueRoomsFromEntries(defaultRooms);
+
+            if (rooms.length === 0) {
+                return { rooms: [], conflicts: [] };
+            }
+
+            const roomSet = new Set(rooms);
+            const conflicts = [];
+
+            teachers.forEach((_, otherTeacherIndex) => {
+                if (otherTeacherIndex === teacherIndex) {
+                    return;
+                }
+
+                const otherSubjects = getAllocationSubjects(getAllocationKey(lineIndex, otherTeacherIndex));
+                if (!Array.isArray(otherSubjects) || otherSubjects.length === 0) {
+                    return;
+                }
+
+                otherSubjects.forEach(existingSubject => {
+                    const entries = getEffectiveRoomAssignmentsForCell(existingSubject, lineIndex, otherTeacherIndex);
+                    const otherRooms = getUniqueRoomsFromEntries(entries);
+                    const overlap = otherRooms.filter(room => roomSet.has(room));
+
+                    if (overlap.length === 0) {
+                        return;
+                    }
+
+                    const teacherName = typeof teachers[otherTeacherIndex] === 'string' && teachers[otherTeacherIndex].trim().length > 0
+                        ? teachers[otherTeacherIndex].trim()
+                        : `Teacher ${otherTeacherIndex + 1}`;
+
+                    conflicts.push({
+                        teacherIndex: otherTeacherIndex,
+                        teacherName: teacherName,
+                        subjectCode: existingSubject,
+                        rooms: Array.from(new Set(overlap))
+                    });
+                });
+            });
+
+            return { rooms, conflicts };
         }
 
         function allocateSubjectToTeacher(subjectCode, teacherIndex, preferredLine = null, options = {}) {
@@ -8488,6 +8855,66 @@
                     onCancel: options.onClashCancelled
                 });
                 lastAllocationOutcome = { status: 'clash', reason: 'pending-resolution' };
+                return false;
+            }
+
+            const roomClashAction = typeof options.roomClashAction === 'string' ? options.roomClashAction : null;
+            const roomClashDetails = evaluateRoomClashForAllocation(subjectCode, targetLine, teacherIndex);
+            if (roomClashDetails.conflicts.length > 0 && roomClashAction !== 'continue') {
+                const onRoomClashCancelled = typeof options.onRoomClashCancelled === 'function'
+                    ? options.onRoomClashCancelled
+                    : options.onClashCancelled;
+
+                showClashResolutionDialog({
+                    variant: 'room',
+                    subjectCode: subjectCode,
+                    teacherIndex: teacherIndex,
+                    lineIndex: targetLine,
+                    rooms: roomClashDetails.rooms,
+                    conflicts: roomClashDetails.conflicts,
+                    onProceed: () => {
+                        allocateSubjectToTeacher(subjectCode, teacherIndex, targetLine, { ...options, roomClashAction: 'continue' });
+                    },
+                    onChange: () => {
+                        if (typeof options.onRoomClashChange === 'function') {
+                            try {
+                                options.onRoomClashChange();
+                            } catch (error) {
+                                console.error('Error handling room clash change callback:', error);
+                            }
+                        }
+                        setTimeout(() => {
+                            try {
+                                openRoomModal({ subjectCode: subjectCode, mode: 'subject' });
+                            } catch (error) {
+                                console.error('Unable to open room editor from clash dialog:', error);
+                            }
+                        }, 0);
+                    },
+                    onDivide: () => {
+                        const splitMetadata = getSplitMetadata(subjectCode);
+                        const baseSubject = splitMetadata && splitMetadata.baseSubject ? splitMetadata.baseSubject : subjectCode;
+                        setTimeout(() => {
+                            configureSplitForSubject(baseSubject).catch(error => {
+                                console.error('Error launching split configuration:', error);
+                            });
+                        }, 0);
+                        if (typeof options.onRoomClashDivide === 'function') {
+                            try {
+                                options.onRoomClashDivide();
+                            } catch (error) {
+                                console.error('Error handling room clash divide callback:', error);
+                            }
+                        }
+                    },
+                    onCancel: () => {
+                        if (typeof onRoomClashCancelled === 'function') {
+                            onRoomClashCancelled();
+                        }
+                    }
+                });
+
+                lastAllocationOutcome = { status: 'clash', reason: 'room' };
                 return false;
             }
 
