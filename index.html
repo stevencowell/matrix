@@ -2800,7 +2800,6 @@
                 </div>
                 <div class="room-modal-list" id="roomModalList"></div>
                 <div class="room-modal-hint" id="roomModalHint"></div>
-                <button type="button" class="btn btn-secondary btn-compact" id="roomModalAddRoom">Add Room</button>
                 <div class="modal-buttons">
                     <button type="button" class="btn btn-warning" id="roomModalClearRooms">Clear Rooms</button>
                     <button type="button" class="btn btn-primary" id="roomModalSaveRooms">Save Rooms</button>
@@ -3666,6 +3665,34 @@
                 return [];
             }
             return entries.map(entry => ({ ...entry }));
+        }
+
+        function createEmptyRoomEntry() {
+            return { room: '', periods: '', label: '' };
+        }
+
+        function isRoomEntryEmpty(entry) {
+            if (!entry || typeof entry !== 'object') {
+                return true;
+            }
+
+            const hasRoom = typeof entry.room === 'string' && entry.room.trim() !== '';
+
+            const rawPeriods = entry.periods;
+            let hasPeriods = false;
+            if (rawPeriods !== null && rawPeriods !== undefined) {
+                if (typeof rawPeriods === 'string') {
+                    hasPeriods = rawPeriods.trim() !== '';
+                } else if (typeof rawPeriods === 'number') {
+                    hasPeriods = !Number.isNaN(rawPeriods);
+                } else {
+                    hasPeriods = true;
+                }
+            }
+
+            const hasLabel = typeof entry.label === 'string' && entry.label.trim() !== '';
+
+            return !hasRoom && !hasPeriods && !hasLabel;
         }
 
         function sanitizeRoomEntry(entry) {
@@ -10010,76 +10037,99 @@
             if (listEl) {
                 listEl.innerHTML = '';
 
-                const entries = Array.isArray(context.editEntries) ? context.editEntries : [];
-                if (entries.length === 0) {
-                    const empty = document.createElement('div');
-                    empty.className = 'room-modal-empty';
-                    empty.textContent = 'No rooms added yet. Use “Add Room” to begin.';
-                    listEl.appendChild(empty);
+                if (!Array.isArray(context.editEntries)) {
+                    context.editEntries = [];
                 } else {
-                    entries.forEach((entry, index) => {
-                        if (!context.editEntries[index] || typeof context.editEntries[index] !== 'object') {
-                            context.editEntries[index] = { room: '', periods: '', label: '' };
+                    context.editEntries = context.editEntries.filter((entry, index, array) => {
+                        if (!isRoomEntryEmpty(entry)) {
+                            return true;
                         }
-
-                        const row = document.createElement('div');
-                        row.className = 'room-modal-row';
-
-                        const roomSelect = document.createElement('select');
-                        roomSelect.className = 'room-modal-room';
-                        const defaultOption = document.createElement('option');
-                        defaultOption.value = '';
-                        defaultOption.textContent = 'Choose room';
-                        roomSelect.appendChild(defaultOption);
-                        AVAILABLE_ROOMS.forEach(room => {
-                            const option = document.createElement('option');
-                            option.value = room;
-                            option.textContent = room;
-                            roomSelect.appendChild(option);
-                        });
-                        roomSelect.value = typeof entry.room === 'string' ? entry.room : '';
-                        roomSelect.addEventListener('change', event => {
-                            context.editEntries[index].room = event.target.value;
-                        });
-                        row.appendChild(roomSelect);
-
-                        const periodsInput = document.createElement('input');
-                        periodsInput.type = 'number';
-                        periodsInput.min = '0';
-                        periodsInput.step = '1';
-                        periodsInput.className = 'room-modal-periods';
-                        periodsInput.placeholder = 'Periods';
-                        periodsInput.value = entry && entry.periods !== undefined && entry.periods !== null && entry.periods !== ''
-                            ? entry.periods
-                            : '';
-                        periodsInput.addEventListener('input', event => {
-                            context.editEntries[index].periods = event.target.value;
-                        });
-                        row.appendChild(periodsInput);
-
-                        const noteInput = document.createElement('input');
-                        noteInput.type = 'text';
-                        noteInput.className = 'room-modal-note';
-                        noteInput.placeholder = 'Note (optional)';
-                        noteInput.value = entry && typeof entry.label === 'string' ? entry.label : '';
-                        noteInput.addEventListener('input', event => {
-                            context.editEntries[index].label = event.target.value;
-                        });
-                        row.appendChild(noteInput);
-
-                        const removeBtn = document.createElement('button');
-                        removeBtn.type = 'button';
-                        removeBtn.className = 'room-modal-remove';
-                        removeBtn.textContent = 'Remove';
-                        removeBtn.addEventListener('click', () => {
-                            context.editEntries.splice(index, 1);
-                            renderRoomModal();
-                        });
-                        row.appendChild(removeBtn);
-
-                        listEl.appendChild(row);
+                        return index === array.length - 1;
                     });
                 }
+
+                let ensureTrailingRow = () => {};
+
+                const buildRow = (entry, index) => {
+                    if (!context.editEntries[index] || typeof context.editEntries[index] !== 'object') {
+                        context.editEntries[index] = createEmptyRoomEntry();
+                    }
+
+                    const row = document.createElement('div');
+                    row.className = 'room-modal-row';
+
+                    const roomSelect = document.createElement('select');
+                    roomSelect.className = 'room-modal-room';
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Choose room';
+                    roomSelect.appendChild(defaultOption);
+                    AVAILABLE_ROOMS.forEach(room => {
+                        const option = document.createElement('option');
+                        option.value = room;
+                        option.textContent = room;
+                        roomSelect.appendChild(option);
+                    });
+                    roomSelect.value = typeof entry.room === 'string' ? entry.room : '';
+                    roomSelect.addEventListener('change', event => {
+                        context.editEntries[index].room = event.target.value;
+                        ensureTrailingRow();
+                    });
+                    row.appendChild(roomSelect);
+
+                    const periodsInput = document.createElement('input');
+                    periodsInput.type = 'number';
+                    periodsInput.min = '0';
+                    periodsInput.step = '1';
+                    periodsInput.className = 'room-modal-periods';
+                    periodsInput.placeholder = 'Periods';
+                    periodsInput.value = entry && entry.periods !== undefined && entry.periods !== null && entry.periods !== ''
+                        ? entry.periods
+                        : '';
+                    periodsInput.addEventListener('input', event => {
+                        context.editEntries[index].periods = event.target.value;
+                        ensureTrailingRow();
+                    });
+                    row.appendChild(periodsInput);
+
+                    const noteInput = document.createElement('input');
+                    noteInput.type = 'text';
+                    noteInput.className = 'room-modal-note';
+                    noteInput.placeholder = 'Note (optional)';
+                    noteInput.value = entry && typeof entry.label === 'string' ? entry.label : '';
+                    noteInput.addEventListener('input', event => {
+                        context.editEntries[index].label = event.target.value;
+                        ensureTrailingRow();
+                    });
+                    row.appendChild(noteInput);
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'room-modal-remove';
+                    removeBtn.textContent = 'Remove';
+                    removeBtn.addEventListener('click', () => {
+                        context.editEntries.splice(index, 1);
+                        renderRoomModal();
+                    });
+                    row.appendChild(removeBtn);
+
+                    return row;
+                };
+
+                ensureTrailingRow = () => {
+                    if (context.editEntries.length === 0 || !isRoomEntryEmpty(context.editEntries[context.editEntries.length - 1])) {
+                        const newIndex = context.editEntries.length;
+                        context.editEntries.push(createEmptyRoomEntry());
+                        const newRow = buildRow(context.editEntries[newIndex], newIndex);
+                        listEl.appendChild(newRow);
+                    }
+                };
+
+                context.editEntries.forEach((entry, index) => {
+                    listEl.appendChild(buildRow(entry, index));
+                });
+
+                ensureTrailingRow();
             }
 
             const clearBtn = document.getElementById('roomModalClearRooms');
@@ -10092,14 +10142,6 @@
                     clearBtn.disabled = context.directEntries.length === 0;
                 }
             }
-        }
-
-        function handleRoomModalAddRoom() {
-            if (!currentRoomModalContext) {
-                return;
-            }
-            currentRoomModalContext.editEntries.push({ room: '', periods: '', label: '' });
-            renderRoomModal();
         }
 
         async function handleRoomModalClear() {
@@ -10200,7 +10242,6 @@
             }
 
             const closeBtn = document.getElementById('roomModalClose');
-            const addBtn = document.getElementById('roomModalAddRoom');
             const saveBtn = document.getElementById('roomModalSaveRooms');
             const clearBtn = document.getElementById('roomModalClearRooms');
             const copyBtn = document.getElementById('roomModalCopyDefaults');
@@ -10208,10 +10249,6 @@
 
             if (closeBtn) {
                 closeBtn.addEventListener('click', closeRoomModal);
-            }
-
-            if (addBtn) {
-                addBtn.addEventListener('click', () => handleRoomModalAddRoom());
             }
 
             if (saveBtn) {
