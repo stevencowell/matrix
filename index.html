@@ -9092,8 +9092,8 @@
         }
 
         function evaluateRoomClashForAllocation(subjectCode, lineIndex, teacherIndex) {
-            const defaultRooms = getSubjectRoomAssignments(subjectCode);
-            const rooms = getUniqueRoomsFromEntries(defaultRooms);
+            const effectiveAssignments = getEffectiveRoomAssignmentsForCell(subjectCode, lineIndex, teacherIndex);
+            const rooms = getUniqueRoomsFromEntries(effectiveAssignments);
 
             if (rooms.length === 0) {
                 return { rooms: [], conflicts: [] };
