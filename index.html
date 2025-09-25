@@ -8671,9 +8671,10 @@
 
                 if (variant === 'room') {
                     if (rooms.length > 0) {
-                        messageParts.push(`Adding ${subjectCode} to ${teacherName} on ${lineName} will reuse room${rooms.length === 1 ? '' : 's'} ${rooms.join(', ')} already allocated on this line.`);
+                        const roomLabel = rooms.length === 1 ? 'room' : 'rooms';
+                        messageParts.push(`Allocating ${subjectCode} to ${teacherName} on ${lineName} will reuse ${roomLabel} ${rooms.join(', ')} already allocated on this line.`);
                     } else {
-                        messageParts.push(`Adding ${subjectCode} to ${teacherName} on ${lineName} will reuse rooms already allocated on this line.`);
+                        messageParts.push(`Allocating ${subjectCode} to ${teacherName} on ${lineName} will reuse rooms already allocated on this line.`);
                     }
 
                     if (conflicts.length > 0) {
@@ -8681,12 +8682,19 @@
                             const conflictRooms = Array.isArray(conflict.rooms) && conflict.rooms.length > 0
                                 ? ` (${conflict.rooms.join(', ')})`
                                 : '';
-                            return `• ${conflict.teacherName}: ${conflict.subjectCode}${conflictRooms}`;
+                            const teacherNameText = typeof conflict.teacherName === 'string' && conflict.teacherName.trim().length > 0
+                                ? conflict.teacherName.trim()
+                                : 'Unknown teacher';
+                            const subjectText = typeof conflict.subjectCode === 'string' && conflict.subjectCode.trim().length > 0
+                                ? conflict.subjectCode.trim()
+                                : 'Unknown subject';
+                            return `• ${teacherNameText}: ${subjectText}${conflictRooms}`;
                         });
-                        messageParts.push('Current allocations using these rooms:\n' + conflictLines.join('\n'));
+                        const allocationLabel = conflicts.length === 1 ? 'Existing allocation using these rooms:' : 'Existing allocations using these rooms:';
+                        messageParts.push(allocationLabel + '\n' + conflictLines.join('\n'));
                     }
 
-                    messageParts.push('Select an option to continue. Continue keeps the shared rooms. Change rooms lets you adjust the allocation now. Divide subject configures a split allocation. Cancel will stop this allocation.');
+                    messageParts.push('Continue keeps the shared rooms. Change rooms lets you adjust this allocation now. Divide subject configures a split allocation. Cancel will stop this allocation.');
                 } else {
                     messageParts.push(`Allocating ${subjectCode} to ${teacherName} on ${lineName} will clash with an existing allocation.`);
 
@@ -8839,7 +8847,7 @@
 
                 const lead = document.createElement('p');
                 lead.className = 'modal-message__lead';
-                lead.append('Adding ');
+                lead.append('Allocating ');
                 const subjectStrong = document.createElement('strong');
                 subjectStrong.textContent = subjectCode;
                 lead.appendChild(subjectStrong);
@@ -8854,7 +8862,7 @@
 
                 const rooms = Array.isArray(config.rooms) ? config.rooms.filter(room => typeof room === 'string' && room.trim().length > 0) : [];
                 if (rooms.length > 0) {
-                    lead.append(' uses room');
+                    lead.append(' will reuse room');
                     if (rooms.length > 1) {
                         lead.append('s ');
                     } else {
@@ -8865,14 +8873,16 @@
                     lead.appendChild(roomsStrong);
                     lead.append(' already allocated on this line.');
                 } else {
-                    lead.append(' will clash with existing room allocations on this line.');
+                    lead.append(' will reuse rooms already allocated on this line.');
                 }
                 messageContainer.appendChild(lead);
 
                 const conflicts = Array.isArray(config.conflicts) ? config.conflicts : [];
                 if (conflicts.length > 0) {
                     const intro = document.createElement('p');
-                    intro.textContent = 'Conflicting allocations:';
+                    intro.textContent = conflicts.length === 1
+                        ? 'Existing allocation using these rooms:'
+                        : 'Existing allocations using these rooms:';
                     messageContainer.appendChild(intro);
 
                     const list = document.createElement('ul');
@@ -8881,7 +8891,13 @@
                         const conflictRooms = Array.isArray(conflict.rooms) && conflict.rooms.length > 0
                             ? conflict.rooms.join(', ')
                             : 'No room set';
-                        item.textContent = `${conflictRooms} – ${conflict.subjectCode} (${conflict.teacherName})`;
+                        const conflictSubject = typeof conflict.subjectCode === 'string' && conflict.subjectCode.trim().length > 0
+                            ? conflict.subjectCode.trim()
+                            : 'Unknown subject';
+                        const conflictTeacher = typeof conflict.teacherName === 'string' && conflict.teacherName.trim().length > 0
+                            ? conflict.teacherName.trim()
+                            : 'Unknown teacher';
+                        item.textContent = `${conflictRooms} – ${conflictSubject} (${conflictTeacher})`;
                         list.appendChild(item);
                     });
                     messageContainer.appendChild(list);
@@ -8889,7 +8905,7 @@
 
                 const note = document.createElement('p');
                 note.className = 'modal-message__note';
-                note.textContent = 'Continue keeps the current rooms. Change opens the room editor. Divide opens the split tool for this subject. Cancel stops this allocation.';
+                note.textContent = 'Continue keeps the shared rooms. Change rooms lets you adjust this allocation now. Divide subject configures a split allocation. Cancel will stop this allocation.';
                 messageContainer.appendChild(note);
             } else {
                 title.textContent = 'Allocation clash detected';
