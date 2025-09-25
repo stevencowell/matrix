@@ -529,6 +529,42 @@
             gap: 24px;
         }
 
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+
+            .app-hero,
+            .app-sidebar,
+            .workspace-panel:not(.workspace-panel--matrix),
+            .workspace-panel__header-actions,
+            .app-alert,
+            #appAlert,
+            .app-footer {
+                display: none !important;
+            }
+
+            .app-layout {
+                grid-template-columns: 1fr !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .workspace-panel--matrix {
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            .workspace-panel--matrix .workspace-panel__body {
+                padding: 0 !important;
+            }
+
+            .timetable-container {
+                overflow: visible !important;
+            }
+        }
+
         .converter-intro {
             display: grid;
             gap: 12px;
@@ -2755,8 +2791,13 @@
 
                 <section class="workspace-panel workspace-panel--matrix">
                     <div class="workspace-panel__header">
-                        <h2 class="workspace-panel__title">Allocation Matrix</h2>
-                        <p class="workspace-panel__subtitle">Drag subjects onto a teacher&apos;s line or click any cell to launch the quick allocation modal.</p>
+                        <div>
+                            <h2 class="workspace-panel__title">Allocation Matrix</h2>
+                            <p class="workspace-panel__subtitle">Drag subjects onto a teacher&apos;s line or click any cell to launch the quick allocation modal.</p>
+                        </div>
+                        <div class="workspace-panel__header-actions">
+                            <button class="btn btn-secondary btn-compact" id="printMatrixBtn" type="button">Print Matrix</button>
+                        </div>
                     </div>
                     <div class="workspace-panel__body workspace-panel__body--flush">
                         <div class="timetable-container">
@@ -11576,6 +11617,22 @@
             }
         }
 
+        function setupPrintButton() {
+            const button = document.getElementById('printMatrixBtn');
+            if (!button) {
+                return;
+            }
+
+            button.addEventListener('click', function() {
+                try {
+                    window.print();
+                } catch (error) {
+                    console.error('Error opening print dialog:', error);
+                    alert('Unable to open the print dialog: ' + error.message);
+                }
+            });
+        }
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             try {
@@ -11585,6 +11642,7 @@
                 setupClashModalEventListeners();
                 setupRoomModal();
                 initializeLineCellsConverter();
+                setupPrintButton();
             } catch (error) {
                 console.error('Error during initialization:', error);
                 alert('Error initializing application: ' + error.message);
