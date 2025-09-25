@@ -579,15 +579,22 @@
 
             .timetable {
                 font-size: 0.7rem !important;
+                table-layout: fixed !important;
+                min-width: 0 !important;
+                width: 100% !important;
             }
 
-            .timetable th {
-                padding: 8px 6px !important;
+            .timetable th,
+            .timetable td {
+                padding: 6px 6px !important;
                 font-size: 0.75rem !important;
             }
 
-            .timetable td {
-                padding: 6px 6px !important;
+            .timetable th:first-child,
+            .timetable td.period-row,
+            .timetable th.teacher-column,
+            .timetable td.drop-zone {
+                width: auto !important;
             }
 
             .subject-slot {
@@ -1125,6 +1132,17 @@
             border-collapse: separate;
             border-spacing: 0;
             font-size: 0.9rem;
+            table-layout: fixed;
+        }
+
+        .timetable th:first-child,
+        .timetable td.period-row {
+            width: var(--timetable-line-column-width, 150px);
+        }
+
+        .timetable th.teacher-column,
+        .timetable td.drop-zone {
+            width: var(--timetable-teacher-column-width, auto);
         }
 
         .timetable thead th:first-child {
@@ -1234,6 +1252,9 @@
             font-size: 12px;
             font-weight: 600;
             color: #312e81;
+            text-align: center;
+            flex-wrap: wrap;
+            word-break: break-word;
         }
 
         .subject-slot:hover {
@@ -7948,6 +7969,85 @@
             });
         }
 
+        function getTimetableContainerWidth() {
+            const container = document.querySelector('.timetable-container');
+
+            if (container) {
+                const rect = container.getBoundingClientRect();
+                if (rect && Number.isFinite(rect.width) && rect.width > 0) {
+                    return rect.width;
+                }
+                if (Number.isFinite(container.clientWidth) && container.clientWidth > 0) {
+                    return container.clientWidth;
+                }
+            }
+
+            const bodyWidth = document.body && Number.isFinite(document.body.clientWidth)
+                ? document.body.clientWidth
+                : 0;
+            if (bodyWidth > 0) {
+                return bodyWidth;
+            }
+
+            const docWidth = document.documentElement && Number.isFinite(document.documentElement.clientWidth)
+                ? document.documentElement.clientWidth
+                : 0;
+            if (docWidth > 0) {
+                return docWidth;
+            }
+
+            return window.innerWidth && Number.isFinite(window.innerWidth)
+                ? window.innerWidth
+                : 1200;
+        }
+
+        function applyTimetableSizing(teacherCount) {
+            const timetableElement = document.getElementById('timetable');
+            if (!timetableElement) {
+                return;
+            }
+
+            const containerWidth = Math.max(getTimetableContainerWidth(), 0);
+            const DEFAULT_LINE_COLUMN_WIDTH = 150;
+            const MIN_LINE_COLUMN_WIDTH = 130;
+            const MAX_LINE_COLUMN_WIDTH = 180;
+            const computedLineWidth = Math.floor(containerWidth * 0.16);
+            const lineColumnWidth = Math.max(
+                MIN_LINE_COLUMN_WIDTH,
+                Math.min(
+                    MAX_LINE_COLUMN_WIDTH,
+                    Number.isFinite(computedLineWidth) && computedLineWidth > 0
+                        ? computedLineWidth
+                        : DEFAULT_LINE_COLUMN_WIDTH
+                )
+            );
+
+            const safeTeacherCount = Math.max(teacherCount, 0);
+            const baselineWidth = Math.min(containerWidth, 900) || 900;
+            let resolvedMinWidth = baselineWidth;
+
+            if (safeTeacherCount > 0) {
+                const availableWidth = Math.max(containerWidth - lineColumnWidth, 0);
+                const rawTeacherWidth = safeTeacherCount > 0 ? availableWidth / safeTeacherCount : 0;
+                const teacherColumnWidth = Math.min(
+                    220,
+                    Math.max(Number.isFinite(rawTeacherWidth) ? rawTeacherWidth : 0, 1)
+                );
+                const computedMinWidth = lineColumnWidth + teacherColumnWidth * safeTeacherCount;
+                resolvedMinWidth = Math.max(
+                    Math.min(computedMinWidth, containerWidth),
+                    baselineWidth
+                );
+
+                timetableElement.style.setProperty('--timetable-teacher-column-width', `${teacherColumnWidth}px`);
+            } else {
+                timetableElement.style.removeProperty('--timetable-teacher-column-width');
+            }
+
+            timetableElement.style.setProperty('--timetable-line-column-width', `${lineColumnWidth}px`);
+            timetableElement.style.setProperty('--timetable-min-width', `${resolvedMinWidth}px`);
+        }
+
         function initializeTimetable() {
             const head = document.getElementById('timetableHead');
             const body = document.getElementById('timetableBody');
@@ -7971,16 +8071,7 @@
 
             const teacherList = Array.isArray(teachers) ? teachers : [];
 
-            const timetableElement = document.getElementById('timetable');
-            if (timetableElement) {
-                const BASE_LINE_COLUMN_WIDTH = 150;
-                const TEACHER_COLUMN_MIN_WIDTH = 220;
-                const calculatedMinWidth = Math.max(
-                    900,
-                    BASE_LINE_COLUMN_WIDTH + teacherList.length * TEACHER_COLUMN_MIN_WIDTH
-                );
-                timetableElement.style.setProperty('--timetable-min-width', `${calculatedMinWidth}px`);
-            }
+            applyTimetableSizing(teacherList.length);
 
             teacherList.forEach((teacherName, index) => {
                 const columnHeader = document.createElement('th');
@@ -11674,6 +11765,14 @@
                 }
             });
         }
+
+        window.addEventListener('resize', function() {
+            try {
+                applyTimetableSizing(Array.isArray(teachers) ? teachers.length : 0);
+            } catch (error) {
+                console.error('Error recalculating timetable sizing:', error);
+            }
+        });
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
