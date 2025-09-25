@@ -11,6 +11,11 @@
             box-sizing: border-box;
         }
 
+        @page {
+            size: A4 landscape;
+            margin: 12mm;
+        }
+
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: radial-gradient(circle at 0% 0%, rgba(79, 70, 229, 0.35), rgba(79, 70, 229, 0)) no-repeat,
@@ -530,9 +535,15 @@
         }
 
         @media print {
+            html,
+            body {
+                width: 100%;
+            }
+
             body {
                 background: #ffffff !important;
                 color: #000000 !important;
+                font-size: 0.85rem;
             }
 
             .app-hero,
@@ -554,6 +565,7 @@
             .workspace-panel--matrix {
                 box-shadow: none !important;
                 border: none !important;
+                max-width: 100% !important;
             }
 
             .workspace-panel--matrix .workspace-panel__body {
@@ -562,6 +574,25 @@
 
             .timetable-container {
                 overflow: visible !important;
+                padding: 0 !important;
+            }
+
+            .timetable {
+                font-size: 0.7rem !important;
+            }
+
+            .timetable th {
+                padding: 8px 6px !important;
+                font-size: 0.75rem !important;
+            }
+
+            .timetable td {
+                padding: 6px 6px !important;
+            }
+
+            .subject-slot {
+                padding: 4px 6px !important;
+                font-size: 0.7rem !important;
             }
         }
 
