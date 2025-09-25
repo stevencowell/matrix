@@ -1034,6 +1034,11 @@
             border-color: rgba(37, 99, 235, 0.9);
         }
 
+        .legend-color.room-clash {
+            background: rgba(168, 85, 247, 0.75);
+            border-color: rgba(147, 51, 234, 0.9);
+        }
+
         .legend-color.split {
             background: rgba(251, 191, 36, 0.75);
             border-color: rgba(217, 119, 6, 0.9);
@@ -1261,8 +1266,8 @@
         }
 
         .drop-zone.room-clash-cell {
-            background: rgba(59, 130, 246, 0.18);
-            border-color: rgba(37, 99, 235, 0.75);
+            background: rgba(168, 85, 247, 0.18);
+            border-color: rgba(147, 51, 234, 0.75);
         }
 
         .drop-zone.semester-pair-cell {
@@ -1277,9 +1282,9 @@
         }
 
         .subject-slot.room-clash {
-            background: rgba(59, 130, 246, 0.18);
-            border: 1.5px solid rgba(37, 99, 235, 0.65);
-            color: #1d4ed8;
+            background: rgba(168, 85, 247, 0.18);
+            border: 1.5px solid rgba(147, 51, 234, 0.65);
+            color: #6b21a8;
         }
 
         .subject-slot.semester-pair {
@@ -1320,33 +1325,53 @@
             margin-top: 4px;
         }
 
-        .drop-zone.semester-pair-cell.room-clash-cell,
+        .drop-zone.semester-pair-cell.room-clash-cell {
+            background: rgba(168, 85, 247, 0.18);
+            border-color: rgba(147, 51, 234, 0.75);
+        }
+
         .drop-zone.semester-pair-cell.clash-cell {
             background: rgba(59, 130, 246, 0.18);
             border-color: rgba(37, 99, 235, 0.75);
         }
 
-        .subject-slot.semester-pair.room-clash,
+        .subject-slot.semester-pair.room-clash {
+            background: rgba(168, 85, 247, 0.18);
+            border: 1.5px solid rgba(147, 51, 234, 0.65);
+            color: #6b21a8;
+        }
+
         .subject-slot.semester-pair.clash {
             background: rgba(59, 130, 246, 0.18);
             border: 1.5px solid rgba(37, 99, 235, 0.65);
             color: #1d4ed8;
         }
 
-        .subject-slot.semester-pair.room-clash .semester-pair-item,
+        .subject-slot.semester-pair.room-clash .semester-pair-item {
+            background: rgba(147, 51, 234, 0.08);
+        }
+
         .subject-slot.semester-pair.clash .semester-pair-item {
             background: rgba(37, 99, 235, 0.08);
         }
 
-        .subject-slot.semester-pair.room-clash .semester-pair-label,
+        .subject-slot.semester-pair.room-clash .semester-pair-label {
+            color: #6b21a8;
+            border-top-color: rgba(147, 51, 234, 0.3);
+        }
+
         .subject-slot.semester-pair.clash .semester-pair-label {
             color: #1d4ed8;
             border-top-color: rgba(37, 99, 235, 0.3);
         }
 
         .subject-slot.semester-pair.room-clash .subject-room-tag,
+        .subject-slot.semester-pair.room-clash .subject-room-empty {
+            background: rgba(147, 51, 234, 0.12);
+            color: #6b21a8;
+        }
+
         .subject-slot.semester-pair.clash .subject-room-tag,
-        .subject-slot.semester-pair.room-clash .subject-room-empty,
         .subject-slot.semester-pair.clash .subject-room-empty {
             background: rgba(37, 99, 235, 0.12);
             color: #1d4ed8;
@@ -2603,7 +2628,11 @@
                             </div>
                             <div class="legend-item">
                                 <div class="legend-color clash"></div>
-                                <span>Allocation Clash</span>
+                                <span>Teacher Clash</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color room-clash"></div>
+                                <span>Room Clash</span>
                             </div>
                         </div>
                     </div>
