@@ -2850,6 +2850,7 @@
             let activeItem = null;
             let previousActiveElement = null;
             let currentActionButtons = [];
+            let showScheduled = false;
 
             const inferPresentation = text => {
                 const normalized = text.toLowerCase();
@@ -3054,7 +3055,7 @@
                     item.resolve(result);
                 }
 
-                requestAnimationFrame(showNext);
+                scheduleShowNext();
             };
 
             const dismissDialog = () => {
@@ -3128,6 +3129,19 @@
                 alertRoot.setAttribute('aria-hidden', 'false');
                 isOpen = true;
                 requestAnimationFrame(focusFirstElement);
+            };
+
+            const scheduleShowNext = () => {
+                if (isOpen || showScheduled || queue.length === 0) {
+                    return;
+                }
+                showScheduled = true;
+                requestAnimationFrame(() => {
+                    showScheduled = false;
+                    if (!isOpen) {
+                        showNext();
+                    }
+                });
             };
 
             if (overlay) {
@@ -3241,7 +3255,7 @@
                 return new Promise(resolve => {
                     item.resolve = resolve;
                     queue.push(item);
-                    showNext();
+                    scheduleShowNext();
                 });
             };
 
