@@ -210,6 +210,39 @@
             stroke: currentColor;
         }
 
+        .toolbar-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 23, 42, 0.16);
+            background: rgba(248, 250, 252, 0.9);
+            color: var(--bg-slate-900);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+            transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+        }
+
+        .toolbar-button svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+        }
+
+        .toolbar-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .toolbar-button:focus-visible {
+            outline: 3px solid rgba(99, 102, 241, 0.45);
+            outline-offset: 2px;
+        }
+
         .matrix-grid {
             display: grid;
             grid-template-columns: 160px repeat(7, minmax(0, 1fr));
@@ -597,13 +630,20 @@
             <section class="matrix-panel" aria-labelledby="matrixTitle">
                 <div class="panel-heading">
                     <h2 class="panel-title" id="matrixTitle">Weekly matrix</h2>
-                    <div class="matrix-toolbar" role="status" aria-live="polite">
-                        <span class="toolbar-pill" id="toolbarStatus">
+                    <div class="matrix-toolbar">
+                        <span class="toolbar-pill" id="toolbarStatus" role="status" aria-live="polite">
                             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3" />
                             </svg>
                             Loading data…
                         </span>
+                        <button class="toolbar-button" type="button" id="loadDataButton" title="Load allocation data from a JSON file">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12 5v10m0 0 4-4m-4 4-4-4m-2 9h12" />
+                            </svg>
+                            Load JSON file
+                        </button>
+                        <input type="file" id="dataFileInput" accept="application/json,.json" hidden>
                     </div>
                 </div>
 
@@ -666,11 +706,113 @@
         const metricPopulated = document.getElementById('metricPopulated');
         const metricSplits = document.getElementById('metricSplits');
         const toolbarStatus = document.getElementById('toolbarStatus');
+        const loadDataButton = document.getElementById('loadDataButton');
+        const dataFileInput = document.getElementById('dataFileInput');
         const matrixGrid = document.getElementById('matrixGrid');
         const cellDetailPanel = document.getElementById('cellDetailPanel');
         const unplacedPanel = document.getElementById('unplacedPanel');
         const unplacedList = document.getElementById('unplacedList');
         const unplacedEmpty = document.getElementById('unplacedEmpty');
+
+        const ICON_PATHS = {
+            loading: 'M12 6v6l3 3',
+            success: 'm5 13 4 4L19 7',
+            error: 'M12 9v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9Z',
+        };
+
+        function setToolbarStatus(iconPath, message, options = {}) {
+            if (!toolbarStatus) {
+                return;
+            }
+
+            const { role = null } = options;
+            toolbarStatus.textContent = '';
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke-width', '1.8');
+            svg.setAttribute('aria-hidden', 'true');
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('stroke', 'currentColor');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('stroke-linejoin', 'round');
+            path.setAttribute('d', iconPath);
+            svg.appendChild(path);
+
+            const text = document.createElement('span');
+            text.textContent = message;
+
+            toolbarStatus.appendChild(svg);
+            toolbarStatus.appendChild(text);
+
+            if (role) {
+                toolbarStatus.setAttribute('role', role);
+            } else {
+                toolbarStatus.setAttribute('role', 'status');
+            }
+        }
+
+        function applyLoadedData(data, sourceLabel) {
+            initialiseMatrix(data);
+            renderMatrixGrid();
+            renderDetailPanel();
+            renderUnplacedAllocations();
+            updateMetrics();
+
+            const timestamp = data && data.timestamp ? new Date(data.timestamp) : new Date();
+            const message = sourceLabel
+                ? sourceLabel
+                : `Data synced ${timestamp.toLocaleString()}`;
+
+            setToolbarStatus(ICON_PATHS.success, message);
+        }
+
+        function handleDataFileSelection(event) {
+            const file = event.target && event.target.files ? event.target.files[0] : null;
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (loadEvent) => {
+                try {
+                    const content = loadEvent && loadEvent.target ? loadEvent.target.result : null;
+                    if (typeof content !== 'string') {
+                        throw new Error('Unable to read file contents.');
+                    }
+
+                    const data = JSON.parse(content);
+                    applyLoadedData(data, `Data loaded from ${file.name}`);
+                } catch (error) {
+                    console.error('Unable to parse uploaded data:', error);
+                    setToolbarStatus(
+                        ICON_PATHS.error,
+                        'Uploaded file is not valid JSON data.',
+                        { role: 'alert' },
+                    );
+                } finally {
+                    if (dataFileInput) {
+                        dataFileInput.value = '';
+                    }
+                }
+            };
+
+            reader.onerror = () => {
+                console.error('Error reading uploaded file.');
+                setToolbarStatus(
+                    ICON_PATHS.error,
+                    'Could not read the selected file. Please try again.',
+                    { role: 'alert' },
+                );
+                if (dataFileInput) {
+                    dataFileInput.value = '';
+                }
+            };
+
+            reader.readAsText(file);
+        }
 
         function createAssignment(overrides = {}) {
             return {
@@ -1020,39 +1162,31 @@
         }
 
         async function loadData() {
+            setToolbarStatus(ICON_PATHS.loading, 'Loading data…');
+
             try {
-                toolbarStatus.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3" />
-                    </svg>
-                    Loading data…
-                `;
-                const response = await fetch(DATA_URL);
+                const response = await fetch(DATA_URL, { cache: 'no-store' });
                 if (!response.ok) {
                     throw new Error(`Unable to load data (status ${response.status})`);
                 }
                 const data = await response.json();
-                initialiseMatrix(data);
-                renderMatrixGrid();
-                renderDetailPanel();
-                renderUnplacedAllocations();
-                updateMetrics();
-                toolbarStatus.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7" />
-                    </svg>
-                    Data synced ${new Date(data.timestamp || Date.now()).toLocaleString()}
-                `;
+                applyLoadedData(data);
             } catch (error) {
                 console.error(error);
-                toolbarStatus.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9Z" />
-                    </svg>
-                    Data failed to load
-                `;
-                toolbarStatus.setAttribute('role', 'alert');
+                setToolbarStatus(
+                    ICON_PATHS.error,
+                    'Data failed to load. Use "Load JSON file" to import.',
+                    { role: 'alert' },
+                );
             }
+        }
+
+        if (loadDataButton && dataFileInput) {
+            loadDataButton.addEventListener('click', () => {
+                dataFileInput.click();
+            });
+
+            dataFileInput.addEventListener('change', handleDataFileSelection);
         }
 
         document.addEventListener('DOMContentLoaded', loadData);
