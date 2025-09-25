@@ -630,6 +630,16 @@
             gap: 16px;
         }
 
+        .converter-template-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .converter-template-note {
+            font-size: 0.85rem;
+        }
+
         .converter-upload-row {
             display: flex;
             flex-wrap: wrap;
@@ -2629,7 +2639,11 @@
                                     </div>
                                 </div>
                                 <div class="converter-step__body">
-                                    <a class="btn btn-secondary btn-compact" id="converterDownloadTemplate" href="allocation-data-template.csv" download>Download CSV Template</a>
+                                    <div class="converter-template-buttons">
+                                        <a class="btn btn-secondary btn-compact" id="converterDownloadTemplate" href="allocation-data-template.csv" download>Subject CSV Template</a>
+                                        <a class="btn btn-secondary btn-compact" id="converterDownloadTeacherTemplate" href="teacher-import-template.csv" download>Teacher CSV Template</a>
+                                    </div>
+                                    <p class="converter-muted converter-template-note">Use the subject template to prepare line allocations or the teacher template to bulk add staff names and optional load settings.</p>
                                 </div>
                             </section>
                             <section class="converter-step">
@@ -5284,6 +5298,299 @@
             const base = ['year', 'row'];
             const linesHeaders = [1, 2, 3, 4, 5, 6].map(n => 'line' + n);
             return base.every(h => normalizedHeaders.has(h)) && linesHeaders.some(h => normalizedHeaders.has(h));
+        }
+
+        function looksLikeTeacherHeaders(headers) {
+            const normalized = headers.map(normalizeHeaderName);
+            if (normalized.length === 0) {
+                return false;
+            }
+            return normalized.some(name => ['teacher', 'teachername', 'staff', 'staffname', 'name'].includes(name));
+        }
+
+        function parseNumericValue(value) {
+            if (value === null || value === undefined) {
+                return null;
+            }
+            if (typeof value === 'number' && Number.isFinite(value)) {
+                return value;
+            }
+            const text = String(value).replace(/,/g, '').trim();
+            if (text === '') {
+                return null;
+            }
+            const match = text.match(/-?\d+(?:\.\d+)?/);
+            if (!match) {
+                return null;
+            }
+            const numeric = Number(match[0]);
+            return Number.isFinite(numeric) ? numeric : null;
+        }
+
+        function parseFteValue(value) {
+            const numeric = parseNumericValue(value);
+            if (numeric === null) {
+                return null;
+            }
+            return numeric.toFixed(1);
+        }
+
+        function sanitizeTeacherSettings(rawSettings) {
+            if (!rawSettings || typeof rawSettings !== 'object') {
+                return null;
+            }
+
+            const settings = {};
+
+            if (rawSettings.fte !== undefined) {
+                const fteValue = parseFteValue(rawSettings.fte);
+                if (fteValue !== null) {
+                    settings.fte = fteValue;
+                }
+            }
+
+            const allowanceValue = parseNumericValue(rawSettings.periodAllowance ?? rawSettings.allowance);
+            if (allowanceValue !== null) {
+                settings.periodAllowance = allowanceValue;
+            }
+
+            const assemblyFullValue = parseNumericValue(rawSettings.assemblyFullCount ?? rawSettings.assemblyFull);
+            if (assemblyFullValue !== null) {
+                settings.assemblyFullCount = assemblyFullValue;
+            }
+
+            const assemblyShortValue = parseNumericValue(rawSettings.assemblyShortCount ?? rawSettings.assemblyShort);
+            if (assemblyShortValue !== null) {
+                settings.assemblyShortCount = assemblyShortValue;
+            }
+
+            const additionalMinutesValue = parseNumericValue(
+                rawSettings.additionalMinutes ?? rawSettings.extraMinutes ?? rawSettings.minutes
+            );
+            if (additionalMinutesValue !== null) {
+                settings.additionalMinutes = additionalMinutesValue;
+            }
+
+            return Object.keys(settings).length > 0 ? settings : null;
+        }
+
+        function normalizeTeacherSupplemental(teacherCandidates, loadSettingsMap, metadata = {}) {
+            const seen = new Map();
+            const teachers = [];
+
+            teacherCandidates.forEach(candidate => {
+                const trimmed = String(candidate ?? '').trim();
+                if (!trimmed) {
+                    return;
+                }
+                const key = trimmed.toLowerCase();
+                if (seen.has(key)) {
+                    return;
+                }
+                const entry = loadSettingsMap && loadSettingsMap.get ? loadSettingsMap.get(key) : null;
+                const displayName = entry && entry.displayName ? entry.displayName : trimmed;
+                seen.set(key, displayName);
+                teachers.push(displayName);
+            });
+
+            const teacherLoadSettings = {};
+            if (loadSettingsMap && loadSettingsMap.forEach) {
+                loadSettingsMap.forEach((entry, key) => {
+                    const canonical = seen.get(key);
+                    if (!canonical) {
+                        return;
+                    }
+                    const sanitized = sanitizeTeacherSettings(entry && entry.settings);
+                    if (sanitized) {
+                        teacherLoadSettings[canonical] = sanitized;
+                    }
+                });
+            }
+
+            const previewRows = teachers.map(name => {
+                const settings = teacherLoadSettings[name] || {};
+                return {
+                    teacher: name,
+                    fte: settings.fte ?? '',
+                    periodAllowance: settings.periodAllowance ?? '',
+                    assemblyFullCount: settings.assemblyFullCount ?? '',
+                    assemblyShortCount: settings.assemblyShortCount ?? '',
+                    additionalMinutes: settings.additionalMinutes ?? ''
+                };
+            });
+
+            const loadEntries = Object.entries(teacherLoadSettings);
+            const stats = {
+                teacherCount: teachers.length,
+                loadCount: loadEntries.length,
+                duplicates: metadata.duplicates ?? Math.max(0, teacherCandidates.length - teachers.length),
+                blankRows: metadata.blankRows ?? 0,
+                totalRows: metadata.totalRows ?? teacherCandidates.length,
+                fteOverrides: loadEntries.filter(([, settings]) => typeof settings.fte === 'string' && settings.fte.trim() !== '').length,
+                periodAllowanceOverrides: loadEntries.filter(([, settings]) => typeof settings.periodAllowance === 'number').length,
+                assemblyFullOverrides: loadEntries.filter(([, settings]) => typeof settings.assemblyFullCount === 'number').length,
+                assemblyShortOverrides: loadEntries.filter(([, settings]) => typeof settings.assemblyShortCount === 'number').length,
+                additionalMinutesOverrides: loadEntries.filter(([, settings]) => typeof settings.additionalMinutes === 'number').length
+            };
+
+            return { teachers, teacherLoadSettings, previewRows, stats };
+        }
+
+        function teacherRowsToSupplemental(rows) {
+            if (!Array.isArray(rows) || rows.length === 0) {
+                throw new Error('Empty CSV');
+            }
+
+            const headers = rows[0].map(header => String(header ?? '').trim());
+            if (!looksLikeTeacherHeaders(headers)) {
+                return null;
+            }
+
+            const canonicalHeaders = headers.map(normalizeHeaderName);
+            const headerIndex = new Map();
+            headers.forEach((header, index) => {
+                if (header && !headerIndex.has(header)) {
+                    headerIndex.set(header, index);
+                }
+                const canonical = canonicalHeaders[index];
+                if (canonical && !headerIndex.has(canonical)) {
+                    headerIndex.set(canonical, index);
+                }
+            });
+
+            const getIndex = names => {
+                for (const name of names) {
+                    if (headerIndex.has(name)) {
+                        return headerIndex.get(name);
+                    }
+                }
+                return -1;
+            };
+
+            const teacherIndex = getIndex(['teacher', 'teachername', 'staff', 'staffname', 'name']);
+            if (teacherIndex === -1) {
+                throw new Error('Teacher column not found in CSV.');
+            }
+
+            const fteIndex = getIndex(['fte', 'load', 'loading']);
+            const allowanceIndex = getIndex(['periodallowance', 'allowance', 'allowances', 'periodallowances']);
+            const assemblyFullIndex = getIndex(['assemblyfullcount', 'assemblyfull', 'fullassembly']);
+            const assemblyShortIndex = getIndex(['assemblyshortcount', 'assemblyshort', 'shortassembly', 'assemblytlc']);
+            const additionalMinutesIndex = getIndex(['additionalminutes', 'extraminutes', 'minutes']);
+
+            const teacherCandidates = [];
+            const loadSettingsByKey = new Map();
+            const seenKeys = new Set();
+            let duplicateCount = 0;
+            let blankRows = 0;
+            let totalRows = 0;
+
+            rows.slice(1).forEach(rawRow => {
+                const row = Array.isArray(rawRow) ? rawRow : [];
+                const trimmedCells = row.map(cell => (cell === null || cell === undefined ? '' : String(cell).trim()));
+                if (trimmedCells.every(cell => cell === '')) {
+                    return;
+                }
+
+                totalRows++;
+
+                const teacherName = trimmedCells[teacherIndex] || '';
+                if (!teacherName) {
+                    blankRows++;
+                    return;
+                }
+
+                teacherCandidates.push(teacherName);
+                const key = teacherName.toLowerCase();
+                if (seenKeys.has(key)) {
+                    duplicateCount++;
+                } else {
+                    seenKeys.add(key);
+                }
+
+                const rawSettings = {};
+                if (fteIndex !== -1) {
+                    rawSettings.fte = row[fteIndex];
+                }
+                if (allowanceIndex !== -1) {
+                    rawSettings.periodAllowance = row[allowanceIndex];
+                }
+                if (assemblyFullIndex !== -1) {
+                    rawSettings.assemblyFullCount = row[assemblyFullIndex];
+                }
+                if (assemblyShortIndex !== -1) {
+                    rawSettings.assemblyShortCount = row[assemblyShortIndex];
+                }
+                if (additionalMinutesIndex !== -1) {
+                    rawSettings.additionalMinutes = row[additionalMinutesIndex];
+                }
+
+                const sanitized = sanitizeTeacherSettings(rawSettings);
+                const existing = loadSettingsByKey.get(key) || { displayName: teacherName, settings: {} };
+                if (!existing.displayName) {
+                    existing.displayName = teacherName;
+                }
+                if (sanitized) {
+                    existing.settings = { ...existing.settings, ...sanitized };
+                }
+                loadSettingsByKey.set(key, existing);
+            });
+
+            const result = normalizeTeacherSupplemental(teacherCandidates, loadSettingsByKey, {
+                duplicates: duplicateCount,
+                blankRows,
+                totalRows
+            });
+
+            if (!result || result.teachers.length === 0) {
+                throw new Error('No teacher names found in the CSV.');
+            }
+
+            return result;
+        }
+
+        function isTeacherSupplementalJson(value) {
+            return Boolean(value && typeof value === 'object' && Array.isArray(value.teachers));
+        }
+
+        function teacherJsonToSupplemental(data) {
+            if (!isTeacherSupplementalJson(data)) {
+                throw new Error('Teacher JSON must include a "teachers" array.');
+            }
+
+            const teacherCandidates = Array.isArray(data.teachers) ? data.teachers : [];
+            const loadSettingsMap = new Map();
+
+            if (data.teacherLoadSettings && typeof data.teacherLoadSettings === 'object') {
+                Object.entries(data.teacherLoadSettings).forEach(([name, settings]) => {
+                    const trimmedName = String(name ?? '').trim();
+                    if (!trimmedName) {
+                        return;
+                    }
+                    const key = trimmedName.toLowerCase();
+                    const sanitized = sanitizeTeacherSettings(settings);
+                    const existing = loadSettingsMap.get(key) || { displayName: trimmedName, settings: {} };
+                    if (!existing.displayName) {
+                        existing.displayName = trimmedName;
+                    }
+                    if (sanitized) {
+                        existing.settings = { ...existing.settings, ...sanitized };
+                    }
+                    loadSettingsMap.set(key, existing);
+                });
+            }
+
+            const result = normalizeTeacherSupplemental(teacherCandidates, loadSettingsMap, {
+                duplicates: Math.max(0, teacherCandidates.length - new Set(teacherCandidates.map(name => String(name ?? '').trim().toLowerCase()).filter(Boolean)).size),
+                totalRows: teacherCandidates.length,
+                blankRows: teacherCandidates.filter(name => !String(name ?? '').trim()).length
+            });
+
+            if (!result || result.teachers.length === 0) {
+                throw new Error('No teacher names found in the JSON.');
+            }
+
+            return result;
         }
 
         // ---------- CSV -> lineCells patch ----------
@@ -10548,6 +10855,7 @@
             const copyBtn = document.getElementById('converterCopy');
             const clearBtn = document.getElementById('converterClear');
             const downloadTemplateBtn = document.getElementById('converterDownloadTemplate');
+            const downloadTeacherTemplateBtn = document.getElementById('converterDownloadTeacherTemplate');
             const statusEl = document.getElementById('converterStatus');
             const applyBtn = document.getElementById('converterApply');
             const fileInfo = document.getElementById('converterFileInfo');
@@ -10567,7 +10875,7 @@
                 return;
             }
 
-            let currentPatch = null;
+            let currentOutput = { kind: 'none' };
             const defaultStatusMessage = 'Load a CSV or JSON patch to enable Add to Matrix.';
 
             const allocationTemplateCsv = [
@@ -10681,7 +10989,7 @@
             };
 
             const resetDisplay = () => {
-                currentPatch = null;
+                currentOutput = { kind: 'none' };
                 setDetected('—');
                 summaryEl.textContent = '—';
                 cellsEl.innerHTML = '<div class="converter-muted">No cells parsed yet.</div>';
@@ -10740,11 +11048,137 @@
                     jsonOutput.value = JSON.stringify(patch, null, 2);
                 }
 
-                currentPatch = patch;
+                currentOutput = { kind: 'lineCells', patch };
                 downloadBtn.disabled = false;
                 copyBtn.disabled = false;
                 applyBtn.disabled = false;
                 setStatus(`Ready to add ${summary.cellCount} cell${summary.cellCount === 1 ? '' : 's'} for ${formattedYearLabel}.`, 'ready');
+
+                if (detectedLabel) {
+                    setDetected(detectedLabel);
+                }
+            };
+
+            const renderTeacherPreview = result => {
+                const previewRows = Array.isArray(result?.previewRows) ? result.previewRows : [];
+                if (previewRows.length === 0) {
+                    cellsEl.innerHTML = '<div class="converter-muted">No teachers detected yet.</div>';
+                    return;
+                }
+
+                const max = 30;
+                const limited = previewRows.slice(0, max);
+                const headers = ['Teacher', 'FTE', 'Period allowance', 'Assembly (Full)', 'Assembly (Short)', 'Additional minutes'];
+                const headerHtml = headers.map(label => `<th>${escapeHtml(label)}</th>`).join('');
+
+                const formatCell = value => {
+                    if (value === null || value === undefined || value === '') {
+                        return '<span class="converter-muted">—</span>';
+                    }
+                    return escapeHtml(String(value));
+                };
+
+                const rowsHtml = limited.map(row => {
+                    const teacherName = escapeHtml(String(row.teacher ?? ''));
+                    return [
+                        teacherName,
+                        formatCell(row.fte),
+                        formatCell(row.periodAllowance),
+                        formatCell(row.assemblyFullCount),
+                        formatCell(row.assemblyShortCount),
+                        formatCell(row.additionalMinutes)
+                    ].map((cell, index) => `<td>${cell}</td>`).join('');
+                }).map(rowHtml => `<tr>${rowHtml}</tr>`).join('');
+
+                const moreText = previewRows.length > max
+                    ? `<div class="converter-muted">…and ${previewRows.length - max} more</div>`
+                    : '';
+
+                cellsEl.innerHTML = `<table class="converter-table"><thead><tr>${headerHtml}</tr></thead><tbody>${rowsHtml}</tbody></table>${moreText}`;
+            };
+
+            const buildTeacherPayload = result => {
+                if (!result || !Array.isArray(result.teachers)) {
+                    return { teachers: [] };
+                }
+
+                const payload = {
+                    teachers: result.teachers.slice()
+                };
+
+                if (result.teacherLoadSettings && typeof result.teacherLoadSettings === 'object') {
+                    const loadSettings = Object.fromEntries(
+                        Object.entries(result.teacherLoadSettings).map(([name, settings]) => [name, { ...settings }])
+                    );
+                    if (Object.keys(loadSettings).length > 0) {
+                        payload.teacherLoadSettings = loadSettings;
+                    }
+                }
+
+                return payload;
+            };
+
+            const applyTeacherDataToUi = (result, { detectedLabel, updateText = true } = {}) => {
+                if (!result || !Array.isArray(result.teachers)) {
+                    return;
+                }
+
+                const payload = buildTeacherPayload(result);
+
+                if (updateText) {
+                    jsonOutput.value = JSON.stringify(payload, null, 2);
+                }
+
+                const stats = result.stats || {};
+                const teacherCount = stats.teacherCount ?? result.teachers.length;
+                const summaryParts = [`<div>Teachers: <strong>${teacherCount}</strong></div>`];
+
+                const loadSettingsPayload = payload.teacherLoadSettings || {};
+                const loadCount = stats.loadCount ?? Object.keys(loadSettingsPayload).length;
+                if (loadCount > 0) {
+                    const detailParts = [];
+                    if (stats.fteOverrides > 0) {
+                        detailParts.push(`${stats.fteOverrides} FTE`);
+                    }
+                    if (stats.periodAllowanceOverrides > 0) {
+                        detailParts.push(`${stats.periodAllowanceOverrides} allowance${stats.periodAllowanceOverrides === 1 ? '' : 's'}`);
+                    }
+                    if (stats.assemblyFullOverrides > 0) {
+                        detailParts.push(`${stats.assemblyFullOverrides} full assembl${stats.assemblyFullOverrides === 1 ? 'y' : 'ies'}`);
+                    }
+                    if (stats.assemblyShortOverrides > 0) {
+                        detailParts.push(`${stats.assemblyShortOverrides} short/TLC assembl${stats.assemblyShortOverrides === 1 ? 'y' : 'ies'}`);
+                    }
+                    if (stats.additionalMinutesOverrides > 0) {
+                        detailParts.push(`${stats.additionalMinutesOverrides} minute${stats.additionalMinutesOverrides === 1 ? '' : 's'}`);
+                    }
+                    const detailText = detailParts.length > 0
+                        ? ` <span class="converter-muted">(${escapeHtml(detailParts.join(', '))})</span>`
+                        : '';
+                    summaryParts.push(`<div>Custom load settings: <strong>${loadCount}</strong>${detailText}</div>`);
+                }
+
+                const warnings = [];
+                if (stats.duplicates > 0) {
+                    warnings.push(`Duplicates skipped: ${stats.duplicates}`);
+                }
+                if (stats.blankRows > 0) {
+                    warnings.push(`Blank rows skipped: ${stats.blankRows}`);
+                }
+                if (warnings.length > 0) {
+                    summaryParts.push(`<div class="converter-summary-options">${warnings
+                        .map(warning => `<span class="converter-pill">${escapeHtml(warning)}</span>`)
+                        .join('')}</div>`);
+                }
+
+                summaryEl.innerHTML = summaryParts.join('');
+                renderTeacherPreview(result);
+
+                currentOutput = { kind: 'teacherSupplemental', data: payload, stats };
+                downloadBtn.disabled = false;
+                copyBtn.disabled = false;
+                applyBtn.disabled = false;
+                setStatus(`Ready to add ${result.teachers.length} teacher${result.teachers.length === 1 ? '' : 's'}.`, 'ready');
 
                 if (detectedLabel) {
                     setDetected(detectedLabel);
@@ -10814,6 +11248,28 @@
                     setFileInfo(`Loaded: ${file.name}`);
 
                     if (lowerName.endsWith('.csv')) {
+                        const rows = parseCsv(text);
+                        if (rows.length > 0) {
+                            const headers = rows[0].map(cell => (cell === null || cell === undefined ? '' : String(cell).trim()));
+                            if (looksLikeTeacherHeaders(headers)) {
+                                const teacherResult = teacherRowsToSupplemental(rows);
+                                applyTeacherDataToUi(teacherResult, { detectedLabel: 'Teacher CSV detected' });
+                                if (forceYearInput) {
+                                    forceYearInput.value = '';
+                                }
+                                if (normalizeCheckbox) {
+                                    normalizeCheckbox.checked = true;
+                                }
+                                if (inheritCheckbox) {
+                                    inheritCheckbox.checked = true;
+                                }
+                                if (removeCheckbox) {
+                                    removeCheckbox.checked = false;
+                                }
+                                return;
+                            }
+                        }
+
                         const shouldNormalize = normalizeCheckbox ? normalizeCheckbox.checked : true;
                         let patch = csvToLineCellsPatch(text, { normalizeCodes: shouldNormalize });
                         const forcedYear = parseInt(forceYearInput && forceYearInput.value, 10);
@@ -10835,8 +11291,13 @@
                         applyPatchToUi(patch, { detectedLabel: 'CSV detected' });
                     } else if (lowerName.endsWith('.json')) {
                         const parsed = JSON.parse(text);
-                        const patch = ensureOptionsShape(assertLineCellsPatch(parsed));
-                        applyPatchToUi(patch, { detectedLabel: 'JSON detected', syncControls: true });
+                        if (isTeacherSupplementalJson(parsed)) {
+                            const teacherResult = teacherJsonToSupplemental(parsed);
+                            applyTeacherDataToUi(teacherResult, { detectedLabel: 'Teacher JSON detected' });
+                        } else {
+                            const patch = ensureOptionsShape(assertLineCellsPatch(parsed));
+                            applyPatchToUi(patch, { detectedLabel: 'JSON detected', syncControls: true });
+                        }
                     } else {
                         throw new Error('Please choose a .csv or .json file');
                     }
@@ -10851,25 +11312,37 @@
             });
 
             downloadBtn.addEventListener('click', () => {
-                if (!currentPatch) {
-                    return;
+                if (currentOutput.kind === 'lineCells' && currentOutput.patch) {
+                    downloadFile('line-cells-patch.json', 'application/json', JSON.stringify(currentOutput.patch, null, 2));
+                    setStatus('Downloaded a tidy JSON copy for reference.', 'success');
+                } else if (currentOutput.kind === 'teacherSupplemental' && currentOutput.data) {
+                    const jsonText = jsonOutput.value && jsonOutput.value.trim() !== ''
+                        ? jsonOutput.value
+                        : JSON.stringify(currentOutput.data, null, 2);
+                    downloadFile('teacher-import.json', 'application/json', jsonText);
+                    setStatus('Downloaded teacher list JSON for reference.', 'success');
                 }
-                downloadFile('line-cells-patch.json', 'application/json', JSON.stringify(currentPatch, null, 2));
-                setStatus('Downloaded a tidy JSON copy for reference.', 'success');
             });
 
             validateBtn.addEventListener('click', () => {
                 try {
                     const parsed = JSON.parse(jsonOutput.value || '{}');
-                    const patch = ensureOptionsShape(assertLineCellsPatch(parsed));
-                    applyPatchToUi(patch, { detectedLabel: 'JSON validated', syncControls: true });
-                    const summary = summarizeLineCellsPatch(patch);
-                    const yearLabel = formatLineCellsYears(summary.years);
-                    alert(`Valid JSON patch ✅\n${yearLabel} with ${summary.cellCount} cells.`);
-                    setStatus('JSON looks good. Press Add to Matrix to merge it.', 'ready');
+                    if (isTeacherSupplementalJson(parsed)) {
+                        const teacherResult = teacherJsonToSupplemental(parsed);
+                        applyTeacherDataToUi(teacherResult, { detectedLabel: 'Teacher JSON validated', updateText: false });
+                        alert(`Valid teacher list JSON ✅\nTeachers detected: ${teacherResult.teachers.length}.`);
+                        setStatus('Teacher list JSON looks good. Press Add to Matrix to merge it.', 'ready');
+                    } else {
+                        const patch = ensureOptionsShape(assertLineCellsPatch(parsed));
+                        applyPatchToUi(patch, { detectedLabel: 'JSON validated', syncControls: true });
+                        const summary = summarizeLineCellsPatch(patch);
+                        const yearLabel = formatLineCellsYears(summary.years);
+                        alert(`Valid JSON patch ✅\n${yearLabel} with ${summary.cellCount} cells.`);
+                        setStatus('JSON looks good. Press Add to Matrix to merge it.', 'ready');
+                    }
                 } catch (error) {
-                    alert('Invalid JSON patch ❌\n' + error.message);
-                    setStatus('Invalid JSON patch: ' + error.message, 'error');
+                    alert('Invalid JSON ❌\n' + error.message);
+                    setStatus('Invalid JSON: ' + error.message, 'error');
                 }
             });
 
@@ -10916,6 +11389,12 @@
                 }
             });
 
+            if (downloadTeacherTemplateBtn) {
+                downloadTeacherTemplateBtn.addEventListener('click', () => {
+                    setStatus('Template downloaded. Fill it in, then upload it here.', 'success');
+                });
+            }
+
             applyBtn.addEventListener('click', async () => {
                 if (!jsonOutput.value || jsonOutput.value.trim() === '') {
                     alert('Load a CSV or JSON patch before adding it to the matrix.');
@@ -10925,6 +11404,36 @@
 
                 try {
                     const parsed = JSON.parse(jsonOutput.value);
+                    if (isTeacherSupplementalJson(parsed)) {
+                        const teacherResult = teacherJsonToSupplemental(parsed);
+                        applyTeacherDataToUi(teacherResult, { detectedLabel: detectedEl.textContent || 'Teacher JSON ready' });
+
+                        const payload = buildTeacherPayload(teacherResult);
+                        const loadCount = payload.teacherLoadSettings ? Object.keys(payload.teacherLoadSettings).length : 0;
+                        const confirmLines = [
+                            'Add these teachers to the matrix?',
+                            `Teachers detected: ${teacherResult.teachers.length}`,
+                            loadCount > 0 ? `Custom load settings: ${loadCount}` : null,
+                            '',
+                            'Choose OK to merge these updates.'
+                        ].filter(Boolean);
+
+                        const confirmed = await showAppConfirm(confirmLines.join('\n'), {
+                            confirmLabel: 'Add to matrix',
+                            cancelLabel: 'Cancel'
+                        });
+
+                        if (!confirmed) {
+                            setStatus('Teacher list ready. Press Add to Matrix when you are ready to import.', 'ready');
+                            return;
+                        }
+
+                        mergeSupplementalData(payload);
+                        resetDisplay();
+                        setStatus('Teacher data merged into the matrix.', 'success');
+                        return;
+                    }
+
                     const patch = ensureOptionsShape(assertLineCellsPatch(parsed));
                     applyPatchToUi(patch, { detectedLabel: detectedEl.textContent || 'JSON ready', syncControls: true });
 
