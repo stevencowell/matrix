@@ -1120,7 +1120,7 @@
         }
 
         .timetable {
-            min-width: 900px;
+            min-width: var(--timetable-min-width, 900px);
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
@@ -7970,6 +7970,17 @@
             headerRow.appendChild(lineHeader);
 
             const teacherList = Array.isArray(teachers) ? teachers : [];
+
+            const timetableElement = document.getElementById('timetable');
+            if (timetableElement) {
+                const BASE_LINE_COLUMN_WIDTH = 150;
+                const TEACHER_COLUMN_MIN_WIDTH = 220;
+                const calculatedMinWidth = Math.max(
+                    900,
+                    BASE_LINE_COLUMN_WIDTH + teacherList.length * TEACHER_COLUMN_MIN_WIDTH
+                );
+                timetableElement.style.setProperty('--timetable-min-width', `${calculatedMinWidth}px`);
+            }
 
             teacherList.forEach((teacherName, index) => {
                 const columnHeader = document.createElement('th');
