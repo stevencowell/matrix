@@ -7962,8 +7962,136 @@
             clearAllocationRoomAssignments(lineIndex, teacherIndex, subjectCode);
         }
 
+        function getTeacherLabel(teacherIndex) {
+            if (!Number.isInteger(teacherIndex) || teacherIndex < 0 || teacherIndex >= teachers.length) {
+                return 'Teacher not set';
+            }
+
+            const name = teachers[teacherIndex];
+            return typeof name === 'string' && name.trim().length > 0
+                ? name.trim()
+                : `Teacher ${teacherIndex + 1}`;
+        }
+
+        function getLineLabel(lineIndex) {
+            if (!Number.isInteger(lineIndex) || lineIndex < 0 || lineIndex >= lines.length) {
+                return 'Line not set';
+            }
+
+            const label = lines[lineIndex];
+            return typeof label === 'string' && label.trim().length > 0
+                ? label.trim()
+                : `Line ${lineIndex + 1}`;
+        }
+
+        function promptMoveSubjectToLine(currentLineIndex, teacherIndex, subjectCode) {
+            const availableLines = Array.isArray(lines)
+                ? lines.map((lineLabel, index) => ({
+                    index,
+                    label: typeof lineLabel === 'string' && lineLabel.trim().length > 0
+                        ? lineLabel.trim()
+                        : `Line ${index + 1}`
+                }))
+                : [];
+
+            const targetLines = availableLines.filter(option => option.index !== currentLineIndex);
+
+            if (targetLines.length === 0) {
+                showAppAlert('No other lines are available for this teacher.', {
+                    title: 'Move unavailable',
+                    icon: 'ℹ️'
+                });
+                return;
+            }
+
+            const teacherLabel = getTeacherLabel(teacherIndex);
+            const currentLineLabel = getLineLabel(currentLineIndex);
+
+            const optionMap = new Map();
+            const displayOptions = targetLines.map(option => {
+                const display = `${option.label} (Line ${option.index + 1})`;
+                optionMap.set(display, option.index);
+                return display;
+            });
+
+            showAutocomplete(`Select new line for ${subjectCode}`, displayOptions, function(selectedOption) {
+                if (!optionMap.has(selectedOption)) {
+                    return;
+                }
+
+                const targetLineIndex = optionMap.get(selectedOption);
+                if (!Number.isInteger(targetLineIndex)) {
+                    return;
+                }
+
+                const moved = allocateSubjectToTeacher(subjectCode, teacherIndex, targetLineIndex);
+                if (!moved) {
+                    if (!wasLastAllocationBlockedByClash()) {
+                        showAppAlert(`Unable to move ${subjectCode} to ${teacherLabel} on ${getLineLabel(targetLineIndex)}.`, {
+                            title: 'Move failed',
+                            icon: '⚠️'
+                        });
+                    }
+                    return;
+                }
+
+                showAppAlert(`${subjectCode} moved to ${teacherLabel} on ${getLineLabel(targetLineIndex)}.`, {
+                    title: 'Subject moved',
+                    icon: '✅'
+                });
+            }, {
+                showListOnOpen: true,
+                description: `Current line: ${currentLineLabel}. Choose a new line for ${subjectCode}.`,
+                confirmLabel: 'Move subject',
+                cancelLabel: 'Cancel'
+            });
+        }
+
+        async function handleAllocatedSubjectAction(lineIndex, teacherIndex, subjectCode) {
+            if (!subjectCode) {
+                return;
+            }
+
+            if (typeof window.showAppDialog === 'function') {
+                const teacherLabel = getTeacherLabel(teacherIndex);
+                const lineLabel = getLineLabel(lineIndex);
+                const message = [
+                    `Subject: ${subjectCode}`,
+                    `Teacher: ${teacherLabel}`,
+                    `Line: ${lineLabel}`,
+                    '',
+                    'Choose an action for this allocation.'
+                ].join('\n');
+
+                try {
+                    const choice = await showAppDialog(message, {
+                        title: 'Manage allocation',
+                        icon: '🎯',
+                        actions: [
+                            { label: 'Move to another line', value: 'move', variant: 'primary', role: 'option', focus: true },
+                            { label: 'Remove from teacher', value: 'remove', variant: 'danger', role: 'option' },
+                            { label: 'Cancel', value: 'cancel', variant: 'secondary', role: 'cancel' }
+                        ],
+                        dismissValue: 'cancel'
+                    });
+
+                    if (choice === 'move') {
+                        promptMoveSubjectToLine(lineIndex, teacherIndex, subjectCode);
+                    } else if (choice === 'remove') {
+                        await handleSubjectRemoval(lineIndex, teacherIndex, subjectCode);
+                    }
+                    return;
+                } catch (error) {
+                    console.error('Unable to show allocation options dialog:', error);
+                }
+            }
+
+            await handleSubjectRemoval(lineIndex, teacherIndex, subjectCode);
+        }
+
         async function handleSubjectRemoval(lineIndex, teacherIndex, subjectCode) {
-            const confirmed = await showAppConfirm('Remove ' + subjectCode + ' from ' + teachers[teacherIndex] + '?', {
+            const teacherLabel = getTeacherLabel(teacherIndex);
+            const confirmed = await showAppConfirm('Remove ' + subjectCode + ' from ' + teacherLabel + '?', {
                 confirmLabel: 'Remove',
                 cancelLabel: 'Cancel'
             });
@@ -7989,7 +8117,7 @@
 
             element.addEventListener('dragstart', handleDragStart);
             element.addEventListener('dragend', handleDragEnd);
-            element.addEventListener('click', function(e) {
+            element.addEventListener('click', async function(e) {
                 e.preventDefault();
                 e.stopPropagation();
 
@@ -7997,7 +8125,11 @@
                     return;
                 }
 
-                handleSubjectRemoval(lineIndex, teacherIndex, subjectCode);
+                try {
+                    await handleAllocatedSubjectAction(lineIndex, teacherIndex, subjectCode);
+                } catch (error) {
+                    console.error('Error handling allocated subject action:', error);
+                }
             });
         }
 
