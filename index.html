@@ -8432,15 +8432,26 @@
 
         // Drag and drop event handlers
         function handleDragStart(e) {
-            draggedElement = e.target;
-            e.target.classList.add('dragging');
+            const source = e.currentTarget || e.target;
+            if (!source) {
+                return;
+            }
+
+            draggedElement = source;
+            source.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', e.target.outerHTML);
+            e.dataTransfer.setData('text/html', source.outerHTML);
         }
 
         function handleDragEnd(e) {
-            e.target.classList.remove('dragging');
-            draggedElement = null;
+            const source = e.currentTarget || e.target;
+            if (source) {
+                source.classList.remove('dragging');
+            }
+
+            if (!draggedElement || draggedElement === source) {
+                draggedElement = null;
+            }
         }
 
         function handleDragOver(e) {
