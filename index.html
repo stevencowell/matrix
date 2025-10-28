@@ -1566,6 +1566,13 @@
             gap: 10px;
         }
 
+        .subject-pool-column-body.drag-over {
+            background: rgba(37, 99, 235, 0.12);
+            border-radius: 16px;
+            outline: 2px dashed rgba(96, 165, 250, 0.8);
+            outline-offset: -6px;
+        }
+
         .subject-pool-column-body .subject-slot {
             margin: 0;
         }
@@ -3638,6 +3645,48 @@
                 }
             } else if (subjectSplits[subjectCode]) {
                 subjectSplits[subjectCode].forEach(split => updateMapping(split && split.code));
+            }
+
+            return changed;
+        }
+
+        function clearLineMappingForSubject(subjectCode) {
+            if (!subjectCode) {
+                return false;
+            }
+
+            const normalizedCode = normalizeSubjectCode(subjectCode);
+            if (!normalizedCode) {
+                return false;
+            }
+
+            let changed = false;
+
+            const removeMapping = code => {
+                if (!code) {
+                    return;
+                }
+                const normalized = normalizeSubjectCode(code);
+                if (!normalized) {
+                    return;
+                }
+                if (Object.prototype.hasOwnProperty.call(subjectLineMapping, normalized)) {
+                    delete subjectLineMapping[normalized];
+                    changed = true;
+                }
+            };
+
+            removeMapping(normalizedCode);
+
+            const metadata = getSplitMetadata(normalizedCode);
+            if (metadata && metadata.baseSubject && metadata.baseSubject !== normalizedCode) {
+                removeMapping(metadata.baseSubject);
+                const baseSplits = subjectSplits[metadata.baseSubject];
+                if (Array.isArray(baseSplits)) {
+                    baseSplits.forEach(split => removeMapping(split && split.code));
+                }
+            } else if (subjectSplits[normalizedCode]) {
+                subjectSplits[normalizedCode].forEach(split => removeMapping(split && split.code));
             }
 
             return changed;
@@ -7629,6 +7678,8 @@
 
                 const body = document.createElement('div');
                 body.className = 'subject-pool-column-body';
+                body.dataset.line = String(lineIndex);
+                makeSubjectPoolColumnDroppable(body);
                 column.appendChild(body);
 
                 grid.appendChild(column);
@@ -7645,6 +7696,8 @@
 
             const unassignedBody = document.createElement('div');
             unassignedBody.className = 'subject-pool-column-body';
+            unassignedBody.dataset.line = 'unassigned';
+            makeSubjectPoolColumnDroppable(unassignedBody);
             unassignedColumn.appendChild(unassignedBody);
 
             grid.appendChild(unassignedColumn);
@@ -8428,6 +8481,88 @@
                     draggedElement.remove();
                 }
             }
+        }
+
+        function isSubjectPoolDraggable(element) {
+            if (!element || !element.classList) {
+                return false;
+            }
+            const isAllocated = element.classList.contains('allocated')
+                || element.dataset.allocationState === 'allocated';
+            return element.classList.contains('subject-slot') && !isAllocated;
+        }
+
+        function handleSubjectPoolDragEnter(e) {
+            if (!isSubjectPoolDraggable(draggedElement)) {
+                return;
+            }
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleSubjectPoolDragLeave(e) {
+            if (e.currentTarget.contains(e.relatedTarget)) {
+                return;
+            }
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleSubjectPoolDragOver(e) {
+            if (!isSubjectPoolDraggable(draggedElement)) {
+                return;
+            }
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleSubjectPoolDrop(e) {
+            if (!isSubjectPoolDraggable(draggedElement)) {
+                return;
+            }
+
+            e.preventDefault();
+            const target = e.currentTarget;
+            target.classList.remove('drag-over');
+
+            const subjectCode = draggedElement.dataset.subject;
+            if (!subjectCode) {
+                return;
+            }
+
+            const lineKey = target.dataset.line;
+            const numericLine = lineKey === 'unassigned' ? null : parseInt(lineKey, 10);
+
+            let mappingChanged = false;
+            if (numericLine === null || Number.isNaN(numericLine)) {
+                mappingChanged = clearLineMappingForSubject(subjectCode);
+            } else {
+                mappingChanged = applyLineMappingToSubject(subjectCode, numericLine);
+            }
+
+            if (mappingChanged) {
+                createSubjectPool();
+                updateStats();
+            } else if (numericLine !== null && !Number.isNaN(numericLine)) {
+                if (target !== draggedElement.parentElement) {
+                    target.appendChild(draggedElement);
+                }
+            }
+
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+            }
+            draggedElement = null;
+        }
+
+        function makeSubjectPoolColumnDroppable(columnBody) {
+            if (!columnBody) {
+                return;
+            }
+
+            columnBody.addEventListener('dragenter', handleSubjectPoolDragEnter);
+            columnBody.addEventListener('dragover', handleSubjectPoolDragOver);
+            columnBody.addEventListener('dragleave', handleSubjectPoolDragLeave);
+            columnBody.addEventListener('drop', handleSubjectPoolDrop);
         }
 
         // CSV Import functionality
