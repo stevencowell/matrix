@@ -9010,9 +9010,64 @@
                 return;
             }
 
-            const subjectList = allocatedSubjects.map(item => 
-                `${item.subject} (currently with ${item.teacher})`
+            if (!Array.isArray(lines) || lines.length === 0) {
+                alert('No timetable lines are available to move allocations.');
+                return;
+            }
+
+            const subjectList = allocatedSubjects.map(item =>
+                `${item.subject} (currently with ${item.teacher} on ${getLineSummaryLabel(item.lineIndex)})`
             );
+
+            const lineLabelMap = new Map();
+            const lineOptions = lines.map((lineName, index) => {
+                const label = getLineSummaryLabel(index);
+                lineLabelMap.set(label, index);
+                return label;
+            });
+
+            if (lineOptions.length === 0) {
+                alert('No timetable lines are available to move allocations.');
+                return;
+            }
+
+            const selectTeacherForMove = (allocation, targetLineIndex) => {
+                if (!Array.isArray(teachers) || teachers.length === 0) {
+                    alert('No teachers are available to receive this allocation.');
+                    return;
+                }
+
+                showAutocomplete(`Move ${allocation.subject} to which teacher?`, teachers, function(selectedTeacher) {
+                    const newTeacherIndex = teachers.indexOf(selectedTeacher);
+                    if (newTeacherIndex === -1) {
+                        alert('Teacher selection not recognized.');
+                        return;
+                    }
+
+                    if (newTeacherIndex === allocation.teacherIndex && targetLineIndex === allocation.lineIndex) {
+                        alert(`${allocation.subject} is already allocated to ${selectedTeacher} on ${getLineSummaryLabel(targetLineIndex)}.`);
+                        return;
+                    }
+
+                    const allocationSucceeded = allocateSubjectToTeacher(
+                        allocation.subject,
+                        newTeacherIndex,
+                        targetLineIndex
+                    );
+
+                    if (allocationSucceeded) {
+                        applyLineMappingToSubject(allocation.subject, targetLineIndex);
+                        const originLine = getLineSummaryLabel(allocation.lineIndex);
+                        const destinationLine = getLineSummaryLabel(targetLineIndex);
+                        alert(`${allocation.subject} moved from ${allocation.teacher} on ${originLine} to ${selectedTeacher} on ${destinationLine} successfully!`);
+                    } else if (!wasLastAllocationBlockedByClash()) {
+                        alert(`${allocation.subject} is already allocated to ${selectedTeacher} on ${getLineSummaryLabel(targetLineIndex)}.`);
+                    }
+                }, {
+                    showListOnOpen: true,
+                    description: 'Select the teacher who should receive this subject.'
+                });
+            };
 
             // Show subject selection autocomplete
             showAutocomplete('Select Subject to Move', subjectList, function(selectedSubjectText) {
@@ -9022,20 +9077,37 @@
                     alert('Subject allocation not found!');
                     return;
                 }
-                // Show teacher selection autocomplete with a small delay
-                setTimeout(() => {
-                    showAutocomplete(`Move ${allocation.subject} to which teacher?`, teachers, function(selectedTeacher) {
-                        const newTeacherIndex = teachers.indexOf(selectedTeacher);
-                        const allocationSucceeded = allocateSubjectToTeacher(allocation.subject, newTeacherIndex, allocation.lineIndex);
 
-                        if (allocationSucceeded) {
-                            alert(`${allocation.subject} moved from ${allocation.teacher} to ${selectedTeacher} on Line ${allocation.lineIndex + 1} successfully!`);
-                        } else if (!wasLastAllocationBlockedByClash()) {
-                            alert(`${allocation.subject} is already allocated to ${selectedTeacher} on Line ${allocation.lineIndex + 1}.`);
+                setTimeout(() => {
+                    showAutocomplete(`Move ${allocation.subject}: choose new line`, lineOptions, function(selectedLineLabel) {
+                        const newLineIndex = lineLabelMap.get(selectedLineLabel);
+                        if (newLineIndex === undefined) {
+                            alert('Line selection not recognized.');
+                            return;
                         }
+
+                        setTimeout(() => selectTeacherForMove(allocation, newLineIndex), 200);
+                    }, {
+                        showListOnOpen: true,
+                        description: 'Select the timetable line that should contain this subject allocation.'
                     });
-                }, 200); // 200ms delay to ensure first modal is fully closed
+                }, 200); // Delay ensures the subject modal fully closes before opening the next step
             });
+        }
+
+        function getLineSummaryLabel(index) {
+            const fallbackIndex = Number.isFinite(index) ? Math.trunc(index) + 1 : null;
+
+            if (!Array.isArray(lines) || lines.length === 0) {
+                return fallbackIndex ? `Line ${fallbackIndex}` : 'Line ?';
+            }
+
+            if (!Number.isInteger(index) || index < 0 || index >= lines.length) {
+                return fallbackIndex ? `Line ${fallbackIndex}` : 'Line ?';
+            }
+
+            const name = typeof lines[index] === 'string' ? lines[index].trim() : '';
+            return name.length > 0 ? `Line ${index + 1} – ${name}` : `Line ${index + 1}`;
         }
 
         // Function to record actions for undo functionality
