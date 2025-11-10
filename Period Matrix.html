@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Period Matrix – Faculty Allocations</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg-slate-950: #020617;
+            --bg-slate-900: #0f172a;
+            --bg-slate-800: #1e293b;
+            --bg-slate-100: #f1f5f9;
+            --bg-slate-50: #f8fafc;
+            --bg-white: #ffffff;
+            --bg-indigo-500: #6366f1;
+            --bg-indigo-600: #4f46e5;
+            --bg-sky-500: #0ea5e9;
+            --bg-emerald-500: #10b981;
+            --bg-amber-400: #fbbf24;
+            --bg-rose-500: #f43f5e;
+            --text-slate-50: #f8fafc;
+            --text-slate-100: #f1f5f9;
+            --text-slate-200: #e2e8f0;
+            --text-slate-300: #cbd5f5;
+            --text-slate-500: #64748b;
+            --text-slate-600: #475569;
+            --text-slate-700: #334155;
+            --border-slate-200: rgba(226, 232, 240, 0.7);
+            --border-slate-300: rgba(203, 213, 225, 0.6);
+            --border-slate-700: rgba(30, 41, 59, 0.5);
+            --shadow-large: 0 40px 120px rgba(15, 23, 42, 0.45);
+            --shadow-medium: 0 24px 60px rgba(15, 23, 42, 0.28);
+            --shadow-small: 0 12px 30px rgba(15, 23, 42, 0.16);
+            --radius-large: 28px;
+            --radius-medium: 20px;
+            --radius-small: 14px;
+            --transition: 180ms ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+            background:
+                radial-gradient(140% 100% at 0% 0%, rgba(79, 70, 229, 0.18), transparent 60%),
+                radial-gradient(120% 100% at 100% 0%, rgba(56, 189, 248, 0.16), transparent 55%),
+                radial-gradient(120% 120% at 100% 100%, rgba(16, 185, 129, 0.12), transparent 60%),
+                var(--bg-slate-950);
+            color: var(--text-slate-200);
+            min-height: 100vh;
+            padding-bottom: 48px;
+        }
+
+        .app-shell {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: clamp(24px, 4vw, 48px);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(24px, 4vw, 48px);
+        }
+
+        .app-header {
+            position: relative;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: var(--radius-large);
+            padding: clamp(28px, 5vw, 48px);
+            overflow: hidden;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .app-header::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(60% 120% at 10% 10%, rgba(99, 102, 241, 0.28), transparent 70%),
+                radial-gradient(60% 120% at 90% 10%, rgba(14, 165, 233, 0.24), transparent 75%),
+                linear-gradient(135deg, rgba(15, 118, 110, 0.25), transparent 70%);
+            opacity: 0.9;
+        }
+
+        .app-header__content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 760px;
+        }
+
+        .app-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 6px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(226, 232, 240, 0.35);
+            background: rgba(2, 6, 23, 0.45);
+            color: var(--text-slate-100);
+        }
+
+        .app-title {
+            font-size: clamp(2.3rem, 4vw, 3.4rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-slate-50);
+        }
+
+        .app-subtitle {
+            font-size: clamp(1.02rem, 1.8vw, 1.2rem);
+            line-height: 1.65;
+            color: rgba(241, 245, 249, 0.78);
+        }
+
+        .app-metrics {
+            margin-top: clamp(18px, 3vw, 32px);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: clamp(16px, 2.5vw, 28px);
+        }
+
+        .metric-card {
+            background: rgba(2, 6, 23, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: var(--radius-medium);
+            padding: clamp(16px, 2.5vw, 22px);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: var(--shadow-small);
+        }
+
+        .metric-label {
+            font-size: 0.78rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(226, 232, 240, 0.6);
+        }
+
+        .metric-value {
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            font-weight: 700;
+            color: var(--text-slate-50);
+        }
+
+        .app-main {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+            gap: clamp(24px, 4vw, 40px);
+        }
+
+        .matrix-panel {
+            background: var(--bg-white);
+            border-radius: var(--radius-large);
+            padding: clamp(24px, 4vw, 40px);
+            box-shadow: var(--shadow-large);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(20px, 3vw, 32px);
+        }
+
+        .panel-heading {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .panel-title {
+            font-size: clamp(1.6rem, 2.8vw, 2rem);
+            color: var(--bg-slate-900);
+            font-weight: 700;
+        }
+
+        .matrix-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toolbar-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 18px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--bg-slate-900);
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.32);
+        }
+
+        .toolbar-pill svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+        }
+
+        .toolbar-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 23, 42, 0.16);
+            background: rgba(248, 250, 252, 0.9);
+            color: var(--bg-slate-900);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+            transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+        }
+
+        .toolbar-button svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+        }
+
+        .toolbar-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .toolbar-button:focus-visible {
+            outline: 3px solid rgba(99, 102, 241, 0.45);
+            outline-offset: 2px;
+        }
+
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: 160px repeat(7, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .grid-header {
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-slate-600);
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: var(--radius-small);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .line-label {
+            background: rgba(15, 23, 42, 0.04);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: var(--radius-small);
+            padding: 18px 16px;
+            font-weight: 600;
+            color: var(--bg-slate-900);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .line-label span:last-child {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-slate-500);
+        }
+
+        .period-cell {
+            position: relative;
+            background: var(--bg-slate-50);
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: var(--radius-small);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            align-items: stretch;
+            text-align: left;
+            transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .period-cell button {
+            all: unset;
+        }
+
+        .period-cell__button {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: stretch;
+            cursor: pointer;
+        }
+
+        .period-cell:focus-within,
+        .period-cell:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-small);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .period-cell.is-selected {
+            border-color: rgba(99, 102, 241, 0.65);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12), var(--shadow-small);
+        }
+
+        .period-chip {
+            align-self: flex-start;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--bg-slate-900);
+            background: rgba(15, 23, 42, 0.08);
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-weight: 600;
+        }
+
+        .allocation-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--bg-slate-900);
+            line-height: 1.4;
+        }
+
+        .allocation-meta {
+            display: grid;
+            gap: 6px;
+        }
+
+        .allocation-meta span {
+            font-size: 0.85rem;
+            color: var(--text-slate-600);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .allocation-meta svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+        }
+
+        .split-badge {
+            margin-top: auto;
+            align-self: flex-start;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(244, 63, 94, 0.12);
+            color: #be123c;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .matrix-sidebar {
+            display: grid;
+            gap: clamp(20px, 3vw, 32px);
+            align-content: start;
+        }
+
+        .sidebar-card {
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: var(--radius-medium);
+            padding: clamp(20px, 3vw, 28px);
+            box-shadow: var(--shadow-medium);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .sidebar-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-slate-100);
+        }
+
+        .sidebar-placeholder {
+            font-size: 0.95rem;
+            color: rgba(226, 232, 240, 0.65);
+            line-height: 1.6;
+        }
+
+        .detail-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .detail-meta span {
+            font-size: 0.88rem;
+            color: rgba(226, 232, 240, 0.78);
+        }
+
+        .detail-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(226, 232, 240, 0.65);
+        }
+
+        .input-control,
+        .select-control,
+        textarea {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.55);
+            color: var(--text-slate-100);
+            font-size: 0.95rem;
+            padding: 12px 14px;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .select-control {
+            appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, rgba(226, 232, 240, 0.6) 50%),
+                linear-gradient(135deg, rgba(226, 232, 240, 0.6) 50%, transparent 50%);
+            background-position: calc(100% - 18px) calc(50% + 3px), calc(100% - 13px) calc(50% + 3px);
+            background-size: 8px 8px, 8px 8px;
+            background-repeat: no-repeat;
+        }
+
+        .input-control:focus,
+        .select-control:focus,
+        textarea:focus {
+            border-color: rgba(99, 102, 241, 0.55);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 72px;
+        }
+
+        .splits-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .split-entry {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            padding: 14px;
+            background: rgba(15, 23, 42, 0.55);
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        .split-entry .form-group {
+            gap: 6px;
+        }
+
+        .split-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            appearance: none;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, var(--bg-indigo-600), var(--bg-sky-500));
+            color: var(--text-slate-50);
+            box-shadow: 0 16px 35px rgba(79, 70, 229, 0.35);
+        }
+
+        .button-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 22px 50px rgba(79, 70, 229, 0.4);
+        }
+
+        .button-ghost {
+            background: rgba(226, 232, 240, 0.12);
+            color: var(--text-slate-100);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .button-ghost:hover {
+            background: rgba(226, 232, 240, 0.22);
+        }
+
+        .button-danger {
+            background: rgba(244, 63, 94, 0.16);
+            color: rgba(248, 113, 113, 0.95);
+            border: 1px solid rgba(244, 63, 94, 0.4);
+        }
+
+        .button-danger:hover {
+            background: rgba(244, 63, 94, 0.24);
+        }
+
+        .unplaced-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .unplaced-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            font-size: 0.9rem;
+            color: rgba(226, 232, 240, 0.75);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        @media (max-width: 1280px) {
+            .app-main {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .matrix-sidebar {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+        }
+
+        @media (max-width: 960px) {
+            .matrix-grid {
+                grid-template-columns: 120px repeat(7, minmax(140px, 1fr));
+                overflow-x: auto;
+                padding-bottom: 8px;
+            }
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding-bottom: 32px;
+            }
+
+            .app-shell {
+                padding: 20px;
+            }
+
+            .app-main {
+                gap: 20px;
+            }
+
+            .matrix-panel {
+                padding: 20px;
+            }
+
+            .matrix-grid {
+                grid-template-columns: 100px repeat(7, minmax(120px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="app-header__content">
+                <span class="app-badge">Period Matrix</span>
+                <h1 class="app-title">2025 Faculty allocation matrix</h1>
+                <p class="app-subtitle">Reimagine the allocation workflow with a period-by-period canvas designed for flexible teams, room planning and split classes. Every period now lives in its own interactive cell so the entire week can be remixed in seconds.</p>
+                <div class="app-metrics">
+                    <div class="metric-card">
+                        <span class="metric-label">Lines</span>
+                        <span class="metric-value" id="metricLines">–</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Populated Periods</span>
+                        <span class="metric-value" id="metricPopulated">–</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Splits Active</span>
+                        <span class="metric-value" id="metricSplits">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <section class="matrix-panel" aria-labelledby="matrixTitle">
+                <div class="panel-heading">
+                    <h2 class="panel-title" id="matrixTitle">Weekly matrix</h2>
+                    <div class="matrix-toolbar">
+                        <span class="toolbar-pill" id="toolbarStatus" role="status" aria-live="polite">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3" />
+                            </svg>
+                            Loading data…
+                        </span>
+                        <button class="toolbar-button" type="button" id="loadDataButton" title="Load allocation data from a JSON file">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12 5v10m0 0 4-4m-4 4-4-4m-2 9h12" />
+                            </svg>
+                            Load JSON file
+                        </button>
+                        <input type="file" id="dataFileInput" accept="application/json,.json" hidden>
+                    </div>
+                </div>
+
+                <div class="matrix-grid" id="matrixGrid" role="grid" aria-describedby="matrixTitle"></div>
+            </section>
+
+            <aside class="matrix-sidebar" aria-label="Allocation detail panels">
+                <section class="sidebar-card" id="cellDetailPanel" aria-live="polite">
+                    <h2 class="sidebar-title">Allocation details</h2>
+                    <p class="sidebar-placeholder">Select a period cell to edit the subject, teacher, room details and any split classes. Changes are stored in memory so you can experiment freely before exporting.</p>
+                </section>
+
+                <section class="sidebar-card" id="unplacedPanel">
+                    <h2 class="sidebar-title">Unplaced allocations</h2>
+                    <p class="sidebar-placeholder" id="unplacedEmpty">All allocations are positioned on the matrix.</p>
+                    <div class="unplaced-list" id="unplacedList" hidden></div>
+                </section>
+            </aside>
+        </main>
+    </div>
+
+    <template id="splitTemplate">
+        <div class="split-entry">
+            <div class="form-group">
+                <label>Subject</label>
+                <select class="select-control" data-split-field="subject"></select>
+            </div>
+            <div class="form-group">
+                <label>Teacher</label>
+                <select class="select-control" data-split-field="teacher"></select>
+            </div>
+            <div class="form-group">
+                <label>Room</label>
+                <input type="text" class="input-control" data-split-field="room" placeholder="Room code" />
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <input type="text" class="input-control" data-split-field="notes" placeholder="Optional notes" />
+            </div>
+            <div class="split-actions">
+                <button class="button button-danger" type="button" data-action="removeSplit">Remove split</button>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        const DATA_URL = 'faculty-allocations-2025-09-20%20(1).json';
+        const PERIODS_PER_LINE = 7;
+
+        const state = {
+            lines: [],
+            subjects: [],
+            teachers: [],
+            matrix: [],
+            selected: null,
+            extras: [],
+        };
+
+        const metricLines = document.getElementById('metricLines');
+        const metricPopulated = document.getElementById('metricPopulated');
+        const metricSplits = document.getElementById('metricSplits');
+        const toolbarStatus = document.getElementById('toolbarStatus');
+        const loadDataButton = document.getElementById('loadDataButton');
+        const dataFileInput = document.getElementById('dataFileInput');
+        const matrixGrid = document.getElementById('matrixGrid');
+        const cellDetailPanel = document.getElementById('cellDetailPanel');
+        const unplacedPanel = document.getElementById('unplacedPanel');
+        const unplacedList = document.getElementById('unplacedList');
+        const unplacedEmpty = document.getElementById('unplacedEmpty');
+
+        const ICON_PATHS = {
+            loading: 'M12 6v6l3 3',
+            success: 'm5 13 4 4L19 7',
+            error: 'M12 9v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9Z',
+        };
+
+        function setToolbarStatus(iconPath, message, options = {}) {
+            if (!toolbarStatus) {
+                return;
+            }
+
+            const { role = null } = options;
+            toolbarStatus.textContent = '';
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke-width', '1.8');
+            svg.setAttribute('aria-hidden', 'true');
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('stroke', 'currentColor');
+            path.setAttribute('stroke-linecap', 'round');
+            path.setAttribute('stroke-linejoin', 'round');
+            path.setAttribute('d', iconPath);
+            svg.appendChild(path);
+
+            const text = document.createElement('span');
+            text.textContent = message;
+
+            toolbarStatus.appendChild(svg);
+            toolbarStatus.appendChild(text);
+
+            if (role) {
+                toolbarStatus.setAttribute('role', role);
+            } else {
+                toolbarStatus.setAttribute('role', 'status');
+            }
+        }
+
+        function applyLoadedData(data, sourceLabel) {
+            initialiseMatrix(data);
+            renderMatrixGrid();
+            renderDetailPanel();
+            renderUnplacedAllocations();
+            updateMetrics();
+
+            const timestamp = data && data.timestamp ? new Date(data.timestamp) : new Date();
+            const message = sourceLabel
+                ? sourceLabel
+                : `Data synced ${timestamp.toLocaleString()}`;
+
+            setToolbarStatus(ICON_PATHS.success, message);
+        }
+
+        function handleDataFileSelection(event) {
+            const file = event.target && event.target.files ? event.target.files[0] : null;
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (loadEvent) => {
+                try {
+                    const content = loadEvent && loadEvent.target ? loadEvent.target.result : null;
+                    if (typeof content !== 'string') {
+                        throw new Error('Unable to read file contents.');
+                    }
+
+                    const data = JSON.parse(content);
+                    applyLoadedData(data, `Data loaded from ${file.name}`);
+                } catch (error) {
+                    console.error('Unable to parse uploaded data:', error);
+                    setToolbarStatus(
+                        ICON_PATHS.error,
+                        'Uploaded file is not valid JSON data.',
+                        { role: 'alert' },
+                    );
+                } finally {
+                    if (dataFileInput) {
+                        dataFileInput.value = '';
+                    }
+                }
+            };
+
+            reader.onerror = () => {
+                console.error('Error reading uploaded file.');
+                setToolbarStatus(
+                    ICON_PATHS.error,
+                    'Could not read the selected file. Please try again.',
+                    { role: 'alert' },
+                );
+                if (dataFileInput) {
+                    dataFileInput.value = '';
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        function createAssignment(overrides = {}) {
+            return {
+                subject: '',
+                teacher: '',
+                room: '',
+                notes: '',
+                ...overrides,
+            };
+        }
+
+        function initialiseMatrix(data) {
+            state.lines = Array.isArray(data.lines) ? data.lines : [];
+            state.subjects = Array.isArray(data.subjects) ? data.subjects : [];
+            state.teachers = Array.isArray(data.teachers) ? data.teachers : [];
+
+            state.matrix = state.lines.map((_, lineIndex) => {
+                return Array.from({ length: PERIODS_PER_LINE }, (_, periodIndex) => ({
+                    lineIndex,
+                    periodIndex,
+                    primary: createAssignment(),
+                    splits: [],
+                }));
+            });
+
+            state.extras = [];
+            if (data.allocations && typeof data.allocations === 'object') {
+                Object.entries(data.allocations).forEach(([key, subject]) => {
+                    const [lineIndexRaw, periodIndexRaw] = key.split('-');
+                    const lineIndex = Number.parseInt(lineIndexRaw, 10);
+                    const periodIndex = Number.parseInt(periodIndexRaw, 10);
+                    const isValid = Number.isFinite(lineIndex) && Number.isFinite(periodIndex);
+
+                    if (isValid && state.matrix[lineIndex] && state.matrix[lineIndex][periodIndex]) {
+                        state.matrix[lineIndex][periodIndex].primary.subject = subject;
+                    } else {
+                        state.extras.push({ key, subject });
+                    }
+                });
+            }
+        }
+
+        function updateMetrics() {
+            metricLines.textContent = state.lines.length;
+
+            const populated = state.matrix.flat().reduce((count, cell) => {
+                return count + (cell.primary.subject.trim() ? 1 : 0);
+            }, 0);
+            metricPopulated.textContent = populated;
+
+            const splitsActive = state.matrix.flat().reduce((count, cell) => count + cell.splits.length, 0);
+            metricSplits.textContent = splitsActive;
+        }
+
+        function renderMatrixGrid() {
+            matrixGrid.innerHTML = '';
+
+            const headerLabel = document.createElement('div');
+            headerLabel.className = 'grid-header';
+            headerLabel.textContent = 'Line / Period';
+            matrixGrid.appendChild(headerLabel);
+
+            for (let periodIndex = 0; periodIndex < PERIODS_PER_LINE; periodIndex += 1) {
+                const headerCell = document.createElement('div');
+                headerCell.className = 'grid-header';
+                headerCell.innerHTML = `Period ${periodIndex + 1}<span class="sr-only"> column header</span>`;
+                matrixGrid.appendChild(headerCell);
+            }
+
+            state.matrix.forEach((lineCells, lineIndex) => {
+                const lineLabel = document.createElement('div');
+                lineLabel.className = 'line-label';
+                lineLabel.innerHTML = `<span>${state.lines[lineIndex] || `Line ${lineIndex + 1}`}</span><span>${lineCells.filter(cell => cell.primary.subject).length}/${PERIODS_PER_LINE} allocated</span>`;
+                matrixGrid.appendChild(lineLabel);
+
+                lineCells.forEach((cell) => {
+                    matrixGrid.appendChild(renderPeriodCell(cell));
+                });
+            });
+        }
+
+        function renderPeriodCell(cell) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'period-cell';
+            wrapper.setAttribute('role', 'button');
+            wrapper.setAttribute('tabindex', '0');
+            wrapper.setAttribute('data-line-index', String(cell.lineIndex));
+            wrapper.setAttribute('data-period-index', String(cell.periodIndex));
+            wrapper.setAttribute('aria-label', `Line ${cell.lineIndex + 1}, period ${cell.periodIndex + 1}`);
+
+            if (state.selected && state.selected.lineIndex === cell.lineIndex && state.selected.periodIndex === cell.periodIndex) {
+                wrapper.classList.add('is-selected');
+            }
+
+            const button = document.createElement('div');
+            button.className = 'period-cell__button';
+
+            const periodLabel = document.createElement('span');
+            periodLabel.className = 'period-chip';
+            periodLabel.textContent = `P${cell.periodIndex + 1}`;
+
+            const title = document.createElement('div');
+            title.className = 'allocation-title';
+            title.textContent = cell.primary.subject || 'Unallocated';
+
+            const meta = document.createElement('div');
+            meta.className = 'allocation-meta';
+
+            const teacher = cell.primary.teacher ? cell.primary.teacher : 'No teacher assigned';
+            const room = cell.primary.room ? `Room ${cell.primary.room}` : 'Room TBC';
+
+            meta.innerHTML = `
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5Zm0 0c-4.418 0-8 3.134-8 7v2h16v-2c0-3.866-3.582-7-8-7Z" />
+                    </svg>
+                    ${teacher}
+                </span>
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M3 9a9 9 0 0 1 18 0c0 7-9 13-9 13S3 16 3 9Zm9 4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                    </svg>
+                    ${room}
+                </span>
+            `;
+
+            button.append(periodLabel, title, meta);
+
+            if (cell.splits.length > 0) {
+                const splitBadge = document.createElement('span');
+                splitBadge.className = 'split-badge';
+                splitBadge.textContent = `${cell.splits.length} split${cell.splits.length === 1 ? '' : 's'} active`;
+                button.appendChild(splitBadge);
+            }
+
+            wrapper.appendChild(button);
+
+            wrapper.addEventListener('click', () => {
+                setSelectedCell(cell.lineIndex, cell.periodIndex);
+            });
+
+            wrapper.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelectedCell(cell.lineIndex, cell.periodIndex);
+                }
+            });
+
+            return wrapper;
+        }
+
+        function setSelectedCell(lineIndex, periodIndex) {
+            state.selected = { lineIndex, periodIndex };
+            renderMatrixGrid();
+            renderDetailPanel();
+        }
+
+        function renderDetailPanel() {
+            cellDetailPanel.innerHTML = '';
+            const heading = document.createElement('h2');
+            heading.className = 'sidebar-title';
+            heading.textContent = 'Allocation details';
+            cellDetailPanel.appendChild(heading);
+
+            if (!state.selected) {
+                const placeholder = document.createElement('p');
+                placeholder.className = 'sidebar-placeholder';
+                placeholder.textContent = 'Select a period cell to edit the subject, teacher, room details and any split classes. Changes are stored in memory so you can experiment freely before exporting.';
+                cellDetailPanel.appendChild(placeholder);
+                return;
+            }
+
+            const cell = state.matrix[state.selected.lineIndex][state.selected.periodIndex];
+            const context = document.createElement('div');
+            context.className = 'detail-meta';
+            context.innerHTML = `
+                <span><strong>Line:</strong> ${state.lines[state.selected.lineIndex] || `Line ${state.selected.lineIndex + 1}`}</span>
+                <span><strong>Period:</strong> ${state.selected.periodIndex + 1}</span>
+            `;
+            cellDetailPanel.appendChild(context);
+
+            const form = document.createElement('form');
+            form.className = 'detail-form';
+            form.setAttribute('autocomplete', 'off');
+
+            const subjectGroup = document.createElement('div');
+            subjectGroup.className = 'form-group';
+            subjectGroup.innerHTML = '<label for="detailSubject">Subject</label>';
+            const subjectSelect = document.createElement('select');
+            subjectSelect.id = 'detailSubject';
+            subjectSelect.className = 'select-control';
+            subjectSelect.innerHTML = '<option value="">Unallocated</option>' + state.subjects.map((subject) => `<option value="${subject}">${subject}</option>`).join('');
+            subjectSelect.value = cell.primary.subject;
+            subjectSelect.addEventListener('change', () => {
+                cell.primary.subject = subjectSelect.value;
+                renderMatrixGrid();
+                updateMetrics();
+            });
+            subjectGroup.appendChild(subjectSelect);
+            form.appendChild(subjectGroup);
+
+            const teacherGroup = document.createElement('div');
+            teacherGroup.className = 'form-group';
+            teacherGroup.innerHTML = '<label for="detailTeacher">Teacher</label>';
+            const teacherSelect = document.createElement('select');
+            teacherSelect.id = 'detailTeacher';
+            teacherSelect.className = 'select-control';
+            teacherSelect.innerHTML = '<option value="">Assign later</option>' + state.teachers.map((teacher) => `<option value="${teacher}">${teacher}</option>`).join('');
+            teacherSelect.value = cell.primary.teacher;
+            teacherSelect.addEventListener('change', () => {
+                cell.primary.teacher = teacherSelect.value;
+                renderMatrixGrid();
+            });
+            teacherGroup.appendChild(teacherSelect);
+            form.appendChild(teacherGroup);
+
+            const roomGroup = document.createElement('div');
+            roomGroup.className = 'form-group';
+            roomGroup.innerHTML = '<label for="detailRoom">Room</label>';
+            const roomInput = document.createElement('input');
+            roomInput.id = 'detailRoom';
+            roomInput.type = 'text';
+            roomInput.placeholder = 'Room code';
+            roomInput.className = 'input-control';
+            roomInput.value = cell.primary.room;
+            roomInput.addEventListener('input', () => {
+                cell.primary.room = roomInput.value;
+                renderMatrixGrid();
+            });
+            roomGroup.appendChild(roomInput);
+            form.appendChild(roomGroup);
+
+            const notesGroup = document.createElement('div');
+            notesGroup.className = 'form-group';
+            notesGroup.innerHTML = '<label for="detailNotes">Notes</label>';
+            const notesInput = document.createElement('textarea');
+            notesInput.id = 'detailNotes';
+            notesInput.placeholder = 'Add context for this allocation (optional)';
+            notesInput.value = cell.primary.notes;
+            notesInput.addEventListener('input', () => {
+                cell.primary.notes = notesInput.value;
+            });
+            notesGroup.appendChild(notesInput);
+            form.appendChild(notesGroup);
+
+            const splitsSection = document.createElement('div');
+            splitsSection.className = 'splits-section';
+            const splitsHeading = document.createElement('h3');
+            splitsHeading.className = 'sidebar-title';
+            splitsHeading.style.fontSize = '1rem';
+            splitsHeading.textContent = 'Split classes';
+            splitsSection.appendChild(splitsHeading);
+
+            if (cell.splits.length === 0) {
+                const emptyState = document.createElement('p');
+                emptyState.className = 'sidebar-placeholder';
+                emptyState.textContent = 'No split classes configured for this period. Add a split to plan team-teaching or separate rooms.';
+                splitsSection.appendChild(emptyState);
+            } else {
+                cell.splits.forEach((split, index) => {
+                    splitsSection.appendChild(renderSplitEntry(cell, split, index));
+                });
+            }
+
+            const addSplitButton = document.createElement('button');
+            addSplitButton.type = 'button';
+            addSplitButton.className = 'button button-primary';
+            addSplitButton.textContent = 'Add split allocation';
+            addSplitButton.addEventListener('click', () => {
+                cell.splits.push(createAssignment());
+                renderMatrixGrid();
+                renderDetailPanel();
+                updateMetrics();
+            });
+
+            splitsSection.appendChild(addSplitButton);
+            form.appendChild(splitsSection);
+
+            cellDetailPanel.appendChild(form);
+        }
+
+        function renderSplitEntry(cell, split, index) {
+            const template = document.getElementById('splitTemplate');
+            const fragment = template.content.cloneNode(true);
+            const entry = fragment.querySelector('.split-entry');
+
+            const selectFields = entry.querySelectorAll('select.select-control');
+            selectFields.forEach((select) => {
+                select.innerHTML = '';
+            });
+
+            const [subjectSelect, teacherSelect] = entry.querySelectorAll('select.select-control');
+            subjectSelect.innerHTML = '<option value="">Select subject</option>' + state.subjects.map((subject) => `<option value="${subject}">${subject}</option>`).join('');
+            subjectSelect.value = split.subject;
+            subjectSelect.addEventListener('change', () => {
+                split.subject = subjectSelect.value;
+                renderMatrixGrid();
+            });
+
+            teacherSelect.innerHTML = '<option value="">Select teacher</option>' + state.teachers.map((teacher) => `<option value="${teacher}">${teacher}</option>`).join('');
+            teacherSelect.value = split.teacher;
+            teacherSelect.addEventListener('change', () => {
+                split.teacher = teacherSelect.value;
+                renderMatrixGrid();
+            });
+
+            const roomInput = entry.querySelector('[data-split-field="room"]');
+            roomInput.value = split.room;
+            roomInput.addEventListener('input', () => {
+                split.room = roomInput.value;
+                renderMatrixGrid();
+            });
+
+            const notesInput = entry.querySelector('[data-split-field="notes"]');
+            notesInput.value = split.notes;
+            notesInput.addEventListener('input', () => {
+                split.notes = notesInput.value;
+            });
+
+            entry.querySelector('[data-action="removeSplit"]').addEventListener('click', () => {
+                cell.splits.splice(index, 1);
+                renderMatrixGrid();
+                renderDetailPanel();
+                updateMetrics();
+            });
+
+            return entry;
+        }
+
+        function renderUnplacedAllocations() {
+            if (state.extras.length === 0) {
+                unplacedList.hidden = true;
+                unplacedEmpty.hidden = false;
+                return;
+            }
+
+            unplacedList.innerHTML = '';
+            unplacedEmpty.hidden = true;
+            unplacedList.hidden = false;
+
+            state.extras.forEach(({ key, subject }) => {
+                const item = document.createElement('div');
+                item.className = 'unplaced-item';
+                item.innerHTML = `<span>${subject}</span><span>${key}</span>`;
+                unplacedList.appendChild(item);
+            });
+        }
+
+        async function loadData() {
+            setToolbarStatus(ICON_PATHS.loading, 'Loading data…');
+
+            try {
+                const response = await fetch(DATA_URL, { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`Unable to load data (status ${response.status})`);
+                }
+                const data = await response.json();
+                applyLoadedData(data);
+            } catch (error) {
+                console.error(error);
+                setToolbarStatus(
+                    ICON_PATHS.error,
+                    'Data failed to load. Use "Load JSON file" to import.',
+                    { role: 'alert' },
+                );
+            }
+        }
+
+        if (loadDataButton && dataFileInput) {
+            loadDataButton.addEventListener('click', () => {
+                dataFileInput.click();
+            });
+
+            dataFileInput.addEventListener('change', handleDataFileSelection);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

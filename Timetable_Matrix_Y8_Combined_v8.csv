@@ -1,0 +1,76 @@
+Timetable Matrix Template,,,,,,,,,,,
+,,,,,Year 12,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,,,,,
+,,,,,Row 2,,,,,,
+,,,,,Row 3,,,,,,
+,,,,,Row 4,,,,,,
+,,,,,Row 5,,,,,,
+,,,,,Row 6,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 11,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,,,,,
+,,,,,Row 2,,,,,,
+,,,,,Row 3,,,,,,
+,,,,,Row 4,,,,,,
+,,,,,Row 5,,,,,,
+,,,,,Row 6,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 10,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,,,,,
+,,,,,Row 2,,,,,,
+,,,,,Row 3,,,,,,
+,,,,,Row 4,,,,,,
+,,,,,Row 5,,,,,,
+,,,,,Row 6,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 9,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,,,,,
+,,,,,Row 2,,,,,,
+,,,,,Row 3,,,,,,
+,,,,,Row 4,,,,,,
+,,,,,Row 5,,,,,,
+,,,,,Row 6,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 8 (Semesters combined into one cell),,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,8TM1,,,,,
+,,,,,Row 2,,,,,,
+,,,,,Row 3,,,,,,
+,,,,,Row 4,,,,,,
+,,,,,Row 5,,,,,,
+,,,,,Row 6,,,,,,
+,,,,,Row 7,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+,,,,,Year 7,,,,,,
+,,,,,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+,,,,,Row 1,,,,,,
+,,,,,Row 2,,,,,,
+,,,,,Row 3,,,,,,
+,,,,,Row 4,,,,,,
+,,,,,Row 5,,,,,,
+,,,,,Row 6,,,,,,
+,,,,,,,,,,,
+,,,,,,,,,,,
+Teacher Matrix (Lines aligned G–L),,,,,,,,,,,
+Teacher,Loads,Allowance,Plus/minus,Current,,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6
+Steve Cowell,RED:20,RED:2,RED:+0,RED:22,,RED:12 ENG1,RED:12 MAT1,RED:12 SCI1,RED:12 HIS1,RED:12 GEO1,RED:12Cov1
+Scott Trenaman,18,2,-1,19,,12 ENG2,12 MAT2,12 SCI2,12 HIS2,12 GEO2,12 ART2
+Josh Harris,16,0,+2,18,,12 BIO1,12 CHE1,12 PHY1,12 ECO1,12 BUS1,12 LAW1
+Clint Campbell,21,1,0,22,,11 ENG1,11 MAT1,11 SCI1,11 HIS1,11 GEO1,11 ART1
+Louis Orr,20,0,-2,18,,11 BIO1,11 CHE1,11 PHY1,11 ECO1,11 BUS1,11 PIV1
+Deborah Clark (Deb),19,1,+1,21,,10 ENG1,10 MAT1,10 SCI1,10 HIS1,10 GEO1,10 ART1
+Emma Fuller,17,0,0,17,,10 BIO1,10 CHE1,10 PHY1,10 ECO1,10 BUS1,10 FOTET
+Joanne Dennis (Jo),18,2,-1,19,,9 ENG1,9 MAT1,9 SCI1,9 HIS1,9 GEO1,9 ART1
+Josh McKenzie,22,0,-3,19,,9 BIO1,9 CHE1,9 PHY1,9 ECO1,9 BUS1,9 FOTE1
+Katrina Bedford (Trina),20,1,+2,23,,8AGRE1/8ENG1,8ENG3/8ENG4,8SCI3/8SCI4,8HIS3/8HIS4,8GEO3/8GEO4,8ART3/8ART4
+Example Teacher A,18,0,0,18,,7 ENG1,7 MAT1,7 SCI1,7 HIS1,7 GEO1,7 ART1
+Example Teacher B,19,1,-1,19,,7 BIO1,7 CHE1,7 PHY1,7 ECO1,7 BUS1,7 TEX1
