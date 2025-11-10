@@ -1,0 +1,1480 @@
+{
+  "allocations": {
+    "0-2": [
+      "12DAT1"
+    ],
+    "1-4": [
+      "12PIV1"
+    ],
+    "5-5": [
+      "12HOV1"
+    ],
+    "3-2": [
+      "11DAT"
+    ],
+    "5-4": [
+      "11PIV"
+    ],
+    "3-6": [
+      "11HOV"
+    ],
+    "3-8": [
+      "11MUM"
+    ],
+    "2-1": [
+      "S1 8METE3",
+      "S2 8WOTE1"
+    ],
+    "1-8": [
+      "10AGRE1"
+    ],
+    "1-0": [
+      "10WOTE1"
+    ],
+    "0-6": [
+      "9FOTE2"
+    ],
+    "0-3": [
+      "9METE1"
+    ],
+    "5-7": [
+      "9FOTE1"
+    ],
+    "3-4": [
+      "9AGRE1"
+    ],
+    "1-9": [
+      "S1 8AGRE1",
+      "S2 8AGRE4",
+      "7TECE▸4P(SPLIT2/2)"
+    ],
+    "1-7": [
+      "S1 8FOTE2",
+      "S2 8FOTE1"
+    ],
+    "1-2": [
+      "S1 8WOTE2",
+      "S2 8WOTE3",
+      "7TECH▸4P(SPLIT1/2)"
+    ],
+    "3-0": [
+      "9ENSE"
+    ],
+    "0-4": [
+      "9WOTE"
+    ],
+    "5-1": [
+      "12COV1▸3P(SPLIT2/2)",
+      "10WOTE2▸3P(SPLIT1/2)"
+    ],
+    "5-0": [
+      "12COV1▸4P(SPLIT1/2)",
+      "10WOTE2▸2P(SPLIT2/2)"
+    ],
+    "5-6": [
+      "10FOTE1"
+    ],
+    "2-8": [
+      "S1 8MUME",
+      "S2 8ANIE"
+    ],
+    "2-7": [
+      "S1 8TEXE",
+      "S2 8JEWE"
+    ],
+    "2-5": [
+      "S2 8FOTE4",
+      "S1 8FOTE3"
+    ],
+    "2-0": [
+      "11COV"
+    ],
+    "2-6": [
+      "10FOTE2"
+    ],
+    "0-1": [
+      "7TECA"
+    ],
+    "0-5": [
+      "7TECB"
+    ],
+    "0-7": [
+      "7TECC"
+    ],
+    "0-8": [
+      "7TECD"
+    ],
+    "1-5": [
+      "7TECF"
+    ],
+    "1-6": [
+      "7TECG"
+    ],
+    "1-3": [
+      "S2 8METE1",
+      "S1 8METE2"
+    ],
+    "1-1": [
+      "10METE1"
+    ],
+    "4-0": [
+      "8TECA"
+    ],
+    "4-1": [
+      "11MAV"
+    ],
+    "4-3": [
+      "8TECB"
+    ],
+    "4-2": [
+      "8TECG"
+    ],
+    "4-5": [
+      "8TECF"
+    ],
+    "4-6": [
+      "8TECE"
+    ],
+    "4-7": [
+      "11CHE"
+    ],
+    "4-9": [
+      "8TECC"
+    ],
+    "3-3": [
+      "12MAV1"
+    ],
+    "3-1": [
+      "9METE2"
+    ],
+    "2-2": [
+      "7TECH▸1P(SPLIT2/2)"
+    ],
+    "2-3": [
+      "11WKS"
+    ],
+    "6-5": [
+      "10SSS▸3P(SPLIT2/2)"
+    ],
+    "5-8": [
+      "9AG2"
+    ],
+    "2-9": [
+      "S1 8AGRE3",
+      "S2 8AGRE2",
+      "7TECE▸1P(SPLIT1/2)"
+    ],
+    "2-4": [
+      "10AGRE2"
+    ],
+    "5-2": [
+      "10ENSE1"
+    ],
+    "6-8": [
+      "10SSS▸3P(SPLIT1/2)"
+    ],
+    "9-0": [
+      "11COV_WEDA6_R01"
+    ],
+    "9-3": [
+      "11WKS_WEDA6_R05"
+    ],
+    "10-1": [
+      "11MAV_WEDB1_R05"
+    ],
+    "11-2": [
+      "11DAT_WEDB5_R01"
+    ],
+    "11-6": [
+      "11HOV_WEDB5_R03"
+    ],
+    "11-8": [
+      "11MUM_WEDB5_R04"
+    ],
+    "7-4": [
+      "11PIV_WEDA1_R02"
+    ],
+    "8-1": [
+      "7TECA_WEDA5_R01"
+    ],
+    "8-5": [
+      "7TECB_WEDA5_R02"
+    ],
+    "8-7": [
+      "7TECC_WEDA5_R03"
+    ],
+    "8-8": [
+      "7TECD_WEDA5_R04"
+    ],
+    "12-9": [
+      "7TECE_WEDB6_R01"
+    ],
+    "12-5": [
+      "7TECF_WEDB6_R02"
+    ],
+    "12-6": [
+      "7TECG_WEDB6_R03"
+    ],
+    "12-2": [
+      "7TECH_WEDB6_R04"
+    ],
+    "4-8": [
+      "8TECD"
+    ]
+  },
+  "timestamp": "2025-11-10T02:19:18.812Z",
+  "subjects": [
+    "12DAT1",
+    "12MAV1",
+    "12COV1▸4P(SPLIT1/2)",
+    "12COV1▸3P(SPLIT2/2)",
+    "12PIV1",
+    "12HOV1",
+    "11DAT",
+    "11COV",
+    "11PIV",
+    "11HOV",
+    "11MUM",
+    "11MAV",
+    "11WKS",
+    "10AGRE1",
+    "10AGRE2",
+    "10METE1",
+    "10ENSE1",
+    "10FOTE1",
+    "10WOTE1",
+    "9AGRE1",
+    "9FOTE2",
+    "9METE1",
+    "9ENSE",
+    "9METE2",
+    "9FOTE1",
+    "9WOTE",
+    "S1 8AGRE1",
+    "S2 8AGRE4",
+    "S1 8AGRE3",
+    "S2 8AGRE2",
+    "S1 8FOTE3",
+    "S2 8FOTE4",
+    "S1 8FOTE2",
+    "S2 8FOTE1",
+    "S1 8METE3",
+    "S2 8WOTE1",
+    "S1 8METE2",
+    "S2 8METE1",
+    "S1 8MUME",
+    "S2 8ANIE",
+    "S1 8WOTE2",
+    "S2 8WOTE3",
+    "S1 8TEXE",
+    "S2 8JEWE",
+    "7TECA",
+    "7TECF",
+    "7TECB",
+    "7TECG",
+    "7TECC",
+    "7TECD",
+    "7TECE▸1P(SPLIT1/2)",
+    "7TECE▸4P(SPLIT2/2)",
+    "8TECA",
+    "8TECB",
+    "8TECC",
+    "8TECD",
+    "8TECE",
+    "8TECF",
+    "8TECG",
+    "10FOTE2",
+    "7TECH▸4P(SPLIT1/2)",
+    "7TECH▸1P(SPLIT2/2)",
+    "10SSS▸3P(SPLIT1/2)",
+    "10SSS▸3P(SPLIT2/2)",
+    "11CHE",
+    "9AG2",
+    "10WOTE2▸3P(SPLIT1/2)",
+    "10WOTE2▸2P(SPLIT2/2)",
+    "11COV_WEDA6_R01",
+    "11DAT_WEDB5_R01",
+    "11PIV_WEDA1_R02",
+    "11HOV_WEDB5_R03",
+    "11MUM_WEDB5_R04",
+    "11WKS_WEDA6_R05",
+    "11MAV_WEDB1_R05",
+    "7TECA_WEDA5_R01",
+    "7TECB_WEDA5_R02",
+    "7TECC_WEDA5_R03",
+    "7TECD_WEDA5_R04",
+    "7TECE_WEDB6_R01",
+    "7TECF_WEDB6_R02",
+    "7TECG_WEDB6_R03",
+    "7TECH_WEDB6_R04"
+  ],
+  "teachers": [
+    "Steve Cowell",
+    "Scott Trenaman",
+    "Josh Harris",
+    "Clint Campbell",
+    "Louis Orr",
+    "Deborah Clark (Deb)",
+    "Emma Fuller",
+    "Joanne Dennis (Jo)",
+    "Josh McKenzie",
+    "Katrina Bedford (Trina)"
+  ],
+  "lines": [
+    "Line 1",
+    "Line 2",
+    "Line 3",
+    "Line 4",
+    "Line 5",
+    "Line 6",
+    "Line 7",
+    "WedA1",
+    "WedA5",
+    "WedA6",
+    "WedB1",
+    "WedB5",
+    "WedB6"
+  ],
+  "csvData": [
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Year 12",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "Line 4",
+      "Line 5",
+      "Line 6"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 1",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 2",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 3",
+      "12 DAT1",
+      "",
+      "",
+      "12 MAV1",
+      "",
+      "12 COV 1"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 4",
+      "",
+      "12 PIV1",
+      "",
+      "",
+      "",
+      "12 HOV 1"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 5",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 6",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Year 11",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "Line 4",
+      "Line 5",
+      "Line 6"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 1",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 2",
+      "",
+      "",
+      "",
+      "11 DAT",
+      "11 COV",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 3",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "11 PIV"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 4",
+      "",
+      "",
+      "",
+      "11 HOV",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 5",
+      "",
+      "",
+      "",
+      "11 MUM",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 6",
+      "",
+      "",
+      "11 MAV",
+      "",
+      "11 WKS",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Year 10",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "Line 4",
+      "Line 5",
+      "Line 6"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 1",
+      "",
+      "10 AGRE 1",
+      "",
+      "",
+      "",
+      "10 AGRE2"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 2",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "10 FOTET"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 3",
+      "",
+      "10 METE 1",
+      "10 ENSE 1",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 4",
+      "",
+      "",
+      "10 FOTE 1",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 5",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 6",
+      "",
+      "10 WOTE 1",
+      "10 WOTE2",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Year 9",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "Line 4",
+      "Line 5",
+      "Line 6"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 1",
+      "",
+      "",
+      "",
+      "9AGRE1",
+      "",
+      "9AGRE2"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 2",
+      "9FOTE2",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 3",
+      "9METE 1",
+      "",
+      "",
+      "9ENSE",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 4",
+      "",
+      "",
+      "",
+      "9METE2",
+      "",
+      "9FOTE 1"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 5",
+      "9WOTE",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 6",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Year 8 (Semesters combined into one cell)",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "Line 4",
+      "Line 5",
+      "Line 6"
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 1",
+      "",
+      "S1: 8AGRE1\nS2: 8AGRE4",
+      "",
+      "",
+      "S1: 8AGRE3\nS2: 8AGRE2",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 2",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 3",
+      "",
+      "",
+      "",
+      "",
+      "S1: 8FOTE3\nS2: 8FOTE4",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 4",
+      "",
+      "S1: 8FOTE2\nS2: 8FOTE 1",
+      "",
+      "",
+      "S1: 8METE3\nS2: 8WOTE 1",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 5",
+      "",
+      "S1: 8METE2\nS2: 8METE 1",
+      "",
+      "",
+      "S1: 8MUME\nS2: 8ANIE",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 6",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Row 7",
+      "",
+      "S1: 8WOTE2\nS2: 8WOTE3",
+      "",
+      "",
+      "S1: 8TEXE\nS2: 8JEWE",
+      ""
+    ],
+    [
+      "Teacher Matrix (Lines aligned G–L)",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Teacher",
+      "Loads",
+      "Allowance",
+      "Plus/minus",
+      "Current",
+      "",
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "Line 4",
+      "Line 5",
+      "Line 6"
+    ],
+    [
+      "Steve Cowell",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Scott Trenaman",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Josh Harris",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "12 DAT1",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Clint Campbell",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Louis Orr",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "12 PIV1",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Deborah Clark (Deb)",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Emma Fuller",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Joanne Dennis (Jo)",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Josh McKenzie",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "Katrina Bedford (Trina)",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    [
+      "",
+      "",
+      "",
+      "0",
+      "0",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]
+  ],
+  "subjectLineMapping": {
+    "12DAT1": 0,
+    "12MAV1": 3,
+    "12COV1": 5,
+    "12PIV1": 1,
+    "12HOV1": 5,
+    "11DAT": 3,
+    "11COV": 2,
+    "11PIV": 5,
+    "11HOV": 3,
+    "11MUM": 3,
+    "11MAV": 4,
+    "11WKS": 2,
+    "10AGRE1": 1,
+    "10AGRE2": 2,
+    "10METE1": 1,
+    "10ENSE1": 5,
+    "10FOTE1": 5,
+    "10WOTE1": 1,
+    "9AGRE1": 3,
+    "9FOTE2": 0,
+    "9METE1": 0,
+    "9ENSE": 3,
+    "9METE2": 3,
+    "9FOTE1": 5,
+    "9WOTE": 0,
+    "S1 8AGRE1": 1,
+    "S2 8AGRE4": 1,
+    "S1 8AGRE3": 2,
+    "S2 8AGRE2": 2,
+    "S1 8FOTE3": 2,
+    "S2 8FOTE4": 2,
+    "S1 8FOTE2": 1,
+    "S2 8FOTE1": 1,
+    "S1 8METE3": 2,
+    "S2 8WOTE1": 2,
+    "S1 8METE2": 1,
+    "S2 8METE1": 1,
+    "S1 8MUME": 2,
+    "S2 8ANIE": 2,
+    "S1 8WOTE2": 1,
+    "S2 8WOTE3": 1,
+    "S1 8TEXE": 2,
+    "S2 8JEWE": 2,
+    "12COV1▸4P(SPLIT1/2)": 5,
+    "12COV1▸3P(SPLIT2/2)": 5,
+    "7TECA": 0,
+    "7TECF": 1,
+    "7TECB": 0,
+    "7TECG": 1,
+    "7TECC": 0,
+    "7TECD": 0,
+    "7TECE": 1,
+    "8TECA": 4,
+    "8TECB": 4,
+    "8TECC": 4,
+    "8TECD": 4,
+    "8TECE": 4,
+    "8TECF": 4,
+    "8TECG": 4,
+    "10FOTE2": 2,
+    "7TECH": 1,
+    "7TECH▸4P(SPLIT1/2)": 1,
+    "7TECH▸1P(SPLIT2/2)": 2,
+    "10SSS": 6,
+    "10SSS▸3P(SPLIT1/2)": 6,
+    "10SSS▸3P(SPLIT2/2)": 6,
+    "11CHE": 4,
+    "9AG2": 5,
+    "10WOTE2▸3P(SPLIT1/2)": 5,
+    "10WOTE2▸2P(SPLIT2/2)": 5,
+    "11COV_WEDA6_R01": 9,
+    "11DAT_WEDB5_R01": 11,
+    "11PIV_WEDA1_R02": 7,
+    "11HOV_WEDB5_R03": 11,
+    "11MUM_WEDB5_R04": 11,
+    "11WKS_WEDA6_R05": 9,
+    "11MAV_WEDB1_R05": 10,
+    "7TECA_WEDA5_R01": 8,
+    "7TECB_WEDA5_R02": 8,
+    "7TECC_WEDA5_R03": 8,
+    "7TECD_WEDA5_R04": 8,
+    "7TECE_WEDB6_R01": 12,
+    "7TECF_WEDB6_R02": 12,
+    "7TECG_WEDB6_R03": 12,
+    "7TECH_WEDB6_R04": 12,
+    "7TECE▸1P(SPLIT1/2)": 2,
+    "7TECE▸4P(SPLIT2/2)": 1
+  },
+  "subjectSplits": {
+    "12COV1": [
+      {
+        "code": "12COV1▸4P(SPLIT1/2)",
+        "periods": 4,
+        "index": 0,
+        "totalSplits": 2
+      },
+      {
+        "code": "12COV1▸3P(SPLIT2/2)",
+        "periods": 3,
+        "index": 1,
+        "totalSplits": 2
+      }
+    ],
+    "7TECH": [
+      {
+        "code": "7TECH▸4P(SPLIT1/2)",
+        "periods": 4,
+        "index": 0,
+        "totalSplits": 2
+      },
+      {
+        "code": "7TECH▸1P(SPLIT2/2)",
+        "periods": 1,
+        "index": 1,
+        "totalSplits": 2
+      }
+    ],
+    "10SSS": [
+      {
+        "code": "10SSS▸3P(SPLIT1/2)",
+        "periods": 3,
+        "index": 0,
+        "totalSplits": 2
+      },
+      {
+        "code": "10SSS▸3P(SPLIT2/2)",
+        "periods": 3,
+        "index": 1,
+        "totalSplits": 2
+      }
+    ],
+    "10WOTE2": [
+      {
+        "code": "10WOTE2▸3P(SPLIT1/2)",
+        "periods": 3,
+        "index": 0,
+        "totalSplits": 2
+      },
+      {
+        "code": "10WOTE2▸2P(SPLIT2/2)",
+        "periods": 2,
+        "index": 1,
+        "totalSplits": 2
+      }
+    ],
+    "7TECE": [
+      {
+        "code": "7TECE▸1P(SPLIT1/2)",
+        "periods": 1,
+        "index": 0,
+        "totalSplits": 2
+      },
+      {
+        "code": "7TECE▸4P(SPLIT2/2)",
+        "periods": 4,
+        "index": 1,
+        "totalSplits": 2
+      }
+    ]
+  },
+  "subjectYearMapping": {
+    "12DAT1": "Year 2",
+    "12MAV1": "Year 2",
+    "12COV1": "Year 2",
+    "12PIV1": "Year 3",
+    "12HOV1": "Year 3",
+    "11DAT": "Year 1",
+    "11COV": "Year 1",
+    "11PIV": "Year 2",
+    "11HOV": "Year 3",
+    "11MUM": "Year 4",
+    "11MAV": "Year 5",
+    "11WKS": "Year 5",
+    "10AGRE1": "Year 10",
+    "10AGRE2": "Year 10",
+    "10METE1": "Year 2",
+    "10ENSE1": "Year 2",
+    "10FOTE1": "Year 3",
+    "10WOTE1": "Year 5",
+    "10WOTE2": "Year 10",
+    "9AGRE1": "Year 9",
+    "9AGRE2": "Year 9",
+    "9FOTE2": "Year 1",
+    "9METE1": "Year 2",
+    "9ENSE": "Year 2",
+    "9METE2": "Year 3",
+    "9FOTE1": "Year 3",
+    "9WOTE": "Year 4",
+    "S1 8AGRE1": "Year 8",
+    "S2 8AGRE4": "Year 8",
+    "S1 8AGRE3": "Year 8",
+    "S2 8AGRE2": "Year 8",
+    "S1 8FOTE3": "Year 8",
+    "S2 8FOTE4": "Year 8",
+    "S1 8FOTE2": "Year 8",
+    "S2 8FOTE1": "Year 8",
+    "S1 8METE3": "Year 8",
+    "S2 8WOTE1": "Year 8",
+    "S1 8METE2": "Year 8",
+    "S2 8METE1": "Year 8",
+    "S1 8MUME": "Year 8",
+    "S2 8ANIE": "Year 8",
+    "S1 8WOTE2": "Year 8",
+    "S2 8WOTE3": "Year 8",
+    "S1 8TEXE": "Year 8",
+    "S2 8JEWE": "Year 8",
+    "8FOTE3": "Year 2",
+    "8FOTE4": "Year 2",
+    "8FOTE2": "Year 3",
+    "8FOTE1": "Year 3",
+    "8METE3": "Year 3",
+    "8WOTE1": "Year 3",
+    "8METE2": "Year 4",
+    "8METE1": "Year 4",
+    "8MUME": "Year 4",
+    "8ANIE": "Year 4",
+    "8WOTE2": "Year 6",
+    "8WOTE3": "Year 6",
+    "8TEXE": "Year 6",
+    "8JEWE": "Year 6",
+    "12COV1▸4P(SPLIT1/2)": "Year 2",
+    "12COV1▸3P(SPLIT2/2)": "Year 2",
+    "9AGRE2▸3P(SPLIT1/2)": "Year 9",
+    "9AGRE2▸3P(SPLIT2/2)": "Year 9",
+    "7TECA": "Year 7",
+    "7TECF": "Year 7",
+    "7TECB": "Year 7",
+    "7TECG": "Year 7",
+    "7TECC": "Year 7",
+    "7TECH": "Year 7",
+    "7TECD": "Year 7",
+    "7TECE": "Year 7",
+    "8TECA": "Year 8",
+    "8TECB": "Year 8",
+    "8TECC": "Year 8",
+    "8TECD": "Year 8",
+    "8TECE": "Year 8",
+    "8TECF": "Year 8",
+    "8TECG": "Year 9",
+    "10FOTE2": "Year 10",
+    "7TECH▸4P(SPLIT1/2)": "Year 7",
+    "7TECH▸1P(SPLIT2/2)": "Year 7",
+    "10SSS": "Year 10",
+    "10SSS▸3P(SPLIT1/2)": "Year 10",
+    "10SSS▸3P(SPLIT2/2)": "Year 10",
+    "10WOTE2▸3P(SPLIT1/2)": "Year 10",
+    "10WOTE2▸2P(SPLIT2/2)": "Year 10",
+    "11CHE": "Year 11",
+    "9AG2": "Year 9",
+    "11COV_WEDA6_R01": "Year 11",
+    "11DAT_WEDB5_R01": "Year 11",
+    "11PIV_WEDA1_R02": "Year 11",
+    "11HOV_WEDB5_R03": "Year 11",
+    "11MUM_WEDB5_R04": "Year 11",
+    "11WKS_WEDA6_R05": "Year 11",
+    "11MAV_WEDB1_R05": "Year 11",
+    "7TECA_WEDA5_R01": "Year 7",
+    "7TECB_WEDA5_R02": "Year 7",
+    "7TECC_WEDA5_R03": "Year 7",
+    "7TECD_WEDA5_R04": "Year 7",
+    "7TECE_WEDB6_R01": "Year 7",
+    "7TECF_WEDB6_R02": "Year 7",
+    "7TECG_WEDB6_R03": "Year 7",
+    "7TECH_WEDB6_R04": "Year 7",
+    "7TECE▸1P(SPLIT1/2)": "Year 7",
+    "7TECE▸4P(SPLIT2/2)": "Year 7"
+  },
+  "teacherLoadSettings": {
+    "Steve Cowell": {
+      "fte": "1.0",
+      "periodAllowance": 6,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 3,
+      "additionalMinutes": 0
+    },
+    "Scott Trenaman": {
+      "fte": "1.0",
+      "periodAllowance": 6,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 3,
+      "additionalMinutes": 0
+    },
+    "Josh Harris": {
+      "fte": "1.0",
+      "periodAllowance": 6,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 1,
+      "additionalMinutes": 0
+    },
+    "Clint Campbell": {
+      "fte": "1.0",
+      "periodAllowance": 10,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 1,
+      "additionalMinutes": 0
+    },
+    "Louis Orr": {
+      "fte": "1.0",
+      "periodAllowance": 6,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 1,
+      "additionalMinutes": 0
+    },
+    "Deborah Clark (Deb)": {
+      "fte": "1.0",
+      "periodAllowance": 2,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 7,
+      "additionalMinutes": 0
+    },
+    "Emma Fuller": {
+      "fte": "0.8",
+      "periodAllowance": 0,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 7,
+      "additionalMinutes": 0
+    },
+    "Joanne Dennis (Jo)": {
+      "fte": "0.8",
+      "periodAllowance": 0,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 7,
+      "additionalMinutes": 0
+    },
+    "Josh McKenzie": {
+      "fte": "1.0",
+      "periodAllowance": 2,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 7,
+      "additionalMinutes": 0
+    },
+    "Katrina Bedford (Trina)": {
+      "fte": "1.0",
+      "periodAllowance": 0,
+      "assemblyFullCount": 1,
+      "assemblyShortCount": 7,
+      "additionalMinutes": 0
+    }
+  },
+  "subjectRoomAssignments": {},
+  "allocationRoomOverrides": {}
+}
